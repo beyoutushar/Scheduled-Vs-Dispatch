@@ -182,8 +182,20 @@
           <label>Scheduled Date</label>
           <input id="n-date" type="date">
         </div>
+        <div class="field">
+          <label>Pending Department <span style="text-transform:none;">(optional)</span></label>
+          <select id="n-dept">
+            <option value="">— None —</option>
+            <option>Corrugation</option><option>Printing</option><option>Stitching</option>
+            <option>Packaging</option><option>Dispatch</option>
+          </select>
+        </div>
       </div>
-      <div class="sub" style="margin:-4px 0 12px;">Pending Department/Reason aren't set here — they get logged the first time a dispatch entry shows the order stuck at a stage.</div>
+      <div class="field">
+        <label>Pending Reason <span style="text-transform:none;">(optional)</span></label>
+        <input id="n-reason" placeholder="e.g. awaiting board stock — leave blank if not applicable">
+      </div>
+      <div class="sub" style="margin:-4px 0 12px;">Leave Pending Department/Reason blank if the order hasn't hit a snag yet — you can always set them later from a dispatch entry.</div>
       <button class="btn-primary btn-block" onclick="submitOrder()">Create Order</button>
       <div class="status-msg" id="new-status"></div>
     </div>
@@ -406,6 +418,8 @@ async function submitOrder() {
   const qty = document.getElementById('n-qty').value;
   const priority = document.getElementById('n-priority').value;
   const date = document.getElementById('n-date').value;
+  const dept = document.getElementById('n-dept').value;
+  const reason = document.getElementById('n-reason').value.trim();
   const statusEl = document.getElementById('new-status');
 
   if (!customer || !part || !qty || !date) {
@@ -418,12 +432,13 @@ async function submitOrder() {
   try {
     const res = await postAction({
       action: 'addOrder', customer, partCode: part, orderQty: qty,
-      priority, scheduledDate: date
+      priority, scheduledDate: date, pendingDepartment: dept, pendingReason: reason
     });
     if (res.error) throw new Error(res.error);
     statusEl.textContent = 'Order created.'; statusEl.className = 'status-msg ok';
     document.getElementById('n-part').value = '';
     document.getElementById('n-qty').value = '';
+    document.getElementById('n-reason').value = '';
     await loadData();
   } catch (e) {
     statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
