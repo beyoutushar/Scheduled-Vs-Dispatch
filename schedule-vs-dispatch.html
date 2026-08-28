@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedule vs Dispatch — MIS</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #191d27;
+    --border: #262b38;
+    --text: #eef0f4;
+    --muted: #8b93a7;
+    --accent: #5b8def;
+    --accent-2: #3fd0a0;
+    --warn: #eab84d;
+    --danger: #e5586e;
+    --radius: 12px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--font); padding:20px 24px 60px; }
+  h1 { font-size:20px; margin:0; }
+  .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+  .topbar { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+  .conn { font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--border); color:var(--muted); }
+  .conn.ok { color:var(--accent-2); border-color:rgba(63,208,160,.3); }
+  .conn.err { color:var(--danger); border-color:rgba(229,88,110,.3); }
+
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
+  .stat { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+  .stat .n { font-size:22px; font-weight:700; }
+  .stat .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+  .stat.warn .n { color:var(--warn); }
+  .stat.good .n { color:var(--accent-2); }
+
+  .tabs { display:flex; gap:8px; margin-bottom:16px; border-bottom:1px solid var(--border); }
+  .tab { padding:10px 4px; cursor:pointer; color:var(--muted); font-size:13px; font-weight:600; border-bottom:2px solid transparent; margin-right:14px;}
+  .tab.active { color:var(--text); border-color:var(--accent); }
+
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:16px; }
+  .card h2 { font-size:14px; margin:0 0 14px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:900px){ .grid{ grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .grid{ grid-template-columns:1fr;} }
+  label { display:block; font-size:11px; color:var(--muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:.03em; }
+  input, select, textarea {
+    width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    padding:9px 10px; border-radius:8px; font-size:13px; font-family:var(--font);
+  }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
+  .field { margin-bottom:12px; }
+  .field.combo { position:relative; }
+  .add-inline { display:flex; gap:6px; margin-top:6px; }
+  .add-inline input { flex:1; }
+  .add-inline button { white-space:nowrap; }
+
+  button { cursor:pointer; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-small { padding:6px 10px; font-size:12px; }
+  .btn-block { width:100%; margin-top:6px; }
+
+  .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .toolbar select, .toolbar input { width:auto; min-width:150px; }
+  .spacer { flex:1; }
+
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th { text-align:left; color:var(--muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em;
+       padding:9px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
+  td { padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tr:hover td { background:var(--panel-2); }
+  .table-scroll { overflow-x:auto; }
+
+  .pill { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; }
+  .pill-pending { background:rgba(234,184,77,.15); color:var(--warn); }
+  .pill-completed { background:rgba(63,208,160,.15); color:var(--accent-2); }
+  .pill-high { background:rgba(229,88,110,.15); color:var(--danger); }
+  .pill-medium { background:rgba(234,184,77,.15); color:var(--warn); }
+  .pill-low { background:rgba(139,147,167,.15); color:var(--muted); }
+
+  .bar-wrap { width:80px; height:6px; background:var(--border); border-radius:3px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:6px;}
+  .bar-fill { height:100%; background:var(--accent-2); }
+
+  .empty { color:var(--muted); text-align:center; padding:40px 0; font-size:13px; }
+  .status-msg { font-size:12px; margin-top:8px; min-height:16px; }
+  .status-msg.ok { color:var(--accent-2); }
+  .status-msg.err { color:var(--danger); }
+
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); align-items:center; justify-content:center; z-index:50; }
+  .modal-bg.show { display:flex; }
+  .modal { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:20px; width:420px; max-width:92vw; }
+  .modal h3 { margin:0 0 14px; font-size:15px; }
+  .modal-actions { display:flex; gap:10px; margin-top:16px; }
+  .modal-actions button { flex:1; }
+  .link { color:var(--accent); cursor:pointer; font-size:12px; }
+  code.inline { background:var(--panel-2); padding:2px 6px; border-radius:5px; font-size:12px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>Schedule vs Dispatch — MIS</h1>
+    <div class="sub">Live order tracking across Corrugation, Printing, Stitching, Packaging &amp; Dispatch</div>
+  </div>
+  <div id="conn" class="conn">Connecting…</div>
+</div>
+
+<div id="setup-card" class="card" style="display:none;">
+  <h2>One-time setup</h2>
+  <div class="field">
+    <label>Apps Script Web App URL</label>
+    <input id="script-url" placeholder="https://script.google.com/macros/s/XXXX/exec">
+  </div>
+  <button class="btn-primary" onclick="saveUrl()">Connect</button>
+  <div class="status-msg" id="setup-status"></div>
+</div>
+
+<div id="main-app" style="display:none;">
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="orders" onclick="switchTab('orders')">All Orders</div>
+    <div class="tab" data-tab="new" onclick="switchTab('new')">New Order</div>
+    <div class="tab" data-tab="dispatch" onclick="switchTab('dispatch')">Log Dispatch</div>
+  </div>
+
+  <!-- ORDERS TAB -->
+  <div id="tab-orders">
+    <div class="card">
+      <div class="toolbar">
+        <select id="f-customer" onchange="renderTable()"><option value="">All customers</option></select>
+        <select id="f-part" onchange="renderTable()"><option value="">All part codes</option></select>
+        <select id="f-status" onchange="renderTable()">
+          <option value="">All statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Completed">Completed</option>
+        </select>
+        <select id="f-dept" onchange="renderTable()"><option value="">All departments</option></select>
+        <input id="f-date" type="date" onchange="renderTable()">
+        <div class="spacer"></div>
+        <button class="btn-ghost btn-small" onclick="clearFilters()">Clear filters</button>
+        <button class="btn-primary btn-small" onclick="exportCSV()">Export CSV</button>
+        <button class="btn-ghost btn-small" onclick="loadData()">Refresh</button>
+      </div>
+      <div class="table-scroll">
+        <table id="orders-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div id="orders-empty" class="empty" style="display:none;">No orders match these filters.</div>
+    </div>
+  </div>
+
+  <!-- NEW ORDER TAB -->
+  <div id="tab-new" style="display:none;">
+    <div class="card">
+      <h2>New Order</h2>
+      <div class="grid">
+        <div class="field combo">
+          <label>Customer Name</label>
+          <input id="n-customer" list="dl-customers" placeholder="Select or type new">
+          <datalist id="dl-customers"></datalist>
+        </div>
+        <div class="field combo">
+          <label>Part Code</label>
+          <input id="n-part" list="dl-parts" placeholder="Select or type new">
+          <datalist id="dl-parts"></datalist>
+        </div>
+        <div class="field">
+          <label>Order Quantity</label>
+          <input id="n-qty" type="number" min="1" placeholder="1000">
+        </div>
+        <div class="field">
+          <label>Priority Level</label>
+          <select id="n-priority">
+            <option>High</option><option selected>Medium</option><option>Low</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Scheduled Date</label>
+          <input id="n-date" type="date">
+        </div>
+        <div class="field">
+          <label>Pending Department (initial)</label>
+          <select id="n-dept">
+            <option>Corrugation</option><option>Printing</option><option>Stitching</option>
+            <option>Packaging</option><option>Dispatch</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Pending Reason (optional)</label>
+        <input id="n-reason" placeholder="e.g. awaiting board stock">
+      </div>
+      <button class="btn-primary btn-block" onclick="submitOrder()">Create Order</button>
+      <div class="status-msg" id="new-status"></div>
+    </div>
+  </div>
+
+  <!-- DISPATCH TAB -->
+  <div id="tab-dispatch" style="display:none;">
+    <div class="card">
+      <h2>Log a Dispatch</h2>
+      <div class="field">
+        <label>Order</label>
+        <select id="d-order"></select>
+      </div>
+      <div id="d-order-info" class="sub" style="margin-bottom:12px;"></div>
+      <div class="grid">
+        <div class="field">
+          <label>Dispatched Quantity (this entry)</label>
+          <input id="d-qty" type="number" min="1" placeholder="200">
+        </div>
+        <div class="field">
+          <label>Dispatched Date</label>
+          <input id="d-date" type="date">
+        </div>
+        <div class="field">
+          <label>Still-Pending Department</label>
+          <select id="d-dept">
+            <option>Corrugation</option><option>Printing</option><option>Stitching</option>
+            <option>Packaging</option><option>Dispatch</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Pending Reason (if still pending)</label>
+        <input id="d-reason" placeholder="e.g. printing machine changeover">
+      </div>
+      <button class="btn-primary btn-block" onclick="submitDispatch()">Log Dispatch</button>
+      <div class="status-msg" id="dispatch-status"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let APPS_SCRIPT_URL = localStorage_getUrl();
+let data = { orders: [], logs: [], customers: [], partCodes: [], departments: [] };
+
+// ---------- URL persistence (this is just the endpoint string, not app data) ----------
+function localStorage_getUrl() {
+  try { return window.name.indexOf('SVD_URL::') === 0 ? window.name.slice(9) : ''; } catch(e){ return ''; }
+}
+function localStorage_setUrl(url) {
+  try { window.name = 'SVD_URL::' + url; } catch(e){}
+}
+
+function init() {
+  if (!APPS_SCRIPT_URL) {
+    document.getElementById('setup-card').style.display = 'block';
+  } else {
+    document.getElementById('main-app').style.display = 'block';
+    loadData();
+  }
+}
+
+function saveUrl() {
+  const url = document.getElementById('script-url').value.trim();
+  if (!url.startsWith('https://script.google.com/')) {
+    document.getElementById('setup-status').textContent = 'That doesn\'t look like a valid Apps Script URL.';
+    document.getElementById('setup-status').className = 'status-msg err';
+    return;
+  }
+  APPS_SCRIPT_URL = url;
+  localStorage_setUrl(url);
+  document.getElementById('setup-card').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  loadData();
+}
+
+function setConn(state, msg) {
+  const el = document.getElementById('conn');
+  el.className = 'conn ' + state;
+  el.textContent = msg;
+}
+
+async function loadData() {
+  setConn('', 'Loading…');
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    data = await res.json();
+    setConn('ok', 'Live — connected');
+    populateDropdowns();
+    renderStats();
+    renderTable();
+    populateDispatchOrderSelect();
+  } catch (e) {
+    setConn('err', 'Connection failed');
+  }
+}
+
+function switchTab(name) {
+  ['orders','new','dispatch'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
+    document.querySelector(`.tab[data-tab="${t}"]`).classList.toggle('active', t === name);
+  });
+  if (name === 'dispatch') populateDispatchOrderSelect();
+}
+
+function populateDropdowns() {
+  document.getElementById('dl-customers').innerHTML = data.customers.map(c => `<option value="${esc(c)}">`).join('');
+  document.getElementById('dl-parts').innerHTML = data.partCodes.map(p => `<option value="${esc(p)}">`).join('');
+
+  const fc = document.getElementById('f-customer');
+  fc.innerHTML = '<option value="">All customers</option>' + data.customers.map(c => `<option>${esc(c)}</option>`).join('');
+  const fp = document.getElementById('f-part');
+  fp.innerHTML = '<option value="">All part codes</option>' + data.partCodes.map(p => `<option>${esc(p)}</option>`).join('');
+  const fd = document.getElementById('f-dept');
+  fd.innerHTML = '<option value="">All departments</option>' + data.departments.map(d => `<option>${esc(d)}</option>`).join('');
+}
+
+function renderStats() {
+  const orders = data.orders;
+  const pending = orders.filter(o => o.Status === 'Pending');
+  const completed = orders.filter(o => o.Status === 'Completed');
+  const totalOrderQty = orders.reduce((s,o) => s + Number(o.OrderQty||0), 0);
+  const totalDispatched = orders.reduce((s,o) => s + Number(o.DispatchedQty||0), 0);
+  const totalPendingQty = orders.reduce((s,o) => s + Number(o.PendingQty||0), 0);
+  const custPending = new Set(pending.map(o => o.Customer)).size;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="n">${orders.length}</div><div class="l">Total Orders</div></div>
+    <div class="stat warn"><div class="n">${pending.length}</div><div class="l">Pending Orders</div></div>
+    <div class="stat good"><div class="n">${completed.length}</div><div class="l">Completed</div></div>
+    <div class="stat"><div class="n">${totalOrderQty.toLocaleString()}</div><div class="l">Total Order Qty</div></div>
+    <div class="stat good"><div class="n">${totalDispatched.toLocaleString()}</div><div class="l">Dispatched Qty</div></div>
+    <div class="stat warn"><div class="n">${totalPendingQty.toLocaleString()}</div><div class="l">Pending Qty</div></div>
+    <div class="stat"><div class="n">${custPending}</div><div class="l">Customers w/ Pending</div></div>
+  `;
+}
+
+function getFiltered() {
+  const c = document.getElementById('f-customer').value;
+  const p = document.getElementById('f-part').value;
+  const s = document.getElementById('f-status').value;
+  const dept = document.getElementById('f-dept').value;
+  const date = document.getElementById('f-date').value;
+  return data.orders
+    .filter(o => !c || o.Customer === c)
+    .filter(o => !p || o.PartCode === p)
+    .filter(o => !s || o.Status === s)
+    .filter(o => !dept || o.PendingDepartment === dept)
+    .filter(o => !date || fmtDate(o.ScheduledDate) === date)
+    .sort((a,b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+}
+
+function clearFilters() {
+  ['f-customer','f-part','f-status','f-dept','f-date'].forEach(id => document.getElementById(id).value = '');
+  renderTable();
+}
+
+function renderTable() {
+  const rows = getFiltered();
+  const tbl = document.getElementById('orders-table');
+  const empty = document.getElementById('orders-empty');
+
+  tbl.querySelector('thead').innerHTML = `<tr>
+    <th>Customer</th><th>Part Code</th><th>Priority</th><th>Order Qty</th>
+    <th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
+    <th>Pending Dept</th><th>Pending Reason</th><th>Status</th>
+  </tr>`;
+
+  if (rows.length === 0) {
+    tbl.querySelector('tbody').innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbl.querySelector('tbody').innerHTML = rows.map(o => {
+    const orderQty = Number(o.OrderQty||0);
+    const dispatched = Number(o.DispatchedQty||0);
+    const pct = orderQty ? Math.min(100, Math.round(dispatched/orderQty*100)) : 0;
+    const statusPill = o.Status === 'Completed' ? 'pill-completed' : 'pill-pending';
+    const prioPill = o.Priority === 'High' ? 'pill-high' : o.Priority === 'Low' ? 'pill-low' : 'pill-medium';
+    return `<tr>
+      <td>${esc(o.Customer)}</td>
+      <td>${esc(o.PartCode)}</td>
+      <td><span class="pill ${prioPill}">${esc(o.Priority||'')}</span></td>
+      <td>${orderQty.toLocaleString()}</td>
+      <td>${dispatched.toLocaleString()}</td>
+      <td>${Number(o.PendingQty||0).toLocaleString()}</td>
+      <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td>
+      <td>${fmtDate(o.ScheduledDate)}</td>
+      <td>${esc(o.PendingDepartment||'—')}</td>
+      <td>${esc(o.PendingReason||'—')}</td>
+      <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function populateDispatchOrderSelect() {
+  const sel = document.getElementById('d-order');
+  const pending = data.orders.filter(o => o.Status === 'Pending');
+  sel.innerHTML = pending.map(o =>
+    `<option value="${o.OrderID}">${esc(o.Customer)} — ${esc(o.PartCode)} (${o.PendingQty} pending)</option>`
+  ).join('') || '<option value="">No pending orders</option>';
+  sel.onchange = updateOrderInfo;
+  updateOrderInfo();
+}
+
+function updateOrderInfo() {
+  const id = document.getElementById('d-order').value;
+  const o = data.orders.find(x => x.OrderID === id);
+  const info = document.getElementById('d-order-info');
+  if (!o) { info.textContent = ''; return; }
+  info.textContent = `Order Qty: ${o.OrderQty} · Dispatched so far: ${o.DispatchedQty} · Pending: ${o.PendingQty}`;
+}
+
+async function submitOrder() {
+  const customer = document.getElementById('n-customer').value.trim();
+  const part = document.getElementById('n-part').value.trim();
+  const qty = document.getElementById('n-qty').value;
+  const priority = document.getElementById('n-priority').value;
+  const date = document.getElementById('n-date').value;
+  const dept = document.getElementById('n-dept').value;
+  const reason = document.getElementById('n-reason').value.trim();
+  const statusEl = document.getElementById('new-status');
+
+  if (!customer || !part || !qty || !date) {
+    statusEl.textContent = 'Customer, part code, quantity and scheduled date are required.';
+    statusEl.className = 'status-msg err';
+    return;
+  }
+
+  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
+  try {
+    const res = await postAction({
+      action: 'addOrder', customer, partCode: part, orderQty: qty,
+      priority, scheduledDate: date, pendingDepartment: dept, pendingReason: reason
+    });
+    if (res.error) throw new Error(res.error);
+    statusEl.textContent = 'Order created.'; statusEl.className = 'status-msg ok';
+    document.getElementById('n-part').value = '';
+    document.getElementById('n-qty').value = '';
+    document.getElementById('n-reason').value = '';
+    await loadData();
+  } catch (e) {
+    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
+  }
+}
+
+async function submitDispatch() {
+  const orderId = document.getElementById('d-order').value;
+  const qty = document.getElementById('d-qty').value;
+  const date = document.getElementById('d-date').value;
+  const dept = document.getElementById('d-dept').value;
+  const reason = document.getElementById('d-reason').value.trim();
+  const statusEl = document.getElementById('dispatch-status');
+
+  if (!orderId || !qty || !date) {
+    statusEl.textContent = 'Select an order, quantity and date.'; statusEl.className = 'status-msg err';
+    return;
+  }
+
+  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
+  try {
+    const res = await postAction({
+      action: 'addDispatch', orderId, dispatchedQty: qty, dispatchedDate: date,
+      pendingDepartment: dept, pendingReason: reason
+    });
+    if (res.error) throw new Error(res.error);
+    statusEl.textContent = res.status === 'Completed'
+      ? 'Logged — order is now Completed.'
+      : `Logged — ${res.pending} still pending.`;
+    statusEl.className = 'status-msg ok';
+    document.getElementById('d-qty').value = '';
+    document.getElementById('d-reason').value = '';
+    await loadData();
+  } catch (e) {
+    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
+  }
+}
+
+async function postAction(body) {
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // avoids CORS preflight on Apps Script
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+function exportCSV() {
+  const rows = getFiltered();
+  const headers = ['Customer','Part Code','Priority','Order Qty','Dispatched Qty','Pending Qty',
+    'Scheduled Date','Pending Department','Pending Reason','Status'];
+  const lines = [headers.join(',')];
+  rows.forEach(o => {
+    const line = [
+      o.Customer, o.PartCode, o.Priority, o.OrderQty, o.DispatchedQty, o.PendingQty,
+      fmtDate(o.ScheduledDate), o.PendingDepartment||'', o.PendingReason||'', o.Status
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+    lines.push(line);
+  });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0,10);
+  a.download = `schedule-vs-dispatch_${stamp}.csv`;
+  a.click();
+}
+
+function fmtDate(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d)) return String(v);
+  return d.toISOString().slice(0,10);
+}
+function esc(s) {
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.getElementById('n-date').valueAsDate = new Date();
+document.getElementById('d-date').valueAsDate = new Date();
+init();
+</script>
+</body>
+</html>
