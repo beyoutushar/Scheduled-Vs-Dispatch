@@ -508,7 +508,7 @@ async function submitStock() {
 function renderStockTable() {
   const tbody = document.querySelector('#stock-table tbody');
   if (!tbody) return;
-  const rows = [...data.stock].sort((a,b) => (a.PartCode||'').localeCompare(b.PartCode||''));
+  const rows = [...data.stock].sort((a, b) =>   String(a.PartCode ?? '').localeCompare(String(b.PartCode ?? '')) );
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td>${esc(r.PartCode)}</td>
