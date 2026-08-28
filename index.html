@@ -129,6 +129,7 @@
     <div class="tab active" data-tab="orders" onclick="switchTab('orders')">All Orders</div>
     <div class="tab" data-tab="new" onclick="switchTab('new')">New Order</div>
     <div class="tab" data-tab="dispatch" onclick="switchTab('dispatch')">Log Dispatch</div>
+    <div class="tab" data-tab="stock" onclick="switchTab('stock')">FG Stock</div>
   </div>
 
   <!-- ORDERS TAB -->
@@ -172,7 +173,7 @@
         </div>
         <div class="field combo">
           <label>Part Code</label>
-          <input id="n-part" list="dl-parts" placeholder="Select or type new">
+          <input id="n-part" list="dl-parts" placeholder="Select or type new" oninput="showStock()">
           <datalist id="dl-parts"></datalist>
         </div>
         <div class="field">
@@ -205,6 +206,7 @@
           </select>
         </div>
       </div>
+      <div class="sub" id="n-stock-info" style="margin:-4px 0 12px;">Enter a Part Code to see current FG stock.</div>
       <div class="field">
         <label>Pending Reason <span style="text-transform:none;">(optional)</span></label>
         <input id="n-reason" placeholder="e.g. awaiting board stock — leave blank if not applicable">
@@ -257,11 +259,47 @@
     </div>
   </div>
 
+  <!-- STOCK TAB -->
+  <div id="tab-stock" style="display:none;">
+    <div class="card">
+      <h2>Update FG Stock</h2>
+      <div class="grid">
+        <div class="field combo">
+          <label>Part Code</label>
+          <input id="s-part" list="dl-parts" placeholder="Select or type" oninput="showCurrentStock()">
+        </div>
+        <div class="field">
+          <label>Quantity</label>
+          <input id="s-qty" type="number" min="0" placeholder="500">
+        </div>
+        <div class="field">
+          <label>Mode</label>
+          <select id="s-mode">
+            <option value="set">Set to this value</option>
+            <option value="add">Add to current stock</option>
+          </select>
+        </div>
+      </div>
+      <div class="sub" id="s-current" style="margin:-4px 0 12px;"></div>
+      <button class="btn-primary btn-block" onclick="submitStock()">Update Stock</button>
+      <div class="status-msg" id="stock-status"></div>
+    </div>
+    <div class="card">
+      <h2>Current FG Stock</h2>
+      <div class="table-scroll">
+        <table id="stock-table">
+          <thead><tr><th>Part Code</th><th>Available Qty</th><th>Last Updated</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
 let APPS_SCRIPT_URL = localStorage_getUrl();
-let data = { orders: [], logs: [], customers: [], partCodes: [], departments: [] };
+let data = { orders: [], logs: [], customers: [], partCodes: [], departments: [], stock: [] };
 
 // ---------- URL persistence (this is just the endpoint string, not app data) ----------
 function localStorage_getUrl() {
@@ -316,11 +354,12 @@ async function loadData() {
 }
 
 function switchTab(name) {
-  ['orders','new','dispatch'].forEach(t => {
+  ['orders','new','dispatch','stock'].forEach(t => {
     document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
     document.querySelector(`.tab[data-tab="${t}"]`).classList.toggle('active', t === name);
   });
   if (name === 'dispatch') populateDispatchOrderSelect();
+  if (name === 'stock') renderStockTable();
 }
 
 function populateDropdowns() {
@@ -385,7 +424,7 @@ function renderTable() {
   tbl.querySelector('thead').innerHTML = `<tr>
     <th>Customer</th><th>Part Code</th><th>Unit</th><th>Priority</th><th>Order Qty</th>
     <th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
-    <th>Pending Dept</th><th>Pending Reason</th><th>Status</th>
+    <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Status</th>
   </tr>`;
 
   if (rows.length === 0) {
@@ -411,11 +450,72 @@ function renderTable() {
       <td>${Number(o.PendingQty||0).toLocaleString()}</td>
       <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td>
       <td>${fmtDate(o.ScheduledDate)}</td>
+      <td>${o.FGStatus === 'In Stock' ? '<span class="pill pill-completed">In Stock</span>' : o.FGStatus ? '<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>' : '—'}</td>
       <td>${esc(o.PendingDepartment||'—')}</td>
       <td>${esc(o.PendingReason||'—')}</td>
       <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td>
     </tr>`;
   }).join('');
+}
+
+function getStockFor(partCode) {
+  const row = data.stock.find(s => s.PartCode === partCode);
+  return row ? Number(row.AvailableQty) || 0 : 0;
+}
+
+function showStock() {
+  const part = document.getElementById('n-part').value.trim();
+  const info = document.getElementById('n-stock-info');
+  if (!part) { info.textContent = 'Enter a Part Code to see current FG stock.'; return; }
+  const stock = getStockFor(part);
+  if (stock > 0) {
+    info.innerHTML = `Available FG stock: <b>${stock}</b> — if this covers the order quantity it'll route straight to Dispatch, otherwise to PPC Planning.`;
+  } else {
+    info.textContent = 'No FG stock on record for this part code — order will route to PPC Planning.';
+  }
+}
+
+function showCurrentStock() {
+  const part = document.getElementById('s-part').value.trim();
+  const el = document.getElementById('s-current');
+  if (!part) { el.textContent = ''; return; }
+  el.textContent = `Current stock: ${getStockFor(part)}`;
+}
+
+async function submitStock() {
+  const part = document.getElementById('s-part').value.trim();
+  const qty = document.getElementById('s-qty').value;
+  const mode = document.getElementById('s-mode').value;
+  const statusEl = document.getElementById('stock-status');
+  if (!part || qty === '') {
+    statusEl.textContent = 'Part code and quantity are required.'; statusEl.className = 'status-msg err';
+    return;
+  }
+  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
+  try {
+    const res = await postAction({ action: 'setStock', partCode: part, qty, mode });
+    if (res.error) throw new Error(res.error);
+    statusEl.textContent = `Stock updated — now ${res.newQty}.`; statusEl.className = 'status-msg ok';
+    document.getElementById('s-qty').value = '';
+    await loadData();
+    renderStockTable();
+    showCurrentStock();
+  } catch (e) {
+    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
+  }
+}
+
+function renderStockTable() {
+  const tbody = document.querySelector('#stock-table tbody');
+  if (!tbody) return;
+  const rows = [...data.stock].sort((a,b) => (a.PartCode||'').localeCompare(b.PartCode||''));
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${esc(r.PartCode)}</td>
+      <td>${Number(r.AvailableQty||0).toLocaleString()}</td>
+      <td>${fmtDate(r.LastUpdated)}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="3" class="empty">No stock recorded yet.</td></tr>';
 }
 
 function populateDispatchOrderSelect() {
