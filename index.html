@@ -134,6 +134,10 @@
       <div class="toolbar">
         <select id="f-customer" onchange="renderTable()"><option value="">All customers</option></select>
         <select id="f-part" onchange="renderTable()"><option value="">All part codes</option></select>
+        <select id="f-unit" onchange="renderTable()">
+          <option value="">All units</option>
+          <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
+        </select>
         <select id="f-status" onchange="renderTable()">
           <option value="">All statuses</option>
           <option value="Pending">Pending</option>
@@ -167,6 +171,13 @@
           <label>Part Code</label>
           <input id="n-part" list="dl-parts" placeholder="Select or type new">
           <datalist id="dl-parts"></datalist>
+        </div>
+        <div class="field">
+          <label>Unit</label>
+          <select id="n-unit">
+            <option value="">— Select —</option>
+            <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
+          </select>
         </div>
         <div class="field">
           <label>Order Quantity</label>
@@ -214,6 +225,13 @@
         <div class="field">
           <label>Dispatched Quantity (this entry)</label>
           <input id="d-qty" type="number" min="1" placeholder="200">
+        </div>
+        <div class="field">
+          <label>Dispatching Unit</label>
+          <select id="d-unit">
+            <option value="">— Select —</option>
+            <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
+          </select>
         </div>
         <div class="field">
           <label>Dispatched Date</label>
@@ -337,12 +355,14 @@ function renderStats() {
 function getFiltered() {
   const c = document.getElementById('f-customer').value;
   const p = document.getElementById('f-part').value;
+  const u = document.getElementById('f-unit').value;
   const s = document.getElementById('f-status').value;
   const dept = document.getElementById('f-dept').value;
   const date = document.getElementById('f-date').value;
   return data.orders
     .filter(o => !c || o.Customer === c)
     .filter(o => !p || o.PartCode === p)
+    .filter(o => !u || o.Unit === u)
     .filter(o => !s || o.Status === s)
     .filter(o => !dept || o.PendingDepartment === dept)
     .filter(o => !date || fmtDate(o.ScheduledDate) === date)
@@ -350,7 +370,7 @@ function getFiltered() {
 }
 
 function clearFilters() {
-  ['f-customer','f-part','f-status','f-dept','f-date'].forEach(id => document.getElementById(id).value = '');
+  ['f-customer','f-part','f-unit','f-status','f-dept','f-date'].forEach(id => document.getElementById(id).value = '');
   renderTable();
 }
 
@@ -360,7 +380,7 @@ function renderTable() {
   const empty = document.getElementById('orders-empty');
 
   tbl.querySelector('thead').innerHTML = `<tr>
-    <th>Customer</th><th>Part Code</th><th>Priority</th><th>Order Qty</th>
+    <th>Customer</th><th>Part Code</th><th>Unit</th><th>Priority</th><th>Order Qty</th>
     <th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
     <th>Pending Dept</th><th>Pending Reason</th><th>Status</th>
   </tr>`;
@@ -381,6 +401,7 @@ function renderTable() {
     return `<tr>
       <td>${esc(o.Customer)}</td>
       <td>${esc(o.PartCode)}</td>
+      <td>${esc(o.Unit||'—')}</td>
       <td><span class="pill ${prioPill}">${esc(o.Priority||'')}</span></td>
       <td>${orderQty.toLocaleString()}</td>
       <td>${dispatched.toLocaleString()}</td>
@@ -398,7 +419,7 @@ function populateDispatchOrderSelect() {
   const sel = document.getElementById('d-order');
   const pending = data.orders.filter(o => o.Status === 'Pending');
   sel.innerHTML = pending.map(o =>
-    `<option value="${o.OrderID}">${esc(o.Customer)} — ${esc(o.PartCode)} (${o.PendingQty} pending)</option>`
+    `<option value="${o.OrderID}">${esc(o.Customer)} — ${esc(o.PartCode)} [${esc(o.Unit||'?')}] (${o.PendingQty} pending)</option>`
   ).join('') || '<option value="">No pending orders</option>';
   sel.onchange = updateOrderInfo;
   updateOrderInfo();
@@ -410,11 +431,14 @@ function updateOrderInfo() {
   const info = document.getElementById('d-order-info');
   if (!o) { info.textContent = ''; return; }
   info.textContent = `Order Qty: ${o.OrderQty} · Dispatched so far: ${o.DispatchedQty} · Pending: ${o.PendingQty}`;
+  const unitSel = document.getElementById('d-unit');
+  if (o.Unit) unitSel.value = o.Unit;
 }
 
 async function submitOrder() {
   const customer = document.getElementById('n-customer').value.trim();
   const part = document.getElementById('n-part').value.trim();
+  const unit = document.getElementById('n-unit').value;
   const qty = document.getElementById('n-qty').value;
   const priority = document.getElementById('n-priority').value;
   const date = document.getElementById('n-date').value;
@@ -422,8 +446,8 @@ async function submitOrder() {
   const reason = document.getElementById('n-reason').value.trim();
   const statusEl = document.getElementById('new-status');
 
-  if (!customer || !part || !qty || !date) {
-    statusEl.textContent = 'Customer, part code, quantity and scheduled date are required.';
+  if (!customer || !part || !unit || !qty || !date) {
+    statusEl.textContent = 'Customer, part code, unit, quantity and scheduled date are required.';
     statusEl.className = 'status-msg err';
     return;
   }
@@ -431,13 +455,14 @@ async function submitOrder() {
   statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
   try {
     const res = await postAction({
-      action: 'addOrder', customer, partCode: part, orderQty: qty,
+      action: 'addOrder', customer, partCode: part, unit, orderQty: qty,
       priority, scheduledDate: date, pendingDepartment: dept, pendingReason: reason
     });
     if (res.error) throw new Error(res.error);
     statusEl.textContent = 'Order created.'; statusEl.className = 'status-msg ok';
     document.getElementById('n-part').value = '';
     document.getElementById('n-qty').value = '';
+    document.getElementById('n-unit').value = '';
     document.getElementById('n-reason').value = '';
     await loadData();
   } catch (e) {
@@ -448,20 +473,21 @@ async function submitOrder() {
 async function submitDispatch() {
   const orderId = document.getElementById('d-order').value;
   const qty = document.getElementById('d-qty').value;
+  const unit = document.getElementById('d-unit').value;
   const date = document.getElementById('d-date').value;
   const dept = document.getElementById('d-dept').value;
   const reason = document.getElementById('d-reason').value.trim();
   const statusEl = document.getElementById('dispatch-status');
 
-  if (!orderId || !qty || !date) {
-    statusEl.textContent = 'Select an order, quantity and date.'; statusEl.className = 'status-msg err';
+  if (!orderId || !qty || !unit || !date) {
+    statusEl.textContent = 'Select an order, unit, quantity and date.'; statusEl.className = 'status-msg err';
     return;
   }
 
   statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
   try {
     const res = await postAction({
-      action: 'addDispatch', orderId, dispatchedQty: qty, dispatchedDate: date,
+      action: 'addDispatch', orderId, unit, dispatchedQty: qty, dispatchedDate: date,
       pendingDepartment: dept, pendingReason: reason
     });
     if (res.error) throw new Error(res.error);
@@ -488,12 +514,12 @@ async function postAction(body) {
 
 function exportCSV() {
   const rows = getFiltered();
-  const headers = ['Customer','Part Code','Priority','Order Qty','Dispatched Qty','Pending Qty',
+  const headers = ['Customer','Part Code','Unit','Priority','Order Qty','Dispatched Qty','Pending Qty',
     'Scheduled Date','Pending Department','Pending Reason','Status'];
   const lines = [headers.join(',')];
   rows.forEach(o => {
     const line = [
-      o.Customer, o.PartCode, o.Priority, o.OrderQty, o.DispatchedQty, o.PendingQty,
+      o.Customer, o.PartCode, o.Unit, o.Priority, o.OrderQty, o.DispatchedQty, o.PendingQty,
       fmtDate(o.ScheduledDate), o.PendingDepartment||'', o.PendingReason||'', o.Status
     ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
     lines.push(line);
