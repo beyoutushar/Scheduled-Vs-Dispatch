@@ -201,7 +201,7 @@
           <label>Pending Department <span style="text-transform:none;">(optional)</span></label>
           <select id="n-dept">
             <option value="">— None —</option>
-            <option>Corrugation</option><option>Printing</option><option>INSUN Machine/Glueing</option><option>Manual Gluing</option><option>Stitching</option>
+            <option>PPC Planning</option><option>Corrugation</option><option>Printing</option><option>INSUN Machine/Glueing</option><option>Manual Gluing</option><option>Stitching</option>
             <option>Packaging</option><option>Dispatch</option>
           </select>
         </div>
@@ -245,7 +245,7 @@
         <div class="field">
           <label>Still-Pending Department</label>
           <select id="d-dept">
-            <option>Corrugation</option><option>Printing</option><option>INSUN Machine/Glueing</option><option>Manual Gluing</option><option>Stitching</option>
+            <option>PPC Planning</option><option>Corrugation</option><option>Printing</option><option>INSUN Machine/Glueing</option><option>Manual Gluing</option><option>Stitching</option>
             <option>Packaging</option><option>Dispatch</option>
           </select>
         </div>
@@ -459,7 +459,7 @@ function renderTable() {
 }
 
 function getStockFor(partCode) {
-  const row = data.stock.find(s => s.PartCode === partCode);
+  const row = data.stock.find(s => String(s.PartCode) === String(partCode));
   return row ? Number(row.AvailableQty) || 0 : 0;
 }
 
@@ -508,7 +508,7 @@ async function submitStock() {
 function renderStockTable() {
   const tbody = document.querySelector('#stock-table tbody');
   if (!tbody) return;
-  const rows = [...data.stock].sort((a, b) =>   String(a.PartCode ?? '').localeCompare(String(b.PartCode ?? '')) );
+  const rows = [...data.stock].sort((a,b) => String(a.PartCode||'').localeCompare(String(b.PartCode||'')));
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td>${esc(r.PartCode)}</td>
