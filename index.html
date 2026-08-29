@@ -397,7 +397,7 @@ function showApp() {
     ? 'Showing orders for ' + SESSION.unit + ' only'
     : 'Live order tracking across all units';
 
-  // Lock unit dropdowns for anyone scoped to a single unit (PPC or Dispatch/Unit role)
+  // Lock unit dropdowns for PPC/Dispatch users scoped to one unit
   if (SESSION.unit) {
     ['n-unit','d-unit'].forEach(id => {
       const el = document.getElementById(id);
@@ -411,7 +411,7 @@ function showApp() {
   const tabPerms = {
     Owner: ['orders','new','dispatch','stock'],
     PPC: ['orders','new'],
-    Unit: ['orders','dispatch','stock']
+    Dispatch: ['orders','dispatch','stock']
   };
   const allowed = tabPerms[SESSION.role] || ['orders'];
   document.querySelectorAll('.tab').forEach(t => {
