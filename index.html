@@ -414,7 +414,8 @@ function showApp() {
   };
   const allowed = tabPerms[SESSION.role] || ['orders'];
   document.querySelectorAll('.tab').forEach(t => { t.style.display = allowed.includes(t.dataset.tab) ? '' : 'none'; });
-  document.getElementById('stock-admin-card').style.display = (SESSION.role === 'Owner' || SESSION.role === 'Dispatch') ? '' : 'none';
+  const stockEditorRole = String(SESSION.role || '').trim().toLowerCase();
+  document.getElementById('stock-admin-card').style.display = (stockEditorRole === 'owner' || stockEditorRole === 'dispatch') ? '' : 'none';
   const activeTab = document.querySelector('.tab.active');
   if (activeTab && activeTab.style.display === 'none') switchTab('orders');
   loadData();
