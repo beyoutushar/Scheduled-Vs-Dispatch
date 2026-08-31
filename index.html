@@ -92,9 +92,10 @@
   .brand-logo { width:145px; height:48px; object-fit:contain; background:#fff; border-radius:4px; display:block; }
   .login-card .brand-logo { width:220px; height:auto; margin-bottom:16px; background:#fff; }
   .chat-box { max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
-  .chat-msg { background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
-  .chat-meta { font-size:11px; color:var(--muted); margin-bottom:5px; }
-  .chat-text { white-space:pre-wrap; word-break:break-word; font-size:13px; }
+  .chat-msg { padding:2px 0; }
+  .chat-meta { font-size:10px; color:var(--muted); margin:0 0 4px 3px; line-height:1.3; }
+  .chat-text { display:inline-block; max-width:92%; background:var(--panel-2); border:1px solid rgba(91,141,239,.35); border-radius:10px; padding:10px 12px; white-space:pre-wrap; word-break:break-word; font-size:13px; line-height:1.45; }
+  .chat-msg:hover .chat-text { border-color:var(--accent); }
   .complaint-card { border:1px solid var(--border); background:var(--panel-2); border-radius:10px; padding:14px; margin-bottom:10px; }
   .complaint-head { display:flex; gap:8px; justify-content:space-between; align-items:center; flex-wrap:wrap; }
   .comment { border-top:1px solid var(--border); padding:8px 0 0; margin-top:8px; }
@@ -128,7 +129,7 @@
   <h2>One-time setup</h2>
   <div class="field">
     <label>Apps Script Web App URL</label>
-    <input id="script-url" placeholder="https://script.google.com/macros/s/AKfycbyJhxeWKLPSKPSbQGVvfn8m_JqHDwDFUT9VeeFEK9mEuCjI2Nh1ORpRkpjwKOq_Kiz8/exec">
+    <input id="script-url" placeholder="https://script.google.com/macros/s/XXXX/exec">
   </div>
   <button class="btn-primary" onclick="saveScriptUrl()">Continue</button>
   <div class="status-msg" id="setup-status"></div>
@@ -413,7 +414,7 @@ function showApp() {
   };
   const allowed = tabPerms[SESSION.role] || ['orders'];
   document.querySelectorAll('.tab').forEach(t => { t.style.display = allowed.includes(t.dataset.tab) ? '' : 'none'; });
-  document.getElementById('stock-admin-card').style.display = SESSION.role === 'Owner' ? '' : 'none';
+  document.getElementById('stock-admin-card').style.display = (SESSION.role === 'Owner' || SESSION.role === 'Dispatch') ? '' : 'none';
   const activeTab = document.querySelector('.tab.active');
   if (activeTab && activeTab.style.display === 'none') switchTab('orders');
   loadData();
