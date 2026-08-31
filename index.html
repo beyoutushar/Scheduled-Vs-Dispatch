@@ -87,15 +87,6 @@
   .status-msg.ok { color:var(--accent-2); }
   .status-msg.err { color:var(--danger); }
 
-
-  .chat-box { max-height:420px; overflow-y:auto; padding:4px; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
-  .chat-msg { padding:10px 12px; border-bottom:1px solid var(--border); }
-  .chat-msg:last-child { border-bottom:none; }
-  .chat-meta { font-size:11px; color:var(--muted); margin-bottom:4px; }
-  .chat-text { font-size:13px; white-space:pre-wrap; word-break:break-word; }
-  .complaint-open { color:var(--danger); font-weight:700; }
-  .complaint-closed { color:var(--accent-2); font-weight:700; }
-  .comment-box { margin-top:8px; padding:10px; border-left:2px solid var(--border); }
   .login-wrap { min-height:80vh; display:flex; align-items:center; justify-content:center; }
   .login-card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:32px; width:360px; max-width:92vw; }
   .login-card img { height:48px; margin-bottom:16px; }
@@ -233,6 +224,7 @@
           <label>Scheduled Date</label>
           <input id="n-date" type="date">
         </div>
+      </div>
       <div class="sub" id="n-stock-info" style="margin:-4px 0 12px;">Enter a Part Code to see current FG stock.</div>
       <button class="btn-primary btn-block" onclick="submitOrder()">Create Order</button>
       <div class="status-msg" id="new-status"></div>
@@ -283,7 +275,7 @@
 
   <!-- STOCK TAB -->
   <div id="tab-stock" style="display:none;">
-    <div class="card" id="stock-update-card">
+    <div class="card">
       <h2>Update FG Stock</h2>
       <div class="grid">
         <div class="field combo">
@@ -315,38 +307,36 @@
         </table>
       </div>
     </div>
+  </div>
 
 
   <!-- COMPLAINTS TAB -->
   <div id="tab-complaints" style="display:none;">
-    <div class="card" id="complaint-create-card">
+    <div class="card">
       <h2>Raise a Complaint / Issue</h2>
       <div class="grid">
         <div class="field"><label>Unit</label><select id="c-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
-        <div class="field"><label>Category</label><select id="c-category"><option>PPC</option><option>Dispatch</option><option>Production</option><option>Customer</option><option>Other</option></select></div>
+        <div class="field"><label>Category</label><select id="c-category"><option>PPC</option><option>Dispatch</option><option>Stock</option><option>Customer</option><option>Machine</option><option>General</option></select></div>
         <div class="field"><label>Priority</label><select id="c-priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
       </div>
-      <div class="field"><label>Title</label><input id="c-title" placeholder="Short description of the problem"></div>
-      <div class="field"><label>Description</label><textarea id="c-description" rows="3" placeholder="Explain the problem clearly"></textarea></div>
+      <div class="field"><label>Subject</label><input id="c-subject" placeholder="Short description of the problem"></div>
+      <div class="field"><label>Description</label><textarea id="c-description" rows="4" placeholder="Explain the problem clearly..."></textarea></div>
       <button class="btn-primary btn-block" onclick="submitComplaint()">Raise Complaint</button>
       <div class="status-msg" id="complaint-status"></div>
     </div>
-    <div class="card">
-      <div class="toolbar"><h2 style="margin:0;">Complaints</h2><div class="spacer"></div><button class="btn-ghost btn-small" onclick="loadData()">Refresh</button></div>
-      <div id="complaints-list"></div>
-    </div>
+    <div class="card"><h2>Complaints / Issues</h2><div id="complaints-list"></div></div>
   </div>
 
   <!-- DISCUSSION TAB -->
   <div id="tab-discussion" style="display:none;">
     <div class="card">
       <h2>Group Discussion</h2>
-      <div id="chat-box" class="chat-box"><div class="empty">No messages yet.</div></div>
-      <div class="field" style="margin-top:12px;"><textarea id="chat-message" rows="3" placeholder="Write a message for PPC, Dispatch and Management..."></textarea></div>
-      <button class="btn-primary btn-block" onclick="sendMessage()">Send Message</button>
-      <div class="status-msg" id="chat-status"></div>
+      <div id="discussion-list" style="max-height:480px;overflow:auto;margin-bottom:12px;"></div>
+      <div class="field"><textarea id="discussion-message" rows="3" placeholder="Write a message for the team..."></textarea></div>
+      <button class="btn-primary btn-block" onclick="sendDiscussion()">Send Message</button>
+      <div class="status-msg" id="discussion-status"></div>
     </div>
-  </div>  </div>
+  </div>
 
 </div>
 
@@ -354,7 +344,7 @@
 let APPS_SCRIPT_URL = localStorage.getItem('svd_url') || '';
 let TOKEN = sessionStorage.getItem('svd_token') || '';
 let SESSION = JSON.parse(sessionStorage.getItem('svd_session') || 'null');
-let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], departments: [], stock: [], chat: [], complaints: [], complaintComments: [] };
+let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], departments: [], stock: [], complaints: [], complaintComments: [], discussion: [] };
 
 function saveScriptUrl() {
   const url = document.getElementById('script-url').value.trim();
@@ -428,7 +418,7 @@ function showApp() {
 
   // Lock unit dropdowns for anyone scoped to a single unit (PPC or Dispatch/Unit role)
   if (SESSION.unit) {
-    ['n-unit','d-unit','f-unit','c-unit'].forEach(id => {
+    ['n-unit','d-unit','c-unit'].forEach(id => {
       const el = document.getElementById(id);
       el.innerHTML = `<option value="${SESSION.unit}">${SESSION.unit}</option>`;
       el.value = SESSION.unit;
@@ -441,14 +431,10 @@ function showApp() {
     Owner: ['orders','new','dispatch','stock','complaints','discussion'],
     PPC: ['orders','new','stock','complaints','discussion'],
     Dispatch: ['orders','dispatch','stock','complaints','discussion'],
-    Unit: ['orders','dispatch','stock','complaints','discussion'],
-    ViewOnly: ['orders','stock','complaints','discussion']
+    ViewOnly: ['orders','stock','complaints','discussion'],
+    Unit: ['orders','dispatch','stock','complaints','discussion']
   };
   const allowed = tabPerms[SESSION.role] || ['orders'];
-  const stockEdit = document.getElementById('stock-update-card');
-  if (stockEdit) stockEdit.style.display = SESSION.role === 'Owner' ? '' : 'none';
-  const complaintCreate = document.getElementById('complaint-create-card');
-  if (complaintCreate) complaintCreate.style.display = SESSION.role === 'ViewOnly' ? '' : '';
   document.querySelectorAll('.tab').forEach(t => {
     t.style.display = allowed.includes(t.dataset.tab) ? '' : 'none';
   });
@@ -457,6 +443,14 @@ function showApp() {
     switchTab('orders');
   }
 
+  if (SESSION.unit) {
+    const c = document.getElementById('c-unit');
+    c.innerHTML = `<option value="${SESSION.unit}">${SESSION.unit}</option>`;
+    c.value = SESSION.unit; c.disabled = true;
+  }
+  document.querySelectorAll('#tab-stock .btn-primary, #tab-stock .btn-block').forEach(b => {
+    if (b.textContent.trim().toLowerCase().includes('update stock')) b.style.display = SESSION.role === 'Owner' ? '' : 'none';
+  });
   loadData();
 }
 
@@ -479,9 +473,6 @@ async function loadData() {
     renderStats();
     renderTable();
     populateDispatchOrderSelect();
-    renderStockTable();
-    renderComplaints();
-    renderChat();
   } catch (e) {
     setConn('err', 'Connection failed');
   }
@@ -495,7 +486,7 @@ function switchTab(name) {
   if (name === 'dispatch') populateDispatchOrderSelect();
   if (name === 'stock') renderStockTable();
   if (name === 'complaints') renderComplaints();
-  if (name === 'discussion') renderChat();
+  if (name === 'discussion') renderDiscussion();
 }
 
 function populateDropdowns() {
@@ -698,7 +689,7 @@ async function submitOrder() {
   try {
     const res = await postAction({
       action: 'addOrder', customer, customerLocation: location, partCode: part, unit, orderQty: qty,
-      priority, scheduledDate: date
+      priority, scheduledDate: date, pendingDepartment: dept, pendingReason: reason
     });
     if (res.error) throw new Error(res.error);
     statusEl.textContent = 'Order created.'; statusEl.className = 'status-msg ok';
@@ -745,74 +736,6 @@ async function submitDispatch() {
   }
 }
 
-
-function renderChat() {
-  const box = document.getElementById('chat-box');
-  if (!box) return;
-  const rows = [...(data.chat || [])].sort((a,b) => new Date(a.Timestamp) - new Date(b.Timestamp));
-  box.innerHTML = rows.map(m => `<div class="chat-msg"><div class="chat-meta"><b>${esc(m.DisplayName || m.Username)}</b> · ${esc(m.Role)}${m.Unit && m.Unit !== 'All' ? ' · '+esc(m.Unit) : ''} · ${fmtDateTime(m.Timestamp)}</div><div class="chat-text">${esc(m.Message)}</div></div>`).join('') || '<div class="empty">No messages yet.</div>';
-  box.scrollTop = box.scrollHeight;
-}
-
-async function sendMessage() {
-  const el = document.getElementById('chat-message');
-  const status = document.getElementById('chat-status');
-  const message = el.value.trim();
-  if (!message) return;
-  status.textContent = 'Sending…'; status.className = 'status-msg';
-  try {
-    const res = await postAction({action:'addMessage', message});
-    if (res.error) throw new Error(res.error);
-    el.value = '';
-    status.textContent = 'Sent.'; status.className = 'status-msg ok';
-    await loadData();
-  } catch(e) { status.textContent = 'Failed: '+e.message; status.className='status-msg err'; }
-}
-
-function renderComplaints() {
-  const el = document.getElementById('complaints-list');
-  if (!el) return;
-  const rows = [...(data.complaints || [])].sort((a,b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
-  if (!rows.length) { el.innerHTML = '<div class="empty">No complaints raised.</div>'; return; }
-  el.innerHTML = rows.map(c => {
-    const comments = (data.complaintComments || []).filter(x => String(x.ComplaintID) === String(c.ComplaintID));
-    const closed = String(c.Status) === 'Closed';
-    return `<div class="card" style="margin-bottom:10px;">
-      <div class="toolbar"><div><span class="pill ${c.Priority==='High'?'pill-high':c.Priority==='Low'?'pill-low':'pill-medium'}">${esc(c.Priority)}</span> <b>${esc(c.Title)}</b></div><div class="spacer"></div><span class="${closed?'complaint-closed':'complaint-open'}">${esc(c.Status)}</span></div>
-      <div class="sub">${esc(c.Unit)} · ${esc(c.Category)} · Raised by ${esc(c.RaisedByName)} · ${fmtDateTime(c.CreatedAt)}</div>
-      <p style="white-space:pre-wrap;">${esc(c.Description)}</p>
-      <div>${comments.map(x => `<div class="comment-box"><div class="chat-meta"><b>${esc(x.DisplayName)}</b> · ${esc(x.Role)} · ${fmtDateTime(x.Timestamp)}</div>${esc(x.Comment)}</div>`).join('')}</div>
-      ${!closed ? `<div class="field" style="margin-top:10px;"><textarea id="cc-${esc(c.ComplaintID)}" rows="2" placeholder="Add comment..."></textarea></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost btn-small" onclick="commentComplaint('${esc(c.ComplaintID)}')">Comment</button>${SESSION.role==='Owner'?`<button class="btn-primary btn-small" onclick="closeComplaint('${esc(c.ComplaintID)}')">Close Complaint</button>`:''}</div>` : `<div class="sub">Closed by ${esc(c.ClosedBy || 'Owner')} ${c.ClosedAt ? '· '+fmtDateTime(c.ClosedAt) : ''}</div>`}
-    </div>`;
-  }).join('');
-}
-
-async function submitComplaint() {
-  const unit = document.getElementById('c-unit').value;
-  const category = document.getElementById('c-category').value;
-  const priority = document.getElementById('c-priority').value;
-  const title = document.getElementById('c-title').value.trim();
-  const description = document.getElementById('c-description').value.trim();
-  const status = document.getElementById('complaint-status');
-  if (!unit || !title || !description) { status.textContent='Unit, title and description are required.'; status.className='status-msg err'; return; }
-  status.textContent='Saving…'; status.className='status-msg';
-  try { const res=await postAction({action:'addComplaint',unit,category,priority,title,description}); if(res.error) throw new Error(res.error); document.getElementById('c-title').value=''; document.getElementById('c-description').value=''; status.textContent='Complaint raised.'; status.className='status-msg ok'; await loadData(); } catch(e){ status.textContent='Failed: '+e.message; status.className='status-msg err'; }
-}
-
-async function commentComplaint(id) {
-  const el=document.getElementById('cc-'+id); const comment=el.value.trim(); if(!comment) return;
-  try { const res=await postAction({action:'addComplaintComment',complaintId:id,comment}); if(res.error) throw new Error(res.error); await loadData(); } catch(e){ alert(e.message); }
-}
-
-async function closeComplaint(id) {
-  if(!confirm('Close this complaint?')) return;
-  try { const res=await postAction({action:'closeComplaint',complaintId:id}); if(res.error) throw new Error(res.error); await loadData(); } catch(e){ alert(e.message); }
-}
-
-function fmtDateTime(v) {
-  if (!v) return '—'; const d=new Date(v); if(isNaN(d)) return String(v); return d.toLocaleString();
-}
-
 async function postAction(body) {
   body.token = TOKEN;
   const res = await fetch(APPS_SCRIPT_URL, {
@@ -824,6 +747,37 @@ async function postAction(body) {
   if (result.error === 'AUTH_REQUIRED') doLogout();
   return result;
 }
+
+
+function renderComplaints() {
+  const el = document.getElementById('complaints-list');
+  const rows = [...(data.complaints || [])].sort((a,b)=>new Date(b.CreatedAt)-new Date(a.CreatedAt));
+  if (!rows.length) { el.innerHTML='<div class="empty">No complaints raised yet.</div>'; return; }
+  const comments = data.complaintComments || [];
+  el.innerHTML = rows.map(c => {
+    const cc = comments.filter(x=>x.ComplaintID===c.ComplaintID).sort((a,b)=>new Date(a.CreatedAt)-new Date(b.CreatedAt));
+    return `<div class="card" style="margin-bottom:12px;background:var(--panel-2);">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><b>${esc(c.Subject)}</b>
+      <span class="pill ${c.Status==='Closed'?'pill-completed':'pill-pending'}">${esc(c.Status)}</span>
+      <span class="pill ${c.Priority==='High'?'pill-high':c.Priority==='Low'?'pill-low':'pill-medium'}">${esc(c.Priority)}</span>
+      <span class="sub">${esc(c.Unit||'All Units')} · ${esc(c.Category||'General')} · ${esc(c.RaisedByName||c.RaisedBy||'')}</span></div>
+      <div style="margin:10px 0;white-space:pre-wrap;">${esc(c.Description)}</div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;">${cc.map(x=>`<div style="margin:6px 0;"><b>${esc(x.DisplayName)}</b> <span class="sub">${esc(x.Role)} · ${fmtDateTime(x.CreatedAt)}</span><br>${esc(x.Comment)}</div>`).join('') || '<span class="sub">No comments yet.</span>'}</div>
+      ${c.Status!=='Closed' ? `<div style="display:flex;gap:8px;margin-top:10px;"><input id="cm-${esc(c.ComplaintID)}" placeholder="Add comment"><button class="btn-ghost btn-small" onclick="commentComplaint('${esc(c.ComplaintID)}')">Comment</button>${SESSION.role==='Owner'?`<button class="btn-primary btn-small" onclick="closeComplaint('${esc(c.ComplaintID)}')">Close</button>`:''}</div>`:''}
+    </div>`;
+  }).join('');
+}
+async function submitComplaint() {
+  const unit=document.getElementById('c-unit').value, subject=document.getElementById('c-subject').value.trim(), description=document.getElementById('c-description').value.trim();
+  const status=document.getElementById('complaint-status');
+  if(!subject||!description||(SESSION.unit ? false : !unit)){status.textContent='Unit, subject and description are required.';status.className='status-msg err';return;}
+  try{const r=await postAction({action:'addComplaint',unit,category:document.getElementById('c-category').value,priority:document.getElementById('c-priority').value,subject,description});if(r.error)throw Error(r.error);status.textContent='Complaint raised.';status.className='status-msg ok';document.getElementById('c-subject').value='';document.getElementById('c-description').value='';await loadData();switchTab('complaints');}catch(e){status.textContent='Failed: '+e.message;status.className='status-msg err';}
+}
+async function commentComplaint(id){const input=document.getElementById('cm-'+id), comment=input.value.trim();if(!comment)return;try{const r=await postAction({action:'addComplaintComment',complaintId:id,comment});if(r.error)throw Error(r.error);await loadData();switchTab('complaints');}catch(e){alert(e.message);}}
+async function closeComplaint(id){try{const r=await postAction({action:'closeComplaint',complaintId:id});if(r.error)throw Error(r.error);await loadData();switchTab('complaints');}catch(e){alert(e.message);}}
+function renderDiscussion(){const el=document.getElementById('discussion-list');const rows=[...(data.discussion||[])].sort((a,b)=>new Date(a.CreatedAt)-new Date(b.CreatedAt));el.innerHTML=rows.length?rows.map(m=>`<div style="padding:9px 0;border-bottom:1px solid var(--border);"><b>${esc(m.DisplayName)}</b> <span class="pill pill-role">${esc(m.Role)}</span>${m.Unit?` <span class="sub">${esc(m.Unit)}</span>`:''}<div style="margin-top:4px;white-space:pre-wrap;">${esc(m.Message)}</div><div class="sub">${fmtDateTime(m.CreatedAt)}</div></div>`).join(''):'<div class="empty">No discussion messages yet.</div>';el.scrollTop=el.scrollHeight;}
+async function sendDiscussion(){const input=document.getElementById('discussion-message'),message=input.value.trim(),status=document.getElementById('discussion-status');if(!message)return;try{const r=await postAction({action:'addDiscussion',message});if(r.error)throw Error(r.error);input.value='';status.textContent='Sent';status.className='status-msg ok';await loadData();switchTab('discussion');}catch(e){status.textContent='Failed: '+e.message;status.className='status-msg err';}}
+function fmtDateTime(v){if(!v)return '';const d=new Date(v);return isNaN(d)?String(v):d.toLocaleString();}
 
 function exportCSV() {
   if (SESSION.role !== 'Owner') return;
