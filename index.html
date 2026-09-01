@@ -496,7 +496,7 @@ function showApp() {
 
   const tabPerms = {
     Owner: ['orders','new','dispatch','stock','complaints','discussion'],
-    PPC: ['orders','new','dispatch','stock','complaints','discussion'],
+    PPC: ['orders','new','stock','complaints','discussion'],
     Dispatch: ['orders','dispatch','stock','complaints','discussion'],
     Editor: ['orders','dispatch'],
     ViewOnly: ['orders','stock','complaints','discussion']
@@ -515,7 +515,10 @@ function showApp() {
   const stockEditorRole = String(SESSION.role || '').trim().toLowerCase();
   document.getElementById('stock-admin-card').style.display = (stockEditorRole === 'owner' || stockEditorRole === 'dispatch' || stockEditorRole === 'ppc') ? '' : 'none';
   const dispatchEntryCard = document.getElementById('dispatch-entry-card');
-  if (dispatchEntryCard) dispatchEntryCard.style.display = SESSION.role === 'Editor' ? 'none' : '';
+  if (dispatchEntryCard) {
+    dispatchEntryCard.style.display =
+      (SESSION.role === 'Owner' || SESSION.role === 'Dispatch') ? '' : 'none';
+  }
   const activeTab = document.querySelector('.tab.active');
   if (activeTab && activeTab.style.display === 'none') switchTab('orders');
   loadData();
@@ -535,7 +538,8 @@ async function loadData() {
     if (json.error === 'AUTH_REQUIRED') { doLogout(); return; }
     if (json.error) { setConn('err', json.error); return; }
     data = json;
-    setConn('ok', 'Live — connected');
+    const count = Array.isArray(data.orders) ? data.orders.length : 0;
+    setConn('ok', 'Live — connected · ' + count + ' orders');
     populateDropdowns();
     renderStats();
     renderTable();
@@ -1060,14 +1064,14 @@ async function submitComplaint(){
 }
 function renderComplaints(){
   const box=document.getElementById('complaints-list'); if(!box)return;
-  const rows=[...(data.complaints||[])].sort((a,b)=>new Date(b.RaisedAt)-new Date(a.RaisedAt));
+  const rows=[...(data.complaints||[])].sort((a,b)=>new Date(b.CreatedAt)-new Date(a.CreatedAt));
   if(!rows.length){box.innerHTML='<div class="empty">No complaints raised yet.</div>';return;}
   box.innerHTML=rows.map(c=>{
     const comments=(data.complaintComments||[]).filter(x=>String(x.ComplaintID)===String(c.ComplaintID));
     const statusClass=c.Status==='Closed'?'pill-completed':c.Status==='Working'?'pill-medium':'pill-pending';
     const priorityClass=c.Priority==='High'?'pill-high':c.Priority==='Low'?'pill-low':'pill-medium';
     const closeBtn=SESSION.role==='Owner'&&c.Status!=='Closed'?`<button class="btn-primary btn-small" onclick="closeComplaint('${esc(c.ComplaintID)}')">Close</button>`:'';
-    return `<div class="complaint-card"><div class="complaint-head"><div><b>${esc(c.Title || c.Subject)}</b><div class="sub">${esc(c.ComplaintID)} · ${esc(c.RaisedByName)} · ${esc(c.Unit||'All Units')} · ${fmtDateTime(c.RaisedAt)}</div></div><div><span class="pill ${priorityClass}">${esc(c.Priority)}</span> <span class="pill ${statusClass}">${esc(c.Status)}</span> ${closeBtn}</div></div><p style="white-space:pre-wrap;">${esc(c.Description)}</p><div>${comments.map(m=>`<div class="comment"><div class="chat-meta"><b>${esc(m.DisplayName)}</b> · ${esc(m.Role)} ${m.Unit?'· '+esc(m.Unit):''} · ${fmtDateTime(m.CreatedAt)}</div><div class="chat-text">${esc(m.Comment)}</div></div>`).join('')}</div>${c.Status!=='Closed'?`<div style="margin-top:10px;display:flex;gap:8px;"><input id="comment-${esc(c.ComplaintID)}" placeholder="Add a comment..."><button class="btn-ghost btn-small" onclick="addComplaintComment('${esc(c.ComplaintID)}')">Comment</button></div>`:''}${c.Resolution?`<div class="sub" style="margin-top:10px;"><b>Resolution:</b> ${esc(c.Resolution)} · Closed by ${esc(c.ClosedBy||'')}</div>`:''}</div>`;
+    return `<div class="complaint-card"><div class="complaint-head"><div><b>${esc(c.Title || c.Subject)}</b><div class="sub">${esc(c.ComplaintID)} · ${esc(c.RaisedByName)} · ${esc(c.Unit||'All Units')} · ${fmtDateTime(c.CreatedAt || c.RaisedAt)}</div></div><div><span class="pill ${priorityClass}">${esc(c.Priority)}</span> <span class="pill ${statusClass}">${esc(c.Status)}</span> ${closeBtn}</div></div><p style="white-space:pre-wrap;">${esc(c.Description)}</p><div>${comments.map(m=>`<div class="comment"><div class="chat-meta"><b>${esc(m.DisplayName)}</b> · ${esc(m.Role)} ${m.Unit?'· '+esc(m.Unit):''} · ${fmtDateTime(m.CreatedAt)}</div><div class="chat-text">${esc(m.Comment)}</div></div>`).join('')}</div>${c.Status!=='Closed'?`<div style="margin-top:10px;display:flex;gap:8px;"><input id="comment-${esc(c.ComplaintID)}" placeholder="Add a comment..."><button class="btn-ghost btn-small" onclick="addComplaintComment('${esc(c.ComplaintID)}')">Comment</button></div>`:''}${c.Resolution?`<div class="sub" style="margin-top:10px;"><b>Resolution:</b> ${esc(c.Resolution)} · Closed by ${esc(c.ClosedBy||'')}</div>`:''}</div>`;
   }).join('');
 }
 async function addComplaintComment(id){
