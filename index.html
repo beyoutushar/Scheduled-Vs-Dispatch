@@ -101,6 +101,20 @@
   .comment { border-top:1px solid var(--border); padding:8px 0 0; margin-top:8px; }
   .login-card h2 { margin:0 0 4px; font-size:17px; }
   .login-card .sub { margin-bottom:20px; }
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.68); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+  .modal { width:min(760px,96vw); max-height:92vh; overflow:auto; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:0 20px 70px rgba(0,0,0,.45); }
+  .modal-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+  .modal-head h2 { margin:0; font-size:16px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  .action-cell { display:flex; gap:6px; align-items:center; }
+  .mini-note { font-size:11px; color:var(--muted); margin-top:4px; }
+  .history-card { border:1px solid var(--border); background:var(--panel-2); border-radius:10px; padding:12px; margin-top:12px; }
+  .history-row { display:grid; grid-template-columns:1.1fr 1fr 1fr .8fr 1fr; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .history-row:last-child { border-bottom:0; }
+  .search-wrap { position:relative; min-width:260px; flex:1; }
+  .search-wrap input { width:100%; min-width:260px; padding-right:30px; }
+  .search-hint { font-size:11px; color:var(--muted); margin:-5px 0 12px; }
+  @media (max-width:700px){ .history-row{grid-template-columns:1fr 1fr;} .search-wrap{min-width:100%;} .search-wrap input{min-width:100%;} }
 </style>
 </head>
 <body>
@@ -167,6 +181,9 @@
   <div id="tab-orders">
     <div class="card">
       <div class="toolbar">
+        <div class="search-wrap">
+          <input id="f-search" type="search" placeholder="Search customer, part code, Order ID, location…" oninput="renderTable()">
+        </div>
         <select id="f-customer" onchange="renderTable()"><option value="">All customers</option></select>
         <select id="f-part" onchange="renderTable()"><option value="">All part codes</option></select>
         <select id="f-unit" onchange="renderTable()">
@@ -185,6 +202,7 @@
         <button class="btn-primary btn-small" id="csv-btn" onclick="exportCSV()" style="display:none;">Export CSV</button>
         <button class="btn-ghost btn-small" onclick="loadData()">Refresh</button>
       </div>
+      <div class="search-hint">Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.</div>
       <div class="table-scroll">
         <table id="orders-table"><thead></thead><tbody></tbody></table>
       </div>
@@ -232,6 +250,11 @@
             <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
           </select>
         </div>
+        <div class="field combo">
+          <label>Ship To Party</label>
+          <input id="d-shipto" list="dl-shipto" placeholder="Select or type ship-to party">
+          <datalist id="dl-shipto"></datalist>
+        </div>
         <div class="field">
           <label>Dispatched Date</label>
           <input id="d-date" type="date">
@@ -250,6 +273,10 @@
       </div>
       <button class="btn-primary btn-block" onclick="submitDispatch()">Log Dispatch</button>
       <div class="status-msg" id="dispatch-status"></div>
+    </div>
+    <div class="card">
+      <h2>Dispatch History</h2>
+      <div id="dispatch-history"></div>
     </div>
   </div>
 
@@ -321,12 +348,39 @@
 
 </div>
 
+<div id="edit-modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Edit Order</h2>
+      <button class="btn-ghost btn-small" onclick="closeEditModal()">Close</button>
+    </div>
+    <input id="e-order-id" type="hidden">
+    <div class="grid">
+      <div class="field"><label>Customer Name</label><input id="e-customer"></div>
+      <div class="field"><label>Customer Location</label><input id="e-location"></div>
+      <div class="field"><label>Part Code</label><input id="e-part"></div>
+      <div class="field"><label>Unit</label><select id="e-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+      <div class="field"><label>Order Quantity</label><input id="e-qty" type="number" min="1"></div>
+      <div class="field"><label>Priority</label><select id="e-priority"><option>High</option><option>Medium</option><option>Low</option></select></div>
+      <div class="field"><label>Scheduled Date</label><input id="e-date" type="date"></div>
+      <div class="field"><label>Pending Department</label><select id="e-dept"></select></div>
+    </div>
+    <div class="field"><label>Pending Reason</label><input id="e-reason"></div>
+    <div class="mini-note" id="e-dispatched-note"></div>
+    <div class="status-msg" id="edit-status"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEditedOrder()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJhxeWKLPSKPSbQGVvfn8m_JqHDwDFUT9VeeFEK9mEuCjI2Nh1ORpRkpjwKOq_Kiz8/exec';
 let APPS_SCRIPT_URL = localStorage.getItem('svd_url') || DEFAULT_APPS_SCRIPT_URL;
 let TOKEN = sessionStorage.getItem('svd_token') || '';
 let SESSION = JSON.parse(sessionStorage.getItem('svd_session') || 'null');
-let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], departments: [], stock: [], discussion: [], complaints: [], complaintComments: [] };
+let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], departments: [], stock: [], discussion: [], complaints: [], complaintComments: [] };
 
 function saveScriptUrl() {
   const url = document.getElementById('script-url').value.trim();
@@ -394,9 +448,9 @@ function showApp() {
   document.getElementById('main-app').style.display = 'block';
   document.getElementById('role-badge').textContent = SESSION.displayName + ' · ' + SESSION.role + (SESSION.unit ? ' (' + SESSION.unit + ')' : '');
   document.getElementById('csv-btn').style.display = SESSION.role === 'Owner' ? 'inline-block' : 'none';
-  document.getElementById('scope-sub').textContent = SESSION.unit ? 'Showing orders for ' + SESSION.unit + ' only' : 'Live order tracking across all units';
+  document.getElementById('scope-sub').textContent = (SESSION.unit && SESSION.role !== 'Owner' && SESSION.role !== 'ViewOnly') ? 'Showing orders for ' + SESSION.unit + ' only' : 'Live order tracking across all units';
 
-  if (SESSION.unit) {
+  if (SESSION.unit && SESSION.role !== 'Owner' && SESSION.role !== 'ViewOnly') {
     ['n-unit','d-unit','f-unit'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -404,6 +458,12 @@ function showApp() {
       el.value = SESSION.unit;
       el.disabled = true;
     });
+  } else if (SESSION.role === 'Owner' || SESSION.role === 'ViewOnly') {
+    const fu = document.getElementById('f-unit');
+    if (fu) {
+      fu.disabled = false;
+      fu.innerHTML = '<option value="">All units</option>' + (data.units || ['Unit 1','Unit 2','Unit 5','Unit Delta']).map(u => `<option>${esc(u)}</option>`).join('');
+    }
   }
 
   const tabPerms = {
@@ -440,6 +500,7 @@ async function loadData() {
     renderStats();
     renderTable();
     populateDispatchOrderSelect();
+    renderDispatchHistory();
     renderComplaints();
     renderDiscussion();
   } catch (e) {
@@ -454,7 +515,7 @@ function switchTab(name) {
     if (panel) panel.style.display = t === name ? 'block' : 'none';
     if (tab) tab.classList.toggle('active', t === name);
   });
-  if (name === 'dispatch') populateDispatchOrderSelect();
+  if (name === 'dispatch') { populateDispatchOrderSelect(); renderDispatchHistory(); }
   if (name === 'stock') renderStockTable();
   if (name === 'complaints') renderComplaints();
   if (name === 'discussion') renderDiscussion();
@@ -464,6 +525,7 @@ function populateDropdowns() {
   document.getElementById('dl-customers').innerHTML = data.customers.map(c => `<option value="${esc(c)}">`).join('');
   document.getElementById('dl-parts').innerHTML = data.partCodes.map(p => `<option value="${esc(p)}">`).join('');
   document.getElementById('dl-locations').innerHTML = (data.locations||[]).map(l => `<option value="${esc(l)}">`).join('');
+  document.getElementById('dl-shipto').innerHTML = (data.shipToParties||[]).map(p => `<option value="${esc(p)}">`).join('');
 
   const fc = document.getElementById('f-customer');
   fc.innerHTML = '<option value="">All customers</option>' + data.customers.map(c => `<option>${esc(c)}</option>`).join('');
@@ -500,18 +562,30 @@ function getFiltered() {
   const s = document.getElementById('f-status').value;
   const dept = document.getElementById('f-dept').value;
   const date = document.getElementById('f-date').value;
+  const q = (document.getElementById('f-search').value || '').trim().toLowerCase();
+
   return data.orders
-    .filter(o => !c || o.Customer === c)
-    .filter(o => !p || o.PartCode === p)
-    .filter(o => !u || o.Unit === u)
-    .filter(o => !s || o.Status === s)
-    .filter(o => !dept || o.PendingDepartment === dept)
+    .filter(o => !c || String(o.Customer||'') === c)
+    .filter(o => !p || String(o.PartCode||'') === p)
+    .filter(o => !u || String(o.Unit||'') === u)
+    .filter(o => !s || String(o.Status||'') === s)
+    .filter(o => !dept || String(o.PendingDepartment||'') === dept)
     .filter(o => !date || fmtDate(o.ScheduledDate) === date)
+    .filter(o => {
+      if (!q) return true;
+      const dispatchShipTo = (data.logs || [])
+        .filter(l => String(l.OrderID) === String(o.OrderID))
+        .map(l => String(l.ShipToParty||''))
+        .join(' ');
+      const haystack = [o.OrderID,o.Customer,o.CustomerLocation,o.PartCode,o.Unit,o.Priority,
+        o.OrderQty,o.DispatchedQty,o.PendingQty,o.PendingDepartment,o.PendingReason,
+        o.FGStatus,o.Status,dispatchShipTo].join(' ').toLowerCase();
+      return haystack.includes(q);
+    })
     .sort((a,b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
 }
-
 function clearFilters() {
-  ['f-customer','f-part','f-unit','f-status','f-dept','f-date'].forEach(id => document.getElementById(id).value = '');
+  ['f-search','f-customer','f-part','f-unit','f-status','f-dept','f-date'].forEach(id => document.getElementById(id).value = '');
   renderTable();
 }
 
@@ -523,7 +597,7 @@ function renderTable() {
   tbl.querySelector('thead').innerHTML = `<tr>
     <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>Priority</th><th>Order Qty</th>
     <th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
-    <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Status</th>
+    <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Status</th><th>Action</th>
   </tr>`;
 
   if (rows.length === 0) {
@@ -539,8 +613,10 @@ function renderTable() {
     const pct = orderQty ? Math.min(100, Math.round(dispatched/orderQty*100)) : 0;
     const statusPill = o.Status === 'Completed' ? 'pill-completed' : 'pill-pending';
     const prioPill = o.Priority === 'High' ? 'pill-high' : o.Priority === 'Low' ? 'pill-low' : 'pill-medium';
-    return `<tr>
-      <td>${esc(o.Customer)}</td>
+    const canEdit = SESSION && (SESSION.role === 'Owner' || SESSION.role === 'PPC');
+     const action = canEdit ? `<button class="btn-ghost btn-small" onclick="openEditOrder('${esc(o.OrderID)}')">Edit</button>` : '—';
+     return `<tr>
+       <td>${esc(o.Customer)}</td>
       <td>${esc(o.CustomerLocation||'—')}</td>
       <td>${esc(o.PartCode)}</td>
       <td>${esc(o.Unit||'—')}</td>
@@ -666,13 +742,14 @@ async function submitDispatch() {
   const orderId = document.getElementById('d-order').value;
   const qty = document.getElementById('d-qty').value;
   const unit = document.getElementById('d-unit').value;
+  const shipToParty = document.getElementById('d-shipto').value.trim();
   const date = document.getElementById('d-date').value;
   const dept = document.getElementById('d-dept').value;
   const reason = document.getElementById('d-reason').value.trim();
   const statusEl = document.getElementById('dispatch-status');
 
-  if (!orderId || !qty || !unit || !date) {
-    statusEl.textContent = 'Select an order, unit, quantity and date.'; statusEl.className = 'status-msg err';
+  if (!orderId || !qty || !unit || !shipToParty || !date) {
+    statusEl.textContent = 'Select an order, Ship To Party, unit, quantity and date.'; statusEl.className = 'status-msg err';
     return;
   }
 
@@ -750,12 +827,86 @@ function isIsoDateText(v) {
   const s = String(v).trim();
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(s) || !isNaN(Date.parse(s)) && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s);
 }
+function renderDispatchHistory() {
+  const box = document.getElementById('dispatch-history');
+  if (!box) return;
+  const rows = [...(data.logs || [])].sort((a,b) => new Date(b.LoggedAt) - new Date(a.LoggedAt));
+  if (!rows.length) { box.innerHTML = '<div class="empty">No dispatch history yet.</div>'; return; }
+  box.innerHTML = rows.map(l => {
+    const o = data.orders.find(x => String(x.OrderID) === String(l.OrderID));
+    return `<div class="history-row">
+      <div><b>${esc(o ? o.PartCode : l.OrderID)}</b><div class="sub">${esc(o ? o.Customer : '')}</div></div>
+      <div>${esc(l.ShipToParty || '—')}<div class="sub">Ship To Party</div></div>
+      <div>${esc(l.Unit || '—')}<div class="sub">Dispatch Unit</div></div>
+      <div>${Number(l.DispatchedQty||0).toLocaleString()}<div class="sub">Qty</div></div>
+      <div>${esc(fmtDate(l.DispatchedDate))}<div class="sub">${esc(fmtDateTime(l.LoggedAt))}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function openEditOrder(orderId) {
+  const o = data.orders.find(x => String(x.OrderID) === String(orderId));
+  if (!o) return;
+  document.getElementById('e-order-id').value = o.OrderID;
+  document.getElementById('e-customer').value = o.Customer || '';
+  document.getElementById('e-location').value = o.CustomerLocation || '';
+  document.getElementById('e-part').value = o.PartCode || '';
+  document.getElementById('e-unit').value = o.Unit || '';
+  document.getElementById('e-qty').value = o.OrderQty || '';
+  document.getElementById('e-priority').value = o.Priority || 'Medium';
+  document.getElementById('e-date').value = fmtDate(o.ScheduledDate) === '—' ? '' : fmtDate(o.ScheduledDate);
+  const dept = document.getElementById('e-dept');
+  dept.innerHTML = '<option value="">— Select —</option>' + (data.departments || []).map(d => `<option>${esc(d)}</option>`).join('');
+  dept.value = o.PendingDepartment || '';
+  document.getElementById('e-reason').value = o.PendingReason || '';
+  document.getElementById('e-dispatched-note').textContent = `Already dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}. Order quantity cannot be reduced below this amount.`;
+  document.getElementById('edit-status').textContent = '';
+  document.getElementById('edit-modal-backdrop').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal-backdrop').style.display = 'none';
+}
+
+async function saveEditedOrder() {
+  const status = document.getElementById('edit-status');
+  const orderId = document.getElementById('e-order-id').value;
+  const body = {
+    action: 'updateOrder',
+    orderId,
+    customer: document.getElementById('e-customer').value.trim(),
+    customerLocation: document.getElementById('e-location').value.trim(),
+    partCode: document.getElementById('e-part').value.trim(),
+    unit: document.getElementById('e-unit').value,
+    orderQty: document.getElementById('e-qty').value,
+    priority: document.getElementById('e-priority').value,
+    scheduledDate: document.getElementById('e-date').value,
+    pendingDepartment: document.getElementById('e-dept').value,
+    pendingReason: document.getElementById('e-reason').value.trim()
+  };
+  if (!body.customer || !body.partCode || !body.unit || !body.orderQty || !body.scheduledDate) {
+    status.textContent = 'Customer, part code, unit, quantity and scheduled date are required.';
+    status.className = 'status-msg err';
+    return;
+  }
+  status.textContent = 'Saving…'; status.className = 'status-msg';
+  try {
+    const res = await postAction(body);
+    if (res.error) throw new Error(res.error);
+    status.textContent = 'Order updated successfully.'; status.className = 'status-msg ok';
+    await loadData();
+    setTimeout(closeEditModal, 250);
+  } catch (e) {
+    status.textContent = 'Failed: ' + e.message; status.className = 'status-msg err';
+  }
+}
+
 async function submitComplaint(){
   const subject=document.getElementById('c-subject').value.trim(), description=document.getElementById('c-description').value.trim();
   const status=document.getElementById('complaint-status');
   if(!subject||!description){status.textContent='Subject and description are required.';status.className='status-msg err';return;}
   status.textContent='Saving…';status.className='status-msg';
-  try{const res=await postAction({action:'addComplaint',category:document.getElementById('c-category').value,priority:document.getElementById('c-priority').value,subject,description});if(res.error)throw new Error(res.error);status.textContent='Complaint raised: '+res.complaintId;status.className='status-msg ok';document.getElementById('c-subject').value='';document.getElementById('c-description').value='';await loadData();}catch(e){status.textContent='Failed: '+e.message;status.className='status-msg err';}
+  try{const res=await postAction({action:'addComplaint',category:document.getElementById('c-category').value,priority:document.getElementById('c-priority').value,title:subject,description});if(res.error)throw new Error(res.error);status.textContent='Complaint raised: '+res.complaintId;status.className='status-msg ok';document.getElementById('c-subject').value='';document.getElementById('c-description').value='';await loadData();}catch(e){status.textContent='Failed: '+e.message;status.className='status-msg err';}
 }
 function renderComplaints(){
   const box=document.getElementById('complaints-list'); if(!box)return;
@@ -766,7 +917,7 @@ function renderComplaints(){
     const statusClass=c.Status==='Closed'?'pill-completed':c.Status==='Working'?'pill-medium':'pill-pending';
     const priorityClass=c.Priority==='High'?'pill-high':c.Priority==='Low'?'pill-low':'pill-medium';
     const closeBtn=SESSION.role==='Owner'&&c.Status!=='Closed'?`<button class="btn-primary btn-small" onclick="closeComplaint('${esc(c.ComplaintID)}')">Close</button>`:'';
-    return `<div class="complaint-card"><div class="complaint-head"><div><b>${esc(c.Subject)}</b><div class="sub">${esc(c.ComplaintID)} · ${esc(c.RaisedByName)} · ${esc(c.Unit||'All Units')} · ${fmtDateTime(c.RaisedAt)}</div></div><div><span class="pill ${priorityClass}">${esc(c.Priority)}</span> <span class="pill ${statusClass}">${esc(c.Status)}</span> ${closeBtn}</div></div><p style="white-space:pre-wrap;">${esc(c.Description)}</p><div>${comments.map(m=>`<div class="comment"><div class="chat-meta"><b>${esc(m.DisplayName)}</b> · ${esc(m.Role)} ${m.Unit?'· '+esc(m.Unit):''} · ${fmtDateTime(m.CreatedAt)}</div><div class="chat-text">${esc(m.Comment)}</div></div>`).join('')}</div>${c.Status!=='Closed'?`<div style="margin-top:10px;display:flex;gap:8px;"><input id="comment-${esc(c.ComplaintID)}" placeholder="Add a comment..."><button class="btn-ghost btn-small" onclick="addComplaintComment('${esc(c.ComplaintID)}')">Comment</button></div>`:''}${c.Resolution?`<div class="sub" style="margin-top:10px;"><b>Resolution:</b> ${esc(c.Resolution)} · Closed by ${esc(c.ClosedBy||'')}</div>`:''}</div>`;
+    return `<div class="complaint-card"><div class="complaint-head"><div><b>${esc(c.Title || c.Subject)}</b><div class="sub">${esc(c.ComplaintID)} · ${esc(c.RaisedByName)} · ${esc(c.Unit||'All Units')} · ${fmtDateTime(c.RaisedAt)}</div></div><div><span class="pill ${priorityClass}">${esc(c.Priority)}</span> <span class="pill ${statusClass}">${esc(c.Status)}</span> ${closeBtn}</div></div><p style="white-space:pre-wrap;">${esc(c.Description)}</p><div>${comments.map(m=>`<div class="comment"><div class="chat-meta"><b>${esc(m.DisplayName)}</b> · ${esc(m.Role)} ${m.Unit?'· '+esc(m.Unit):''} · ${fmtDateTime(m.CreatedAt)}</div><div class="chat-text">${esc(m.Comment)}</div></div>`).join('')}</div>${c.Status!=='Closed'?`<div style="margin-top:10px;display:flex;gap:8px;"><input id="comment-${esc(c.ComplaintID)}" placeholder="Add a comment..."><button class="btn-ghost btn-small" onclick="addComplaintComment('${esc(c.ComplaintID)}')">Comment</button></div>`:''}${c.Resolution?`<div class="sub" style="margin-top:10px;"><b>Resolution:</b> ${esc(c.Resolution)} · Closed by ${esc(c.ClosedBy||'')}</div>`:''}</div>`;
   }).join('');
 }
 async function addComplaintComment(id){
@@ -782,12 +933,12 @@ function fmtDateTime(v){if(!v)return '—';const d=new Date(v);if(isNaN(d))retur
 function exportCSV() {
   if (SESSION.role !== 'Owner') return;
   const rows = getFiltered();
-  const headers = ['Customer','Location','Part Code','Unit','Priority','Order Qty','Dispatched Qty','Pending Qty',
+  const headers = ['Order ID','Customer','Location','Part Code','Unit','Priority','Order Qty','Dispatched Qty','Pending Qty',
     'Scheduled Date','Pending Department','Pending Reason','Status'];
   const lines = [headers.join(',')];
   rows.forEach(o => {
     const line = [
-      o.Customer, o.CustomerLocation||'', o.PartCode, o.Unit, o.Priority, o.OrderQty, o.DispatchedQty, o.PendingQty,
+      o.OrderID, o.Customer, o.CustomerLocation||'', o.PartCode, o.Unit, o.Priority, o.OrderQty, o.DispatchedQty, o.PendingQty,
       fmtDate(o.ScheduledDate), o.PendingDepartment||'', o.PendingReason||'', o.Status
     ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
     lines.push(line);
