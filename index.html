@@ -171,7 +171,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="orders" onclick="switchTab('orders')">All Orders</div>
     <div class="tab" data-tab="new" onclick="switchTab('new')">New Order</div>
-    <div class="tab" data-tab="dispatch" onclick="switchTab('dispatch')">Log Dispatch</div>
+    <div class="tab" data-tab="dispatch" onclick="switchTab('dispatch')">Dispatch / Pending</div>
     <div class="tab" data-tab="stock" onclick="switchTab('stock')">FG Stock</div>
     <div class="tab" data-tab="complaints" onclick="switchTab('complaints')">Complaints</div>
     <div class="tab" data-tab="discussion" onclick="switchTab('discussion')">Discussion</div>
@@ -229,49 +229,53 @@
     </div>
   </div>
 
-  <!-- DISPATCH TAB -->
+  <!-- DISPATCH / STILL PENDING TAB -->
   <div id="tab-dispatch" style="display:none;">
-    <div class="card">
-      <h2>Log a Dispatch</h2>
+    <div class="card" id="dispatch-entry-card">
+      <h2 id="dispatch-form-title">Dispatch / Still Pending</h2>
+      <div class="field">
+        <label>Entry Type</label>
+        <select id="d-mode" onchange="toggleDispatchMode()">
+          <option value="dispatch">Dispatch Completed / Partial Dispatch</option>
+          <option value="pending">Still Pending — No Dispatch</option>
+        </select>
+      </div>
       <div class="field">
         <label>Order</label>
         <select id="d-order"></select>
       </div>
       <div id="d-order-info" class="sub" style="margin-bottom:12px;"></div>
       <div class="grid">
-        <div class="field">
+        <div class="field" id="d-qty-field">
           <label>Dispatched Quantity (this entry)</label>
           <input id="d-qty" type="number" min="1" placeholder="200">
         </div>
-        <div class="field">
+        <div class="field" id="d-unit-field">
           <label>Dispatching Unit</label>
           <select id="d-unit">
             <option value="">— Select —</option>
             <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
           </select>
         </div>
-        <div class="field combo">
+        <div class="field combo" id="d-shipto-field">
           <label>Ship To Party</label>
           <input id="d-shipto" list="dl-shipto" placeholder="Select or type ship-to party">
           <datalist id="dl-shipto"></datalist>
         </div>
-        <div class="field">
+        <div class="field" id="d-date-field">
           <label>Dispatched Date</label>
           <input id="d-date" type="date">
         </div>
         <div class="field">
           <label>Still-Pending Department</label>
-          <select id="d-dept">
-            <option>PPC Planning</option><option>Corrugation</option><option>Printing</option><option>INSUN Machine/Glueing</option><option>Manual Gluing</option><option>Stitching</option>
-            <option>Packaging</option><option>Dispatch</option>
-          </select>
+          <select id="d-dept"></select>
         </div>
       </div>
       <div class="field">
-        <label>Pending Reason (if still pending)</label>
+        <label>Pending Reason <span id="d-reason-note">(optional for dispatch)</span></label>
         <input id="d-reason" placeholder="e.g. printing machine changeover">
       </div>
-      <button class="btn-primary btn-block" onclick="submitDispatch()">Log Dispatch</button>
+      <button class="btn-primary btn-block" id="dispatch-submit-btn" onclick="submitDispatch()">Log Dispatch</button>
       <div class="status-msg" id="dispatch-status"></div>
     </div>
     <div class="card">
@@ -375,6 +379,30 @@
   </div>
 </div>
 
+<div id="dispatch-edit-modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Edit Dispatch Entry</h2>
+      <button class="btn-ghost btn-small" onclick="closeDispatchEditModal()">Close</button>
+    </div>
+    <input id="de-log-id" type="hidden">
+    <div class="grid">
+      <div class="field"><label>Ship To Party</label><input id="de-shipto"></div>
+      <div class="field"><label>Dispatched Quantity</label><input id="de-qty" type="number" min="1"></div>
+      <div class="field"><label>Dispatch Unit</label><select id="de-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+      <div class="field"><label>Dispatched Date</label><input id="de-date" type="date"></div>
+      <div class="field"><label>Pending Department (if balance remains)</label><select id="de-dept"></select></div>
+      <div class="field"><label>Pending Reason (if balance remains)</label><input id="de-reason"></div>
+    </div>
+    <div class="field"><label>Note</label><input id="de-note"></div>
+    <div class="status-msg" id="dispatch-edit-status"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeDispatchEditModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEditedDispatch()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJhxeWKLPSKPSbQGVvfn8m_JqHDwDFUT9VeeFEK9mEuCjI2Nh1ORpRkpjwKOq_Kiz8/exec';
 let APPS_SCRIPT_URL = localStorage.getItem('svd_url') || DEFAULT_APPS_SCRIPT_URL;
@@ -468,14 +496,26 @@ function showApp() {
 
   const tabPerms = {
     Owner: ['orders','new','dispatch','stock','complaints','discussion'],
-    PPC: ['orders','new','stock','complaints','discussion'],
+    PPC: ['orders','new','dispatch','stock','complaints','discussion'],
     Dispatch: ['orders','dispatch','stock','complaints','discussion'],
+    Editor: ['orders','dispatch'],
     ViewOnly: ['orders','stock','complaints','discussion']
   };
   const allowed = tabPerms[SESSION.role] || ['orders'];
+  const modeEl = document.getElementById('d-mode');
+  if (modeEl) {
+    const isPPC = SESSION.role === 'PPC';
+    modeEl.innerHTML = isPPC
+      ? '<option value="pending">Still Pending — No Dispatch</option>'
+      : '<option value="dispatch">Dispatch Completed / Partial Dispatch</option><option value="pending">Still Pending — No Dispatch</option>';
+    modeEl.value = isPPC ? 'pending' : 'dispatch';
+    toggleDispatchMode();
+  }
   document.querySelectorAll('.tab').forEach(t => { t.style.display = allowed.includes(t.dataset.tab) ? '' : 'none'; });
   const stockEditorRole = String(SESSION.role || '').trim().toLowerCase();
-  document.getElementById('stock-admin-card').style.display = (stockEditorRole === 'owner' || stockEditorRole === 'dispatch') ? '' : 'none';
+  document.getElementById('stock-admin-card').style.display = (stockEditorRole === 'owner' || stockEditorRole === 'dispatch' || stockEditorRole === 'ppc') ? '' : 'none';
+  const dispatchEntryCard = document.getElementById('dispatch-entry-card');
+  if (dispatchEntryCard) dispatchEntryCard.style.display = SESSION.role === 'Editor' ? 'none' : '';
   const activeTab = document.querySelector('.tab.active');
   if (activeTab && activeTab.style.display === 'none') switchTab('orders');
   loadData();
@@ -522,6 +562,9 @@ function switchTab(name) {
 }
 
 function populateDropdowns() {
+  const dept = document.getElementById('d-dept');
+  if (dept) dept.innerHTML = '<option value="">— Select —</option>' + (data.departments || []).map(d => `<option>${esc(d)}</option>`).join('');
+  toggleDispatchMode();
   document.getElementById('dl-customers').innerHTML = data.customers.map(c => `<option value="${esc(c)}">`).join('');
   document.getElementById('dl-parts').innerHTML = data.partCodes.map(p => `<option value="${esc(p)}">`).join('');
   document.getElementById('dl-locations').innerHTML = (data.locations||[]).map(l => `<option value="${esc(l)}">`).join('');
@@ -613,7 +656,7 @@ function renderTable() {
     const pct = orderQty ? Math.min(100, Math.round(dispatched/orderQty*100)) : 0;
     const statusPill = o.Status === 'Completed' ? 'pill-completed' : 'pill-pending';
     const prioPill = o.Priority === 'High' ? 'pill-high' : o.Priority === 'Low' ? 'pill-low' : 'pill-medium';
-    const canEdit = SESSION && (SESSION.role === 'Owner' || SESSION.role === 'PPC');
+    const canEdit = SESSION && (SESSION.role === 'Owner' || SESSION.role === 'Editor');
      const action = canEdit ? `<button class="btn-ghost btn-small" onclick="openEditOrder('${esc(o.OrderID)}')">Edit</button>` : '—';
      return `<tr>
        <td>${esc(o.Customer)}</td>
@@ -739,6 +782,7 @@ async function submitOrder() {
 }
 
 async function submitDispatch() {
+  const mode = document.getElementById('d-mode').value;
   const orderId = document.getElementById('d-order').value;
   const qty = document.getElementById('d-qty').value;
   const unit = document.getElementById('d-unit').value;
@@ -748,16 +792,48 @@ async function submitDispatch() {
   const reason = document.getElementById('d-reason').value.trim();
   const statusEl = document.getElementById('dispatch-status');
 
-  if (!orderId || !qty || !unit || !shipToParty || !date) {
-    statusEl.textContent = 'Select an order, Ship To Party, unit, quantity and date.'; statusEl.className = 'status-msg err';
+  if (!orderId) {
+    statusEl.textContent = 'Select an order.'; statusEl.className = 'status-msg err';
+    return;
+  }
+
+  if (mode === 'pending') {
+    if (!dept || !reason) {
+      statusEl.textContent = 'For Still Pending, select the department and enter the reason. Quantity is not required.';
+      statusEl.className = 'status-msg err';
+      return;
+    }
+    statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
+    try {
+      const res = await postAction({ action:'updatePending', orderId, pendingDepartment:dept, pendingReason:reason });
+      if (res.error) throw new Error(res.error);
+      statusEl.textContent = `Still pending — ${res.pending} quantity pending.`;
+      statusEl.className = 'status-msg ok';
+      document.getElementById('d-reason').value = '';
+      await loadData();
+    } catch (e) {
+      statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
+    }
+    return;
+  }
+
+  if (!qty || !unit || !shipToParty || !date) {
+    statusEl.textContent = 'For a dispatch entry, Ship To Party, unit, quantity and date are required.';
+    statusEl.className = 'status-msg err';
+    return;
+  }
+
+  if (SESSION.role === 'PPC') {
+    statusEl.textContent = 'PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';
+    statusEl.className = 'status-msg err';
     return;
   }
 
   statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
   try {
     const res = await postAction({
-      action: 'addDispatch', orderId, unit, dispatchedQty: qty, dispatchedDate: date,
-      pendingDepartment: dept, pendingReason: reason
+      action:'addDispatch', orderId, unit, dispatchedQty:qty, dispatchedDate:date,
+      shipToParty, pendingDepartment:dept, pendingReason:reason
     });
     if (res.error) throw new Error(res.error);
     statusEl.textContent = res.status === 'Completed'
@@ -770,6 +846,17 @@ async function submitDispatch() {
   } catch (e) {
     statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
   }
+}
+
+function toggleDispatchMode() {
+  const mode = document.getElementById('d-mode').value;
+  const pending = mode === 'pending';
+  ['d-qty-field','d-unit-field','d-shipto-field','d-date-field'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = pending ? 'none' : '';
+  });
+  document.getElementById('dispatch-submit-btn').textContent = pending ? 'Save Still Pending' : 'Log Dispatch';
+  document.getElementById('d-reason-note').textContent = pending ? '(required)' : '(optional for dispatch)';
 }
 
 async function postAction(body) {
@@ -832,16 +919,78 @@ function renderDispatchHistory() {
   if (!box) return;
   const rows = [...(data.logs || [])].sort((a,b) => new Date(b.LoggedAt) - new Date(a.LoggedAt));
   if (!rows.length) { box.innerHTML = '<div class="empty">No dispatch history yet.</div>'; return; }
+  const canEdit = SESSION && (SESSION.role === 'Owner' || SESSION.role === 'Editor');
+  const canDelete = SESSION && SESSION.role === 'Owner';
   box.innerHTML = rows.map(l => {
     const o = data.orders.find(x => String(x.OrderID) === String(l.OrderID));
-    return `<div class="history-row">
+    const actions = canEdit ? `<div class="action-cell"><button class="btn-ghost btn-small" onclick="openEditDispatch('${esc(l.LogID)}')">Edit</button>${canDelete ? `<button class="btn-ghost btn-small" onclick="deleteDispatchEntry('${esc(l.LogID)}')">Delete</button>` : ''}</div>` : '';
+    return `<div class="history-row" style="grid-template-columns:1.1fr 1fr 1fr .8fr 1fr auto;">
       <div><b>${esc(o ? o.PartCode : l.OrderID)}</b><div class="sub">${esc(o ? o.Customer : '')}</div></div>
       <div>${esc(l.ShipToParty || '—')}<div class="sub">Ship To Party</div></div>
       <div>${esc(l.Unit || '—')}<div class="sub">Dispatch Unit</div></div>
       <div>${Number(l.DispatchedQty||0).toLocaleString()}<div class="sub">Qty</div></div>
       <div>${esc(fmtDate(l.DispatchedDate))}<div class="sub">${esc(fmtDateTime(l.LoggedAt))}</div></div>
+      ${actions}
     </div>`;
   }).join('');
+}
+
+function openEditDispatch(logId) {
+  const l = (data.logs || []).find(x => String(x.LogID) === String(logId));
+  if (!l) return;
+  document.getElementById('de-log-id').value = l.LogID;
+  document.getElementById('de-shipto').value = l.ShipToParty || '';
+  document.getElementById('de-qty').value = l.DispatchedQty || '';
+  document.getElementById('de-unit').value = l.Unit || '';
+  document.getElementById('de-date').value = fmtDate(l.DispatchedDate) === '—' ? '' : fmtDate(l.DispatchedDate);
+  document.getElementById('de-dept').innerHTML = '<option value="">— Select —</option>' + (data.departments || []).map(d => `<option>${esc(d)}</option>`).join('');
+  const o = data.orders.find(x => String(x.OrderID) === String(l.OrderID));
+  document.getElementById('de-dept').value = o ? (o.PendingDepartment || '') : '';
+  document.getElementById('de-reason').value = o ? (o.PendingReason || '') : '';
+  document.getElementById('de-note').value = l.Note || '';
+  document.getElementById('dispatch-edit-status').textContent = '';
+  document.getElementById('dispatch-edit-modal-backdrop').style.display = 'flex';
+}
+
+function closeDispatchEditModal() {
+  document.getElementById('dispatch-edit-modal-backdrop').style.display = 'none';
+}
+
+async function saveEditedDispatch() {
+  const status = document.getElementById('dispatch-edit-status');
+  const body = {
+    action:'updateDispatch',
+    logId:document.getElementById('de-log-id').value,
+    shipToParty:document.getElementById('de-shipto').value.trim(),
+    dispatchedQty:document.getElementById('de-qty').value,
+    unit:document.getElementById('de-unit').value,
+    dispatchedDate:document.getElementById('de-date').value,
+    pendingDepartment:document.getElementById('de-dept').value,
+    pendingReason:document.getElementById('de-reason').value.trim(),
+    note:document.getElementById('de-note').value.trim()
+  };
+  if (!body.shipToParty || !body.dispatchedQty || !body.unit || !body.dispatchedDate) {
+    status.textContent = 'Ship To Party, quantity, unit and date are required.'; status.className = 'status-msg err'; return;
+  }
+  status.textContent = 'Saving…'; status.className = 'status-msg';
+  try {
+    const res = await postAction(body);
+    if (res.error) throw new Error(res.error);
+    status.textContent = 'Dispatch entry corrected successfully.'; status.className = 'status-msg ok';
+    await loadData();
+    setTimeout(closeDispatchEditModal, 250);
+  } catch (e) {
+    status.textContent = 'Failed: ' + e.message; status.className = 'status-msg err';
+  }
+}
+
+async function deleteDispatchEntry(logId) {
+  if (!confirm('Delete this dispatch history entry? The dispatched quantity and FG stock will be reversed.')) return;
+  try {
+    const res = await postAction({action:'deleteDispatch',logId});
+    if (res.error) throw new Error(res.error);
+    await loadData();
+  } catch (e) { alert(e.message); }
 }
 
 function openEditOrder(orderId) {
