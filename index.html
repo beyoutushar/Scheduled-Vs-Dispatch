@@ -111,6 +111,34 @@
   .history-card { border:1px solid var(--border); background:var(--panel-2); border-radius:10px; padding:12px; margin-top:12px; }
   .history-row { display:grid; grid-template-columns:1.1fr 1fr 1fr .8fr 1fr; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
   .history-row:last-child { border-bottom:0; }
+  .searchable-order-field { position:relative; }
+  .order-search-wrap { position:relative; }
+  .order-search-wrap input { padding-right:36px; }
+  .order-search-clear {
+    position:absolute; right:7px; top:50%; transform:translateY(-50%);
+    width:24px; height:24px; padding:0; border-radius:50%;
+    background:transparent; color:var(--muted); font-size:18px; line-height:24px;
+  }
+  .order-search-clear:hover { background:var(--border); color:var(--text); }
+  .order-search-results {
+    display:none; position:absolute; z-index:500; left:0; right:0; top:calc(100% + 4px);
+    max-height:360px; overflow-y:auto; background:var(--panel);
+    border:1px solid var(--border); border-radius:10px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  .order-search-results.open { display:block; }
+  .order-result {
+    width:100%; text-align:left; background:transparent; color:var(--text);
+    border:0; border-bottom:1px solid var(--border); border-radius:0;
+    padding:10px 12px; font-weight:400;
+  }
+  .order-result:last-child { border-bottom:0; }
+  .order-result:hover, .order-result.active { background:var(--panel-2); }
+  .order-result-main { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-weight:700; }
+  .order-result-meta { color:var(--muted); font-size:11px; margin-top:4px; line-height:1.35; }
+  .order-result-pending { color:var(--warn); font-weight:700; }
+  .order-no-results { padding:16px 12px; color:var(--muted); font-size:12px; text-align:center; }
+
   .search-wrap { position:relative; min-width:260px; flex:1; }
   .search-wrap input { width:100%; min-width:260px; padding-right:30px; }
   .search-hint { font-size:11px; color:var(--muted); margin:-5px 0 12px; }
@@ -240,9 +268,19 @@
           <option value="pending">Still Pending — No Dispatch</option>
         </select>
       </div>
-      <div class="field">
-        <label>Order</label>
-        <select id="d-order"></select>
+      <div class="field searchable-order-field">
+        <label>Find Order</label>
+        <div class="order-search-wrap">
+          <input id="d-order-search" type="search"
+                 placeholder="Type customer, part code, Order ID, date, unit, location..."
+                 autocomplete="off"
+                 oninput="filterDispatchOrders()"
+                 onfocus="filterDispatchOrders()">
+          <button type="button" class="order-search-clear" onclick="clearDispatchOrderSearch()" title="Clear">×</button>
+          <div id="d-order-results" class="order-search-results"></div>
+        </div>
+        <input id="d-order" type="hidden">
+        <div class="mini-note">Type anything to filter the pending orders, then click the required order.</div>
       </div>
       <div id="d-order-info" class="sub" style="margin-bottom:12px;"></div>
       <div class="grid">
@@ -742,27 +780,163 @@ function renderStockTable() {
   `).join('') || '<tr><td colspan="3" class="empty">No stock recorded yet.</td></tr>';
 }
 
+let dispatchSearchIndex = [];
+
 function populateDispatchOrderSelect() {
-  const sel = document.getElementById('d-order');
-  const pending = data.orders.filter(o => o.Status === 'Pending');
-  sel.innerHTML = pending.map(o =>
-    `<option value="${o.OrderID}">${esc(o.Customer)} — ${esc(o.PartCode)} [${esc(o.Unit||'?')}] (${o.PendingQty} pending)</option>`
-  ).join('') || '<option value="">No pending orders</option>';
-  sel.onchange = updateOrderInfo;
+  const pending = data.orders
+    .filter(o => String(o.Status || '').toLowerCase() === 'pending')
+    .sort((a,b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+
+  dispatchSearchIndex = pending;
+  const selectedId = document.getElementById('d-order').value || '';
+  const selected = pending.find(o => String(o.OrderID) === String(selectedId));
+
+  // Keep the selected order if it still exists after refresh.
+  if (selected) {
+    document.getElementById('d-order-search').value = formatDispatchOrderLabel(selected);
+  } else {
+    document.getElementById('d-order').value = '';
+    document.getElementById('d-order-search').value = '';
+  }
+
+  filterDispatchOrders();
+  updateOrderInfo();
+}
+
+function formatDispatchOrderLabel(o) {
+  return `${o.Customer || '—'} — ${o.PartCode || '—'} [${o.Unit || '?'}] — ${fmtDate(o.ScheduledDate)} — ${Number(o.PendingQty || 0).toLocaleString()} pending`;
+}
+
+function dispatchOrderSearchText(o) {
+  return [
+    o.OrderID,
+    o.Customer,
+    o.CustomerLocation,
+    o.PartCode,
+    o.Unit,
+    o.Priority,
+    o.OrderQty,
+    o.DispatchedQty,
+    o.PendingQty,
+    o.ScheduledDate,
+    fmtDate(o.ScheduledDate),
+    o.PendingDepartment,
+    o.PendingReason,
+    o.Status
+  ].join(' ').toLowerCase();
+}
+
+function filterDispatchOrders() {
+  const input = document.getElementById('d-order-search');
+  const box = document.getElementById('d-order-results');
+  if (!input || !box) return;
+
+  const q = String(input.value || '').trim().toLowerCase();
+  const matches = q
+    ? dispatchSearchIndex.filter(o => dispatchOrderSearchText(o).includes(q))
+    : dispatchSearchIndex;
+
+  // Show the most useful matches first. Exact Order ID / part code / customer
+  // matches get priority, followed by the normal newest-first order.
+  const ranked = [...matches].sort((a,b) => {
+    if (!q) return new Date(b.CreatedAt) - new Date(a.CreatedAt);
+    const score = o => {
+      const id = String(o.OrderID || '').toLowerCase();
+      const part = String(o.PartCode || '').toLowerCase();
+      const customer = String(o.Customer || '').toLowerCase();
+      return (id === q ? 100 : id.startsWith(q) ? 50 : 0)
+           + (part === q ? 40 : part.startsWith(q) ? 20 : 0)
+           + (customer.startsWith(q) ? 10 : 0);
+    };
+    return score(b) - score(a) || new Date(b.CreatedAt) - new Date(a.CreatedAt);
+  });
+
+  if (!ranked.length) {
+    box.innerHTML = '<div class="order-no-results">No pending orders match your search.</div>';
+  } else {
+    box.innerHTML = ranked.slice(0, 100).map(o => `
+      <button type="button" class="order-result" onclick="selectDispatchOrder('${esc(o.OrderID)}')">
+        <div class="order-result-main">
+          <span>${esc(o.Customer || '—')}</span>
+          <span>·</span>
+          <span>${esc(o.PartCode || '—')}</span>
+          <span>·</span>
+          <span>${esc(o.Unit || '?')}</span>
+        </div>
+        <div class="order-result-meta">
+          Order ID: <b>${esc(o.OrderID)}</b>
+          · Scheduled: <b>${esc(fmtDate(o.ScheduledDate))}</b>
+          · Location: ${esc(o.CustomerLocation || '—')}
+          · Priority: ${esc(o.Priority || '—')}
+          · <span class="order-result-pending">${Number(o.PendingQty || 0).toLocaleString()} pending</span>
+        </div>
+      </button>
+    `).join('');
+  }
+
+  box.classList.add('open');
+}
+
+function selectDispatchOrder(orderId) {
+  const o = dispatchSearchIndex.find(x => String(x.OrderID) === String(orderId));
+  if (!o) return;
+
+  document.getElementById('d-order').value = o.OrderID;
+  document.getElementById('d-order-search').value = formatDispatchOrderLabel(o);
+  document.getElementById('d-order-results').classList.remove('open');
+
+  updateOrderInfo();
+}
+
+function clearDispatchOrderSearch() {
+  document.getElementById('d-order').value = '';
+  document.getElementById('d-order-search').value = '';
+  document.getElementById('d-order-results').classList.remove('open');
   updateOrderInfo();
 }
 
 function updateOrderInfo() {
   const id = document.getElementById('d-order').value;
-  const o = data.orders.find(x => x.OrderID === id);
+  const o = data.orders.find(x => String(x.OrderID) === String(id));
   const info = document.getElementById('d-order-info');
-  if (!o) { info.textContent = ''; return; }
-  info.textContent = `Order Qty: ${o.OrderQty} · Dispatched so far: ${o.DispatchedQty} · Pending: ${o.PendingQty}`;
+  if (!o) {
+    info.textContent = 'Search and select a pending order above.';
+    return;
+  }
+
+  info.innerHTML =
+    `Order ID: <b>${esc(o.OrderID)}</b> · ` +
+    `Customer: <b>${esc(o.Customer)}</b> · ` +
+    `Part Code: <b>${esc(o.PartCode)}</b> · ` +
+    `Scheduled: <b>${esc(fmtDate(o.ScheduledDate))}</b> · ` +
+    `Order Qty: <b>${Number(o.OrderQty || 0).toLocaleString()}</b> · ` +
+    `Dispatched: <b>${Number(o.DispatchedQty || 0).toLocaleString()}</b> · ` +
+    `Pending: <b>${Number(o.PendingQty || 0).toLocaleString()}</b>`;
+
   if (!SESSION.unit) {
     const unitSel = document.getElementById('d-unit');
     if (o.Unit) unitSel.value = o.Unit;
   }
 }
+
+document.addEventListener('click', function(e) {
+  const wrap = document.querySelector('.order-search-wrap');
+  const box = document.getElementById('d-order-results');
+  if (wrap && box && !wrap.contains(e.target)) box.classList.remove('open');
+});
+
+document.getElementById('d-order-search').addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('d-order-results').classList.remove('open');
+    return;
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const q = this.value.trim().toLowerCase();
+    const match = dispatchSearchIndex.find(o => dispatchOrderSearchText(o).includes(q));
+    if (match) selectDispatchOrder(match.OrderID);
+  }
+});
 
 async function submitOrder() {
   const customer = document.getElementById('n-customer').value.trim();
