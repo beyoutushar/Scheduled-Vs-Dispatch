@@ -673,6 +673,7 @@ function renderTable() {
       <td>${esc(o.PendingDepartment||'—')}</td>
       <td>${esc(o.PendingReason||'—')}</td>
       <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td>
+      <td class="action-cell">${action}</td>
     </tr>`;
   }).join('');
 }
