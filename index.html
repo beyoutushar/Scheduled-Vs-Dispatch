@@ -356,7 +356,7 @@
 
   <div class="tabs">
     <div class="tab active" data-tab="multiple" onclick="switchTab('multiple')" id="multiple-tab">Multiple Orders</div>
-    <div class="tab" data-tab="sets" onclick="switchTab('sets')" id="sets-tab">IKEA Sets</div>
+    <div class="tab" data-tab="sets" onclick="switchTab('sets')" id="sets-tab">Customer Sets</div>
     <div class="tab" data-tab="orders" onclick="switchTab('orders')">All Orders</div>
     <div class="tab" data-tab="new" onclick="switchTab('new')" id="new-tab">New Order</div>
     <div class="tab" data-tab="stock" onclick="switchTab('stock')">FG Stock</div>
@@ -405,11 +405,11 @@
     </div>
   </div>
 
-  <!-- IKEA SETS TAB -->
+  <!-- SETS TAB -->
   <div id="tab-sets" style="display:none;">
     <div class="set-builder" id="set-builder-card">
       <div class="set-builder-head">
-        <div class="set-builder-title"><div class="admin-panel-icon">▦</div><div><h2>IKEA Set Builder</h2><div class="sub">Build the Set once. PPC can then select the Set and order only the number of Sets required.</div></div></div>
+        <div class="set-builder-title"><div class="admin-panel-icon">▦</div><div><h2> Set Builder</h2><div class="sub">Build the Set once. PPC can then select the Set and order only the number of Sets required.</div></div></div>
         <span class="set-builder-badge">PPC / Owner</span>
       </div>
       <div class="set-help">
@@ -420,7 +420,7 @@
       <div class="grid">
         <div class="field"><label>Set Code *</label><input id="set-builder-code" placeholder="IKEA-SET-001" autocomplete="off"></div>
         <div class="field"><label>Set Name *</label><input id="set-builder-name" placeholder="Bedroom Set – 5 Piece" autocomplete="off"></div>
-        <div class="field combo"><label>Customer (optional)</label><input id="set-builder-customer" list="dl-customers" placeholder="IKEA" autocomplete="off"></div>
+        <div class="field combo"><label>Customer (optional)</label><input id="set-builder-customer" list="dl-customers" placeholder="IKEA/BAJAJ/WHIRPHOOL" autocomplete="off"></div>
       </div>
       <div class="table-scroll">
         <table class="set-component-table" id="set-component-table">
@@ -445,7 +445,7 @@
       <div class="grid">
         <div class="field combo"><label>Customer Name</label><input id="n-customer" list="dl-customers" placeholder="Select or type new"><datalist id="dl-customers"></datalist></div>
         <div class="field combo"><label>Customer Location</label><input id="n-location" list="dl-locations" placeholder="e.g. Chakan, Waluj"><datalist id="dl-locations"></datalist></div>
-        <div class="field"><label>Order Type</label><select id="n-order-type" onchange="toggleOrderType()"><option value="STANDARD">Standard Article</option><option value="SET">IKEA Set</option></select></div>
+        <div class="field"><label>Order Type</label><select id="n-order-type" onchange="toggleOrderType()"><option value="STANDARD">Standard Article</option><option value="SET">Customer Set</option></select></div>
         <div class="field combo" id="n-part-field"><label>Part Code</label><input id="n-part" list="dl-parts" placeholder="Select or type new" oninput="showStock()"><datalist id="dl-parts"></datalist></div>
         <div class="field combo" id="n-set-field" style="display:none"><label>Set Code</label><select id="n-set"><option value="">— Select Set —</option></select></div>
         <div class="field"><label>Unit</label><select id="n-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
@@ -466,7 +466,7 @@
       <h2 id="dispatch-form-title">Dispatch / Still Pending</h2>
       <div class="field">
         <label>Dispatch Item Type</label>
-        <select id="d-dispatch-type" onchange="toggleDispatchItemType()"><option value="STANDARD">Standard Article</option><option value="SET">IKEA Set</option></select>
+        <select id="d-dispatch-type" onchange="toggleDispatchItemType()"><option value="STANDARD">Standard Article</option><option value="SET">Set</option></select>
       </div>
       <div class="field" id="d-set-order-field" style="display:none">
         <label>Find Set Order</label>
@@ -619,9 +619,9 @@
     </div>
 
     <div class="admin-panel" style="margin-top:16px;">
-      <div class="admin-panel-head"><div class="admin-panel-icon">▦</div><h2>IKEA Sets</h2></div>
-      <div class="admin-help">Create an IKEA Set by adding its child articles, sizes and quantity per set. PPC does not need to type technical BOM lines.</div>
-      <button class="btn-primary" onclick="switchTab('sets')">Open IKEA Set Builder</button>
+      <div class="admin-panel-head"><div class="admin-panel-icon">▦</div><h2>Sets</h2></div>
+      <div class="admin-help">Create an Customer Set by adding its child articles, sizes and quantity per set. PPC does not need to type technical BOM lines.</div>
+      <button class="btn-primary" onclick="switchTab('sets')">Open Customer Sets Builder</button>
     </div>
 
     <details class="admin-advanced">
@@ -970,7 +970,7 @@ function applyRoleUI() {
   const setsTab = document.getElementById('sets-tab');
   if (multipleTab) multipleTab.textContent = role === 'dispatch' ? 'Multiple Dispatch' : 'Multiple Orders';
   if (newTab) newTab.textContent = role === 'dispatch' ? 'Single Dispatch' : 'New Order';
-  if (setsTab) setsTab.textContent = role === 'dispatch' ? 'IKEA Sets' : 'IKEA Sets';
+  if (setsTab) setsTab.textContent = role === 'dispatch' ? 'Sets' : 'Sets';
 
   const setBuilderCard = document.getElementById('set-builder-card');
   if (setBuilderCard) setBuilderCard.style.display = role === 'ppc' || role === 'owner' ? '' : 'none';
@@ -1494,7 +1494,7 @@ function toggleOrderType(){
   const isSet=type==='SET';
   const pf=document.getElementById('n-part-field'),sf=document.getElementById('n-set-field'),uf=document.getElementById('n-uom-field');
   if(pf)pf.style.display=isSet?'none':''; if(sf)sf.style.display=isSet?'':'none'; if(uf)uf.style.display=isSet?'none':'';
-  const info=document.getElementById('n-stock-info'); if(info&&isSet)info.textContent='Select an IKEA Set. The BOM will expand automatically into individual pending articles.';
+  const info=document.getElementById('n-stock-info'); if(info&&isSet)info.textContent='Select an Customer Sets. The BOM will expand automatically into individual pending articles.';
 }
 function toggleDispatchItemType(){
   const isSet=(document.getElementById('d-dispatch-type')?.value||'STANDARD')==='SET';
