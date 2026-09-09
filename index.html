@@ -140,30 +140,153 @@
   .status-msg.err { color:var(--danger); }
 
   /* ===== LOGIN ===== */
-  .login-wrap {
-    min-height:88vh; display:flex; align-items:center; justify-content:center;
-    animation: loginWrapIn .4s var(--ease);
-  }
-  @keyframes loginWrapIn { from { opacity:0; transform: scale(.98); } to { opacity:1; transform:none; } }
-  .login-card {
-    background:linear-gradient(180deg, var(--panel-3), var(--panel));
-    border:1px solid var(--border); border-radius:18px; padding:34px 32px;
-    width:380px; max-width:92vw; box-shadow: var(--shadow-md);
-    position:relative; overflow:hidden;
-  }
-  .login-card::before {
-    content:''; position:absolute; top:-60%; left:-20%; width:60%; height:220%;
-    background: radial-gradient(circle, rgba(91,141,239,.10), transparent 60%);
-    pointer-events:none;
-  }
-  .brand-logo { width:145px; height:48px; object-fit:contain; background:#fff; border-radius:6px; display:block; }
-  .login-card .brand-logo { width:210px; height:auto; margin-bottom:18px; background:#fff; padding:6px; border-radius:8px; }
-  .login-card h2 { margin:0 0 4px; font-size:18px; letter-spacing:-.01em; }
-  .login-card .sub { margin-bottom:22px; }
-  .login-card .field { margin-bottom:14px; }
-  .login-card input { padding:11px 12px; }
-  #login-status { display:flex; align-items:center; gap:8px; }
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
 
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a12;
+  margin: -20px -24px -60px;
+  padding: 20px 24px 60px;
+}
+
+/* Ambient aurora — two slow-drifting blobs, one continuous motion, not per-element hover noise */
+.login-wrap::before,
+.login-wrap::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: .55;
+  pointer-events: none;
+  z-index: 0;
+}
+.login-wrap::before {
+  width: 560px; height: 560px;
+  background: radial-gradient(circle, #7c3aed, transparent 70%);
+  top: -180px; left: -160px;
+  animation: auroraDrift1 22s ease-in-out infinite;
+}
+.login-wrap::after {
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, #4c1d95, transparent 70%);
+  bottom: -160px; right: -140px;
+  animation: auroraDrift2 26s ease-in-out infinite;
+}
+@keyframes auroraDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.15); }
+}
+@keyframes auroraDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-50px, -30px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-wrap::before, .login-wrap::after { animation: none; }
+}
+
+/* Faint grid, gives the dark field texture without competing with the aurora */
+.login-wrap {
+  background-image:
+    linear-gradient(rgba(196,181,253,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196,181,253,.04) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  background: rgba(18, 14, 28, .72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(196, 181, 253, .16);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 380px;
+  max-width: 92vw;
+  box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(124,58,237,.08) inset;
+  opacity: 0;
+  animation: cardRise .6s cubic-bezier(.16,1,.3,1) .15s forwards;
+}
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+.login-card .brand-logo {
+  width: 168px;
+  height: auto;
+  margin: 0 auto 22px;
+  background: #fff;
+  padding: 8px;
+  border-radius: 10px;
+  display: block;
+  opacity: 0;
+  animation: logoRise .5s cubic-bezier(.16,1,.3,1) .05s forwards;
+}
+@keyframes logoRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.login-card h2 {
+  margin: 0 0 6px;
+  font-family: 'Space Grotesk', var(--font);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: #f8f7ff;
+  text-align: center;
+}
+.login-card .sub {
+  margin-bottom: 26px;
+  text-align: center;
+  color: #a99fc4;
+  font-size: 13px;
+}
+.login-card .field { margin-bottom: 15px; }
+.login-card label {
+  color: #a99fc4;
+  font-size: 10.5px;
+  letter-spacing: .06em;
+}
+.login-card input {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(196,181,253,.18);
+  color: #f8f7ff;
+  padding: 12px 13px;
+  border-radius: 10px;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.login-card input::placeholder { color: #6b6480; }
+.login-card input:hover {
+  border-color: rgba(196,181,253,.32);
+  background: rgba(255,255,255,.045);
+}
+.login-card input:focus {
+  outline: none;
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(124,58,237,.25);
+  background: rgba(255,255,255,.05);
+}
+
+.login-card .btn-primary {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  box-shadow: 0 8px 24px rgba(109,40,217,.4);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  letter-spacing: .01em;
+}
+.login-card .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 10px 28px rgba(109,40,217,.5); }
+
+#login-status { display: flex; align-items: center; gap: 8px; justify-content: center; }
+.login-card .status-msg.err { color: #f38ba3; }
+.login-card .status-msg.ok { color: #b9a6ff; }
   .spinner {
     display:inline-block; width:14px; height:14px; border-radius:50%;
     border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
