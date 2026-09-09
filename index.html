@@ -7,56 +7,107 @@
 <style>
   :root {
     --bg: #0b0d12;
+    --bg-grad: radial-gradient(1200px 600px at 10% -10%, rgba(91,141,239,.10), transparent 60%),
+               radial-gradient(1000px 600px at 100% 0%, rgba(63,208,160,.08), transparent 55%),
+               #0b0d12;
     --panel: #12151c;
     --panel-2: #191d27;
+    --panel-3: #1e2330;
     --border: #262b38;
+    --border-soft: #1d212b;
     --text: #eef0f4;
     --muted: #8b93a7;
     --accent: #5b8def;
     --accent-2: #3fd0a0;
     --warn: #eab84d;
     --danger: #e5586e;
-    --radius: 12px;
+    --radius: 14px;
+    --radius-sm: 9px;
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
+    --shadow-md: 0 10px 30px rgba(0,0,0,.35);
+    --ease: cubic-bezier(.4,0,.2,1);
   }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--font); padding:20px 24px 60px; }
-  h1 { font-size:20px; margin:0; }
+  body {
+    margin:0; background:var(--bg-grad); background-attachment: fixed;
+    color:var(--text); font-family:var(--font); padding:20px 24px 60px;
+    animation: bodyFadeIn .35s var(--ease);
+  }
+  @keyframes bodyFadeIn { from { opacity:0; } to { opacity:1; } }
+  ::selection { background: rgba(91,141,239,.35); }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #333a4a; }
+
+  h1 { font-size:20px; margin:0; letter-spacing:-.01em; }
   .sub { color:var(--muted); font-size:13px; margin-top:4px; }
   .topbar { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
-  .conn { font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--border); color:var(--muted); }
-  .conn.ok { color:var(--accent-2); border-color:rgba(63,208,160,.3); }
-  .conn.err { color:var(--danger); border-color:rgba(229,88,110,.3); }
+  .conn {
+    font-size:12px; padding:5px 12px 5px 10px; border-radius:999px; border:1px solid var(--border);
+    color:var(--muted); display:inline-flex; align-items:center; gap:6px; transition: all .25s var(--ease);
+  }
+  .conn::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--muted); transition: background .25s var(--ease); }
+  .conn.ok { color:var(--accent-2); border-color:rgba(63,208,160,.3); background:rgba(63,208,160,.06); }
+  .conn.ok::before { background:var(--accent-2); box-shadow:0 0 8px rgba(63,208,160,.7); }
+  .conn.err { color:var(--danger); border-color:rgba(229,88,110,.3); background:rgba(229,88,110,.06); }
+  .conn.err::before { background:var(--danger); }
 
   .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
-  .stat { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
-  .stat .n { font-size:22px; font-weight:700; }
-  .stat .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+  .stat {
+    background:linear-gradient(180deg, var(--panel-3), var(--panel));
+    border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;
+    box-shadow: var(--shadow-sm); transition: transform .2s var(--ease), border-color .2s var(--ease);
+  }
+  .stat:hover { transform: translateY(-2px); border-color:#333a4a; }
+  .stat .n { font-size:23px; font-weight:800; letter-spacing:-.02em; }
+  .stat .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:3px;}
   .stat.warn .n { color:var(--warn); }
   .stat.good .n { color:var(--accent-2); }
 
-  .tabs { display:flex; gap:8px; margin-bottom:16px; border-bottom:1px solid var(--border); }
-  .tab { padding:10px 4px; cursor:pointer; color:var(--muted); font-size:13px; font-weight:600; border-bottom:2px solid transparent; margin-right:14px;}
+  .tabs { display:flex; gap:8px; margin-bottom:16px; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab {
+    padding:10px 4px; cursor:pointer; color:var(--muted); font-size:13px; font-weight:600;
+    border-bottom:2px solid transparent; margin-right:14px; white-space:nowrap;
+    transition: color .2s var(--ease), border-color .2s var(--ease);
+  }
+  .tab:hover { color:#c7cbd6; }
   .tab.active { color:var(--text); border-color:var(--accent); }
 
-  .card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:16px; }
-  .card h2 { font-size:14px; margin:0 0 14px; }
+  .card {
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px;
+    margin-bottom:16px; box-shadow: var(--shadow-sm);
+    animation: cardIn .3s var(--ease);
+  }
+  @keyframes cardIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+  .card h2 { font-size:14px; margin:0 0 14px; letter-spacing:.01em; }
   .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
   @media (max-width:900px){ .grid{ grid-template-columns:repeat(2,1fr);} }
   @media (max-width:600px){ .grid{ grid-template-columns:1fr;} }
   label { display:block; font-size:11px; color:var(--muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:.03em; }
   input, select, textarea {
     width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
-    padding:9px 10px; border-radius:8px; font-size:13px; font-family:var(--font);
+    padding:9px 10px; border-radius:var(--radius-sm); font-size:13px; font-family:var(--font);
+    transition: border-color .15s var(--ease), box-shadow .15s var(--ease), background .15s var(--ease);
   }
-  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
-  input:disabled, select:disabled { opacity:.6; cursor:not-allowed; }
+  input:hover, select:hover, textarea:hover { border-color:#333a4a; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,141,239,.15); }
+  input:disabled, select:disabled { opacity:.55; cursor:not-allowed; }
   .field { margin-bottom:12px; }
   .field.combo { position:relative; }
 
-  button { cursor:pointer; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; }
-  .btn-primary { background:var(--accent); color:#fff; }
+  button {
+    cursor:pointer; border:none; border-radius:var(--radius-sm); padding:9px 14px; font-size:13px; font-weight:600;
+    transition: transform .12s var(--ease), filter .15s var(--ease), background .15s var(--ease), opacity .15s var(--ease);
+  }
+  button:active { transform: scale(.97); }
+  .btn-primary { background:linear-gradient(180deg, #6a99f4, var(--accent)); color:#fff; box-shadow:0 2px 10px rgba(91,141,239,.25); }
+  .btn-primary:hover { filter:brightness(1.08); }
+  .btn-primary:disabled { opacity:.6; cursor:not-allowed; filter:none; }
   .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-ghost:hover { color:var(--text); border-color:#3a4152; background:rgba(255,255,255,.02); }
   .btn-small { padding:6px 10px; font-size:12px; }
   .btn-block { width:100%; margin-top:6px; }
 
@@ -66,12 +117,13 @@
 
   table { width:100%; border-collapse:collapse; font-size:12.5px; }
   th { text-align:left; color:var(--muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em;
-       padding:9px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
-  td { padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+       padding:9px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); z-index:2; }
+  td { padding:9px 10px; border-bottom:1px solid var(--border-soft); white-space:nowrap; }
+  tr { transition: background .12s var(--ease); }
   tr:hover td { background:var(--panel-2); }
-  .table-scroll { overflow-x:auto; }
+  .table-scroll { overflow-x:auto; border-radius:var(--radius-sm); }
 
-  .pill { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; }
+  .pill { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:.01em; }
   .pill-pending { background:rgba(234,184,77,.15); color:var(--warn); }
   .pill-completed { background:rgba(63,208,160,.15); color:var(--accent-2); }
   .pill-high { background:rgba(229,88,110,.15); color:var(--danger); }
@@ -80,36 +132,76 @@
   .pill-role { background:rgba(91,141,239,.15); color:var(--accent); }
 
   .bar-wrap { width:80px; height:6px; background:var(--border); border-radius:3px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:6px;}
-  .bar-fill { height:100%; background:var(--accent-2); }
+  .bar-fill { height:100%; background:linear-gradient(90deg, var(--accent-2), #56e0b3); transition: width .3s var(--ease); }
 
   .empty { color:var(--muted); text-align:center; padding:40px 0; font-size:13px; }
-  .status-msg { font-size:12px; margin-top:8px; min-height:16px; }
+  .status-msg { font-size:12px; margin-top:8px; min-height:16px; transition: color .2s var(--ease); }
   .status-msg.ok { color:var(--accent-2); }
   .status-msg.err { color:var(--danger); }
 
-  .login-wrap { min-height:80vh; display:flex; align-items:center; justify-content:center; }
-  .login-card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:32px; width:360px; max-width:92vw; }
-  .brand-logo { width:145px; height:48px; object-fit:contain; background:#fff; border-radius:4px; display:block; }
-  .login-card .brand-logo { width:220px; height:auto; margin-bottom:16px; background:#fff; }
+  /* ===== LOGIN ===== */
+  .login-wrap {
+    min-height:88vh; display:flex; align-items:center; justify-content:center;
+    animation: loginWrapIn .4s var(--ease);
+  }
+  @keyframes loginWrapIn { from { opacity:0; transform: scale(.98); } to { opacity:1; transform:none; } }
+  .login-card {
+    background:linear-gradient(180deg, var(--panel-3), var(--panel));
+    border:1px solid var(--border); border-radius:18px; padding:34px 32px;
+    width:380px; max-width:92vw; box-shadow: var(--shadow-md);
+    position:relative; overflow:hidden;
+  }
+  .login-card::before {
+    content:''; position:absolute; top:-60%; left:-20%; width:60%; height:220%;
+    background: radial-gradient(circle, rgba(91,141,239,.10), transparent 60%);
+    pointer-events:none;
+  }
+  .brand-logo { width:145px; height:48px; object-fit:contain; background:#fff; border-radius:6px; display:block; }
+  .login-card .brand-logo { width:210px; height:auto; margin-bottom:18px; background:#fff; padding:6px; border-radius:8px; }
+  .login-card h2 { margin:0 0 4px; font-size:18px; letter-spacing:-.01em; }
+  .login-card .sub { margin-bottom:22px; }
+  .login-card .field { margin-bottom:14px; }
+  .login-card input { padding:11px 12px; }
+  #login-status { display:flex; align-items:center; gap:8px; }
+
+  .spinner {
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
+    animation: spin .7s linear infinite; vertical-align:middle;
+  }
+  .spinner.dark { border-color: rgba(139,147,167,.35); border-top-color: var(--accent); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn-primary.loading { pointer-events:none; }
+  .btn-primary .btn-label { display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%; }
+
+  /* ===== chat / discussion ===== */
   .chat-box { max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
-  .chat-msg { padding:2px 0; }
+  .chat-msg { padding:2px 0; animation: cardIn .25s var(--ease); }
   .chat-meta { font-size:10px; color:var(--muted); margin:0 0 4px 3px; line-height:1.3; background:transparent; border:0; padding:0; }
-  .chat-text { display:block; width:fit-content; max-width:92%; background:var(--panel-2); border:1px solid rgba(91,141,239,.45); border-radius:10px; padding:10px 12px; white-space:pre-wrap; word-break:break-word; font-size:13px; line-height:1.45; color:var(--text); }
+  .chat-text { display:block; width:fit-content; max-width:92%; background:var(--panel-2); border:1px solid rgba(91,141,239,.45); border-radius:12px; padding:10px 12px; white-space:pre-wrap; word-break:break-word; font-size:13px; line-height:1.45; color:var(--text); transition: border-color .15s var(--ease); }
   .chat-msg:hover .chat-text { border-color:var(--accent); }
-  .complaint-card { border:1px solid var(--border); background:var(--panel-2); border-radius:10px; padding:14px; margin-bottom:10px; }
+  .complaint-card { border:1px solid var(--border); background:var(--panel-2); border-radius:12px; padding:14px; margin-bottom:10px; transition: border-color .15s var(--ease); }
+  .complaint-card:hover { border-color:#333a4a; }
   .complaint-head { display:flex; gap:8px; justify-content:space-between; align-items:center; flex-wrap:wrap; }
   .comment { border-top:1px solid var(--border); padding:8px 0 0; margin-top:8px; }
-  .login-card h2 { margin:0 0 4px; font-size:17px; }
-  .login-card .sub { margin-bottom:20px; }
-  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.68); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px; }
-  .modal { width:min(760px,96vw); max-height:92vh; overflow:auto; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:0 20px 70px rgba(0,0,0,.45); }
+  .modal-backdrop {
+    position:fixed; inset:0; background:rgba(6,7,11,.72); backdrop-filter: blur(2px);
+    display:none; align-items:center; justify-content:center; z-index:1000; padding:20px;
+  }
+  .modal-backdrop.open { display:flex; animation: bodyFadeIn .18s var(--ease); }
+  .modal {
+    width:min(760px,96vw); max-height:92vh; overflow:auto; background:var(--panel); border:1px solid var(--border);
+    border-radius:16px; padding:22px; box-shadow:0 20px 70px rgba(0,0,0,.5);
+    animation: modalPop .22s var(--ease);
+  }
+  @keyframes modalPop { from { opacity:0; transform: translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
   .modal-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
   .modal-head h2 { margin:0; font-size:16px; }
   .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
   .action-cell { display:flex; gap:6px; align-items:center; }
   .mini-note { font-size:11px; color:var(--muted); margin-top:4px; }
   .history-card { border:1px solid var(--border); background:var(--panel-2); border-radius:10px; padding:12px; margin-top:12px; }
-  .history-row { display:grid; grid-template-columns:1.1fr 1fr 1fr .8fr 1fr; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .history-row { display:grid; grid-template-columns:1.1fr 1fr 1fr .8fr 1fr; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-soft); font-size:12px; }
   .history-row:last-child { border-bottom:0; }
   .searchable-order-field { position:relative; }
   .order-search-wrap { position:relative; }
@@ -123,13 +215,13 @@
   .order-search-results {
     display:none; position:absolute; z-index:500; left:0; right:0; top:calc(100% + 4px);
     max-height:360px; overflow-y:auto; background:var(--panel);
-    border:1px solid var(--border); border-radius:10px;
+    border:1px solid var(--border); border-radius:12px;
     box-shadow:0 18px 50px rgba(0,0,0,.45);
   }
-  .order-search-results.open { display:block; }
+  .order-search-results.open { display:block; animation: cardIn .15s var(--ease); }
   .order-result {
     width:100%; text-align:left; background:transparent; color:var(--text);
-    border:0; border-bottom:1px solid var(--border); border-radius:0;
+    border:0; border-bottom:1px solid var(--border-soft); border-radius:0;
     padding:10px 12px; font-weight:400;
   }
   .order-result:last-child { border-bottom:0; }
@@ -139,11 +231,77 @@
   .order-result-pending { color:var(--warn); font-weight:700; }
   .order-no-results { padding:16px 12px; color:var(--muted); font-size:12px; text-align:center; }
 
+  .select-col { width:38px; text-align:center; }
+  .row-check, #select-all-orders { width:16px; height:16px; cursor:pointer; accent-color:var(--accent); }
+  .bulkbar { display:none; align-items:center; gap:8px; padding:10px 12px; margin:-4px 0 12px; border:1px solid rgba(91,141,239,.35); background:rgba(91,141,239,.08); border-radius:10px; }
+  .bulkbar.show { display:flex; flex-wrap:wrap; animation: cardIn .2s var(--ease); }
+  .bulk-count { font-weight:700; }
+
+  /* ===== ADMIN PANEL ===== */
+  .admin-hero {
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    padding:18px 20px; border-radius:16px; margin-bottom:16px;
+    background: linear-gradient(135deg, rgba(91,141,239,.14), rgba(63,208,160,.08));
+    border:1px solid rgba(91,141,239,.25);
+  }
+  .admin-hero h2 { margin:0; font-size:16px; }
+  .admin-hero .sub { margin-top:4px; }
+  .admin-hero .badge { font-size:11px; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.08); color:var(--text); border:1px solid rgba(255,255,255,.1); }
+  .set-builder { border:1px solid var(--border); background:var(--panel); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .set-builder-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .set-builder-title { display:flex; align-items:center; gap:10px; }
+  .set-builder-title h2 { margin:0; font-size:15px; }
+  .set-builder-badge { font-size:10px; padding:4px 8px; border:1px solid rgba(91,141,239,.35); border-radius:999px; color:var(--accent); background:rgba(91,141,239,.08); }
+  .set-help { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 14px; }
+  .set-help-item { border:1px solid var(--border-soft); background:var(--panel-2); border-radius:9px; padding:9px 10px; font-size:11px; color:var(--muted); }
+  .set-help-item b { display:block; color:var(--text); margin-bottom:3px; font-size:11px; }
+  .set-component-table { width:100%; border-collapse:collapse; min-width:820px; }
+  .set-component-table th { text-align:left; font-size:10px; color:var(--muted); font-weight:600; padding:8px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .set-component-table td { padding:7px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
+  .set-component-table input,.set-component-table select { width:100%; min-width:0; }
+  .set-component-table .row-no { width:28px; color:var(--muted); text-align:center; font-size:11px; }
+  .set-component-table .qty-col { width:120px; }
+  .set-component-table .size-col { width:180px; }
+  .set-component-table .uom-col { width:110px; }
+  .set-component-table .unit-col { width:125px; }
+  .set-builder-summary { margin-top:10px; padding:10px 12px; border:1px dashed var(--border); border-radius:9px; background:var(--panel-2); font-size:11px; color:var(--muted); }
+  .set-builder-summary b { color:var(--text); }
+  @media(max-width:800px){.set-help{grid-template-columns:1fr;}.set-builder-head{flex-direction:column;}.set-component-table{min-width:760px;}}
+  .admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .admin-panel {
+    background: var(--panel-2); border:1px solid var(--border); border-radius:14px; padding:16px;
+    transition: border-color .2s var(--ease), transform .2s var(--ease);
+  }
+  .admin-panel:hover { border-color:#333a4a; }
+  .admin-panel-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .admin-panel-icon {
+    width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-size:14px; background: rgba(91,141,239,.15); color:var(--accent); flex-shrink:0;
+  }
+  .admin-panel h2 { margin:0; font-size:13.5px; }
+  .config-list { max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:10px; background:var(--panel); }
+  .config-row { padding:10px 12px; border-bottom:1px solid var(--border-soft); display:flex; justify-content:space-between; gap:8px; font-size:12px; align-items:center; transition: background .12s var(--ease); }
+  .config-row:hover { background: var(--panel-2); }
+  .config-row:last-child { border-bottom:0; }
+  .danger-note { color:var(--warn); font-size:11px; margin-top:6px; }
+  @media(max-width:800px){.admin-grid{grid-template-columns:1fr;}}
+
   .search-wrap { position:relative; min-width:260px; flex:1; }
   .search-wrap input { width:100%; min-width:260px; padding-right:30px; }
   .search-hint { font-size:11px; color:var(--muted); margin:-5px 0 12px; }
+
+  /* tab panel fade transition */
+  .tab-panel { animation: cardIn .22s var(--ease); }
+
   @media (max-width:700px){ .history-row{grid-template-columns:1fr 1fr;} .search-wrap{min-width:100%;} .search-wrap input{min-width:100%;} }
+
+  .skeleton-row td{background:linear-gradient(90deg,var(--panel-2) 25%,var(--panel-3) 37%,var(--panel-2) 63%);background-size:400% 100%;animation:skeletonShine 1.4s ease infinite;height:34px;}
+  @keyframes skeletonShine{0%{background-position:100% 50%}100%{background-position:0 50%}}
 </style>
+<style>
+.admin-help{font-size:12px;color:var(--muted);line-height:1.5;margin:-2px 0 14px}.admin-simple-title{font-weight:700;font-size:16px}.admin-advanced{margin-top:16px;border:1px solid var(--border);border-radius:14px;background:var(--panel)}.admin-advanced summary{cursor:pointer;list-style:none;padding:16px 18px;font-weight:700}.admin-advanced summary::-webkit-details-marker{display:none}.admin-advanced summary:before{content:'▸';display:inline-block;margin-right:8px;transition:.15s}.admin-advanced[open] summary:before{transform:rotate(90deg)}.admin-advanced-body{padding:0 18px 18px}.admin-tip{padding:10px 12px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.18);font-size:12px;color:var(--muted);margin-bottom:14px}.admin-step{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.admin-step b{min-width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:11px}.admin-plain-label{font-size:12px;color:var(--muted);margin-top:-8px;margin-bottom:10px}
+</style>
+
 </head>
 <body>
 
@@ -161,7 +319,7 @@
       <label>Password</label>
       <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password">
     </div>
-    <button class="btn-primary btn-block" onclick="doLogin()">Sign In</button>
+    <button class="btn-primary btn-block" id="login-btn" onclick="doLogin()"><span class="btn-label" id="login-btn-label">Sign In</span></button>
     <div class="status-msg" id="login-status"></div>
   </div>
 </div>
@@ -171,7 +329,7 @@
   <h2>One-time setup</h2>
   <div class="field">
     <label>Apps Script Web App URL</label>
-    <input id="script-url" placeholder="https://script.google.com/macros/s/AKfycbxa7REwaiUnpYv48spZfHP-DhM9w6tvnp9wSqIHr4M5nO-uRIgJczk3twW6CTxj4D7I/exec">
+    <input id="script-url" placeholder="https://script.google.com/macros/s/AKfycbw_5inaUm9lvPQoFnCGThv-oxrEBZZQR4cqDj3I-sEXWumyphmaQ6CAzDIURGXY-QdGnQ/exec">
   </div>
   <button class="btn-primary" onclick="saveScriptUrl()">Continue</button>
   <div class="status-msg" id="setup-status"></div>
@@ -197,16 +355,18 @@
   <div class="stats" id="stats"></div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="orders" onclick="switchTab('orders')">All Orders</div>
-    <div class="tab" data-tab="new" onclick="switchTab('new')">New Order</div>
-    <div class="tab" data-tab="dispatch" onclick="switchTab('dispatch')">Dispatch / Pending</div>
+    <div class="tab active" data-tab="multiple" onclick="switchTab('multiple')" id="multiple-tab">Multiple Orders</div>
+    <div class="tab" data-tab="sets" onclick="switchTab('sets')" id="sets-tab">IKEA Sets</div>
+    <div class="tab" data-tab="orders" onclick="switchTab('orders')">All Orders</div>
+    <div class="tab" data-tab="new" onclick="switchTab('new')" id="new-tab">New Order</div>
     <div class="tab" data-tab="stock" onclick="switchTab('stock')">FG Stock</div>
     <div class="tab" data-tab="complaints" onclick="switchTab('complaints')">Complaints</div>
     <div class="tab" data-tab="discussion" onclick="switchTab('discussion')">Discussion</div>
+    <div class="tab" data-tab="admin" onclick="switchTab('admin')">Admin</div>
   </div>
 
   <!-- ORDERS TAB -->
-  <div id="tab-orders">
+  <div id="tab-orders" class="tab-panel" style="display:none;">
     <div class="card">
       <div class="toolbar">
         <div class="search-wrap">
@@ -231,6 +391,13 @@
         <button class="btn-ghost btn-small" onclick="loadData()">Refresh</button>
       </div>
       <div class="search-hint">Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.</div>
+      <div id="bulkbar" class="bulkbar">
+        <span class="bulk-count" id="bulk-count">0 selected</span>
+        <button class="btn-ghost btn-small" onclick="selectAllMatching()">Select all matching</button>
+        <select id="bulk-status"><option value="">Change status…</option><option>Pending</option><option>Completed</option></select>
+        <button class="btn-primary btn-small" onclick="applyBulkStatus()">Apply</button>
+        <button class="btn-ghost btn-small" onclick="clearSelection()">Clear</button>
+      </div>
       <div class="table-scroll">
         <table id="orders-table"><thead></thead><tbody></tbody></table>
       </div>
@@ -238,29 +405,74 @@
     </div>
   </div>
 
-  <!-- NEW ORDER TAB -->
+  <!-- IKEA SETS TAB -->
+  <div id="tab-sets" style="display:none;">
+    <div class="set-builder" id="set-builder-card">
+      <div class="set-builder-head">
+        <div class="set-builder-title"><div class="admin-panel-icon">▦</div><div><h2>IKEA Set Builder</h2><div class="sub">Build the Set once. PPC can then select the Set and order only the number of Sets required.</div></div></div>
+        <span class="set-builder-badge">PPC / Owner</span>
+      </div>
+      <div class="set-help">
+        <div class="set-help-item"><b>1. Set identity</b>Give the set a unique code and a clear name.</div>
+        <div class="set-help-item"><b>2. Add child articles</b>Select the Part Code, then enter Size/Variant and quantity needed for one set.</div>
+        <div class="set-help-item"><b>3. Save</b>The MIS expands every child requirement automatically when PPC orders the set.</div>
+      </div>
+      <div class="grid">
+        <div class="field"><label>Set Code *</label><input id="set-builder-code" placeholder="IKEA-SET-001" autocomplete="off"></div>
+        <div class="field"><label>Set Name *</label><input id="set-builder-name" placeholder="Bedroom Set – 5 Piece" autocomplete="off"></div>
+        <div class="field combo"><label>Customer (optional)</label><input id="set-builder-customer" list="dl-customers" placeholder="IKEA" autocomplete="off"></div>
+      </div>
+      <div class="table-scroll">
+        <table class="set-component-table" id="set-component-table">
+          <thead><tr><th>#</th><th>Child Part Code *</th><th>Size / Variant</th><th>Qty / Set *</th><th>UOM</th><th>Production Unit</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="modal-actions" style="justify-content:space-between;">
+        <button class="btn-ghost" onclick="addSetBuilderRow()">＋ Add Child Article</button>
+        <div style="display:flex;gap:8px;"><button class="btn-ghost" onclick="clearSetBuilder()">Clear</button><button class="btn-primary" onclick="savePPCSet()">Save Set</button></div>
+      </div>
+      <div class="set-builder-summary" id="set-builder-summary">Add the child articles that make up <b>1 set</b>. You can use the <b>same Part Code more than once</b> when the Size / Variant is different.</div>
+      <div class="status-msg" id="set-builder-status"></div>
+    </div>
+
+  </div>
+
+  <!-- SINGLE-ENTRY TAB: PPC = New Order, Dispatch = Single Dispatch -->
   <div id="tab-new" style="display:none;">
-    <div class="card">
-      <h2>New Order</h2>
+    <div class="card" id="single-order-card">
+      <h2 id="single-order-title">New Order</h2>
       <div class="grid">
         <div class="field combo"><label>Customer Name</label><input id="n-customer" list="dl-customers" placeholder="Select or type new"><datalist id="dl-customers"></datalist></div>
         <div class="field combo"><label>Customer Location</label><input id="n-location" list="dl-locations" placeholder="e.g. Chakan, Waluj"><datalist id="dl-locations"></datalist></div>
-        <div class="field combo"><label>Part Code</label><input id="n-part" list="dl-parts" placeholder="Select or type new" oninput="showStock()"><datalist id="dl-parts"></datalist></div>
+        <div class="field"><label>Order Type</label><select id="n-order-type" onchange="toggleOrderType()"><option value="STANDARD">Standard Article</option><option value="SET">IKEA Set</option></select></div>
+        <div class="field combo" id="n-part-field"><label>Part Code</label><input id="n-part" list="dl-parts" placeholder="Select or type new" oninput="showStock()"><datalist id="dl-parts"></datalist></div>
+        <div class="field combo" id="n-set-field" style="display:none"><label>Set Code</label><select id="n-set"><option value="">— Select Set —</option></select></div>
         <div class="field"><label>Unit</label><select id="n-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
         <div class="field"><label>Order Quantity</label><input id="n-qty" type="number" min="1" placeholder="1000"></div>
+        <div class="field" id="n-uom-field"><label>UOM</label><select id="n-uom"></select></div>
         <div class="field"><label>Priority Level</label><select id="n-priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
         <div class="field"><label>Scheduled Date</label><input id="n-date" type="date"></div>
+        <div class="field combo"><label>Ship To Party</label><input id="n-shipto" list="dl-shipto" placeholder="Select or type ship-to party"></div>
+        <div class="field" style="grid-column:span 2"><label>Ship-to Address</label><input id="n-shipto-address" placeholder="Full delivery / ship-to address"></div>
       </div>
       <div class="sub" id="n-stock-info" style="margin:-4px 0 12px;">Enter a Part Code to see current FG stock.</div>
       <button class="btn-primary btn-block" onclick="submitOrder()">Create Order</button>
       <div class="status-msg" id="new-status"></div>
     </div>
-  </div>
 
-  <!-- DISPATCH / STILL PENDING TAB -->
-  <div id="tab-dispatch" style="display:none;">
-    <div class="card" id="dispatch-entry-card">
+    <div class="card" id="dispatch-entry-card" style="display:none;">
+
       <h2 id="dispatch-form-title">Dispatch / Still Pending</h2>
+      <div class="field">
+        <label>Dispatch Item Type</label>
+        <select id="d-dispatch-type" onchange="toggleDispatchItemType()"><option value="STANDARD">Standard Article</option><option value="SET">IKEA Set</option></select>
+      </div>
+      <div class="field" id="d-set-order-field" style="display:none">
+        <label>Find Set Order</label>
+        <select id="d-set-order"><option value="">— Select pending set —</option></select>
+        <div class="mini-note">Selecting a set dispatches every BOM component automatically.</div>
+      </div>
       <div class="field">
         <label>Entry Type</label>
         <select id="d-mode" onchange="toggleDispatchMode()">
@@ -288,6 +500,10 @@
           <label>Dispatched Quantity (this entry)</label>
           <input id="d-qty" type="number" min="1" placeholder="000">
         </div>
+        <div class="field" id="d-uom-field">
+          <label>UOM</label>
+          <select id="d-uom" disabled></select>
+        </div>
         <div class="field" id="d-unit-field">
           <label>Dispatching Unit</label>
           <select id="d-unit">
@@ -299,6 +515,13 @@
           <label>Ship To Party</label>
           <input id="d-shipto" list="dl-shipto" placeholder="Select or type ship-to party">
           <datalist id="dl-shipto"></datalist>
+        <datalist id="dl-bulk-customers"></datalist>
+        <datalist id="dl-bulk-locations"></datalist>
+        <datalist id="dl-bulk-shipto-addresses"></datalist>
+        </div>
+        <div class="field" id="d-shipto-address-field">
+          <label>Ship-to Address</label>
+          <input id="d-shipto-address" placeholder="Full delivery / ship-to address">
         </div>
         <div class="field" id="d-date-field">
           <label>Dispatched Date</label>
@@ -316,10 +539,117 @@
       <button class="btn-primary btn-block" id="dispatch-submit-btn" onclick="submitDispatch()">Log Dispatch</button>
       <div class="status-msg" id="dispatch-status"></div>
     </div>
-    <div class="card">
-      <h2>Dispatch History</h2>
-      <div id="dispatch-history"></div>
+
+  </div>
+
+  <!-- MULTIPLE ORDERS TAB -->
+  <div id="tab-multiple" class="tab-panel">
+    <div class="card" id="ppc-multiple-card">
+      <h2>PPC — Multiple Order Creation</h2>
+      <div class="sub" style="margin-bottom:10px;">Create many customer orders in one save. Ship To Party is registered here and will automatically appear at Dispatch.</div>
+      <div class="table-scroll">
+        <table id="ppc-order-bulk-table"><thead><tr><th>Customer</th><th>Location</th><th>Type</th><th>Part / Set</th><th>Unit</th><th>Qty</th><th>UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To Party</th><th>Ship-to Address</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="modal-actions" style="margin-top:10px;"><button class="btn-ghost" onclick="addPPCBulkRow()">+ Add Row</button><button class="btn-primary" onclick="savePPCBulkOrders()">Save All Orders</button><button class="btn-ghost" onclick="clearPPCBulkRows()">Clear</button></div>
+      <div class="status-msg" id="ppc-bulk-status"></div>
     </div>
+
+    <div class="card" id="dispatch-multiple-card" style="display:none;">
+      <h2>Dispatch — Multiple Orders</h2>
+      <div class="sub" style="margin-bottom:10px;">Select multiple pending orders. Their PPC Ship To Party is pre-filled automatically; Dispatch may change it only when necessary.</div>
+      <div class="toolbar"><input id="bulk-dispatch-search" type="search" placeholder="Search customer, part, Order ID, date…" oninput="renderBulkDispatchRows()"><button class="btn-ghost btn-small" onclick="selectAllBulkDispatch()">Select all visible</button></div>
+      <div class="table-scroll"><table id="bulk-dispatch-table"><thead><tr><th>Select</th><th>Order</th><th>Customer</th><th>Part</th><th>Pending</th><th>UOM</th><th>Dispatch Qty</th><th>Ship To Party</th></tr></thead><tbody></tbody></table></div>
+      <div class="grid" style="margin-top:10px;">
+        <div class="field"><label>Dispatching Unit</label><select id="bulk-d-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+        <div class="field"><label>Dispatch Date</label><input id="bulk-d-date" type="date"></div>
+        <div class="field"><label>Common Note</label><input id="bulk-d-note" placeholder="Optional"></div>
+      </div>
+      <div class="modal-actions"><button class="btn-primary" onclick="saveBulkDispatch()">Dispatch Selected</button><button class="btn-ghost" onclick="clearBulkDispatchSelection()">Clear Selection</button></div>
+      <div class="status-msg" id="bulk-dispatch-status"></div>
+    </div>
+
+    <div class="card" id="dispatch-history-card" style="display:none;">
+      <h2>Dispatch History</h2><div id="dispatch-history"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN TAB -->
+  <div id="tab-admin" style="display:none;">
+    <div class="admin-hero">
+      <div>
+        <h2>System Administration</h2>
+        <div class="sub">Configuration changes affect the new V2 system. Existing production data is preserved.</div>
+      </div>
+      <span class="badge" id="admin-role-badge">Signed in</span>
+    </div>
+    <div class="admin-grid">
+      <div class="admin-panel">
+        <div class="admin-panel-head"><div class="admin-panel-icon">＋</div><h2>Create a Role</h2></div>
+        <div class="admin-help">Create a job role and choose what that role is allowed to do in the MIS. You only need this when you want a new type of user.</div>
+        <div class="field"><label>Role Name</label><input id="admin-role-name" placeholder="Example: Supervisor"></div>
+        <div class="field"><label>What can this role do?</label><div id="admin-permissions" class="config-list"></div></div>
+        <button class="btn-primary btn-block" onclick="createAdminRole()">Create Role</button>
+        <div class="status-msg" id="admin-role-status"></div>
+      </div>
+
+      <div class="admin-panel">
+        <div class="admin-panel-head"><div class="admin-panel-icon">↔</div><h2>Change a User's Role</h2></div>
+        <div class="admin-help">Use this when an employee's responsibility changes. Select the person, then select the role they should have.</div>
+        <div class="field"><label>Employee</label><select id="admin-user-name"><option value="">— Select employee —</option></select></div>
+        <div class="field"><label>New Role</label><select id="admin-user-role"><option value="">— Select role —</option></select></div>
+        <button class="btn-primary btn-block" onclick="assignAdminUserRole()">Save Role</button>
+        <div class="status-msg" id="admin-user-status"></div>
+      </div>
+
+      <div class="admin-panel" style="grid-column:span 2;">
+        <div class="admin-panel-head"><div class="admin-panel-icon">👤</div><h2>Employees & Login Accounts</h2></div>
+        <div class="admin-help">Create the login that an employee will use to enter the MIS. Choose their role and, for PPC/Dispatch users, the unit they belong to.</div>
+        <div class="grid">
+          <div class="field"><label>Username</label><input id="u-new-username" placeholder="Example: ppc_unit1"></div>
+          <div class="field"><label>Employee Name</label><input id="u-new-displayname" placeholder="Example: Rahul Kumar"></div>
+          <div class="field"><label>Temporary Password</label><input id="u-new-password" type="password" placeholder="Minimum 4 characters"></div>
+          <div class="field"><label>Job Role</label><select id="u-new-role"></select></div>
+          <div class="field"><label>Work Unit</label><select id="u-new-unit"><option value="">— Global / No specific unit —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+        </div>
+        <div class="admin-tip"><b>Example:</b> PPC + Unit 1 means this person works only with Unit 1. They will not be allowed to switch to another unit.</div>
+        <button class="btn-primary btn-block" onclick="createNewUser()">Create Employee Login</button>
+        <div class="status-msg" id="u-new-status"></div>
+        <div class="config-list" id="u-list" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div class="admin-panel" style="margin-top:16px;">
+      <div class="admin-panel-head"><div class="admin-panel-icon">▦</div><h2>IKEA Sets</h2></div>
+      <div class="admin-help">Create an IKEA Set by adding its child articles, sizes and quantity per set. PPC does not need to type technical BOM lines.</div>
+      <button class="btn-primary" onclick="switchTab('sets')">Open IKEA Set Builder</button>
+    </div>
+
+    <details class="admin-advanced">
+      <summary>Advanced MIS Settings</summary>
+      <div class="admin-advanced-body">
+        <div class="admin-tip"><b>Most users do not need this.</b> These settings are only for an Owner/Admin who wants to customize the MIS itself — for example, adding a new custom field or adding an option to a dropdown.</div>
+        <div class="grid">
+          <div class="admin-panel">
+            <div class="admin-panel-head"><div class="admin-panel-icon">▤</div><h2>Add a Custom Field</h2></div>
+            <div class="admin-help">Use this only when you want to add a new piece of information to a form. Example: Board Grade, Vehicle No. or PO Number.</div>
+            <div class="field"><label>Where should it appear?</label><input id="admin-field-module" placeholder="Example: Orders"></div>
+            <div class="field"><label>Internal Field Name</label><input id="admin-field-name" placeholder="Example: BoardGrade"></div>
+            <div class="field"><label>What should the user see?</label><input id="admin-field-label" placeholder="Example: Board Grade"></div>
+            <div class="grid"><div class="field"><label>Answer Type</label><select id="admin-field-type"><option value="text">Text — user types an answer</option><option value="number">Number — user enters a number</option><option value="dropdown">Choice — user selects an option</option><option value="date">Date — user selects a date</option></select></div><div class="field"><label>Choice List (only for Choice)</label><input id="admin-field-dropdown" placeholder="Example: board_grade"></div></div>
+            <button class="btn-primary btn-block" onclick="createAdminField()">Add Custom Field</button><div class="status-msg" id="admin-field-status"></div>
+          </div>
+          <div class="admin-panel">
+            <div class="admin-panel-head"><div class="admin-panel-icon">▾</div><h2>Add a Choice</h2></div>
+            <div class="admin-help">Add one new option to an existing choice list. Example: add <b>Kg</b> to the UOM list.</div>
+            <div class="field"><label>Which list?</label><input id="admin-dd-name" placeholder="Example: UOM"></div>
+            <div class="field"><label>New Choice</label><input id="admin-dd-option" placeholder="Example: Kg"></div>
+            <button class="btn-primary btn-block" onclick="createAdminDropdownOption()">Add Choice</button><div class="status-msg" id="admin-dd-status"></div>
+          </div>
+        </div>
+      </div>
+    </details>
+    <div class="card"><h2>Configured Roles</h2><div id="admin-role-list" class="config-list"></div></div>
+    <div class="card"><h2>Configured Fields</h2><div id="admin-field-list" class="config-list"></div></div>
   </div>
 
   <!-- STOCK TAB -->
@@ -390,6 +720,23 @@
 
 </div>
 
+<div id="additional-qty-modal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head"><h2>Add Additional Quantity</h2><button class="btn-ghost btn-small" onclick="closeAdditionalQty()">Close</button></div>
+    <input id="aq-order-id" type="hidden">
+    <div class="sub" id="aq-order-info" style="margin-bottom:12px;"></div>
+    <div class="grid">
+      <div class="field"><label>Additional Quantity</label><input id="aq-qty" type="number" min="1"></div>
+      <div class="field"><label>Reason</label><select id="aq-reason"><option>Customer increased demand</option><option>Stock correction</option><option>Other</option></select></div>
+      <div class="field"><label>Approved By</label><input id="aq-approved-by" placeholder="Required above threshold"></div>
+    </div>
+    <div class="field"><label>Reason Note</label><textarea id="aq-note" rows="3" placeholder="Additional explanation (optional)"></textarea></div>
+    <div class="danger-note" id="aq-threshold-note"></div>
+    <div class="status-msg" id="aq-status"></div>
+    <div class="modal-actions"><button class="btn-ghost" onclick="closeAdditionalQty()">Cancel</button><button class="btn-primary" onclick="submitAdditionalQty()">Add Quantity</button></div>
+  </div>
+</div>
+
 <div id="edit-modal-backdrop" class="modal-backdrop">
   <div class="modal">
     <div class="modal-head">
@@ -403,6 +750,7 @@
       <div class="field"><label>Part Code</label><input id="e-part"></div>
       <div class="field"><label>Unit</label><select id="e-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
       <div class="field"><label>Order Quantity</label><input id="e-qty" type="number" min="1"></div>
+      <div class="field"><label>UOM</label><select id="e-uom"></select></div>
       <div class="field"><label>Priority</label><select id="e-priority"><option>High</option><option>Medium</option><option>Low</option></select></div>
       <div class="field"><label>Scheduled Date</label><input id="e-date" type="date"></div>
       <div class="field"><label>Pending Department</label><select id="e-dept"></select></div>
@@ -427,6 +775,7 @@
     <div class="grid">
       <div class="field"><label>Ship To Party</label><input id="de-shipto"></div>
       <div class="field"><label>Dispatched Quantity</label><input id="de-qty" type="number" min="1"></div>
+      <div class="field"><label>UOM</label><select id="de-uom" disabled></select></div>
       <div class="field"><label>Dispatch Unit</label><select id="de-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
       <div class="field"><label>Dispatched Date</label><input id="de-date" type="date"></div>
       <div class="field"><label>Pending Department (if balance remains)</label><select id="de-dept"></select></div>
@@ -442,11 +791,16 @@
 </div>
 
 <script>
-const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxa7REwaiUnpYv48spZfHP-DhM9w6tvnp9wSqIHr4M5nO-uRIgJczk3twW6CTxj4D7I/exec';
-let APPS_SCRIPT_URL = localStorage.getItem('svd_url') || DEFAULT_APPS_SCRIPT_URL;
+const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_5inaUm9lvPQoFnCGThv-oxrEBZZQR4cqDj3I-sEXWumyphmaQ6CAzDIURGXY-QdGnQ/exec';
+const FAST_REFRESH_DEBOUNCE = 120;
+const V2_BUILD = '2026.09.03-V3-FAST-BATCH';
+let APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
+localStorage.setItem('svd_url', APPS_SCRIPT_URL);
 let TOKEN = sessionStorage.getItem('svd_token') || '';
 let SESSION = JSON.parse(sessionStorage.getItem('svd_session') || 'null');
-let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], departments: [], stock: [], discussion: [], complaints: [], complaintComments: [] };
+let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], sets: [], setOrders: [], departments: [], stock: [], uoms: ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'], discussion: [], complaints: [], complaintComments: [], v2: {permissions:[],roles:[],fields:[],dropdowns:[],plans:{},additional:{}} };
+let selectedOrders = new Set();
+let ppcSearchIndex = [];
 
 function saveScriptUrl() {
   const url = document.getElementById('script-url').value.trim();
@@ -471,6 +825,24 @@ function init() {
     showApp();
   } else {
     document.getElementById('login-screen').style.display = 'flex';
+    // Quality-of-life: focus the username field immediately, and let Enter submit.
+    const u = document.getElementById('login-username');
+    if (u) setTimeout(() => u.focus(), 50);
+  }
+}
+
+function setLoginLoading(isLoading) {
+  const btn = document.getElementById('login-btn');
+  const label = document.getElementById('login-btn-label');
+  if (!btn || !label) return;
+  if (isLoading) {
+    btn.disabled = true;
+    btn.classList.add('loading');
+    label.innerHTML = '<span class="spinner"></span> Signing in…';
+  } else {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    label.textContent = 'Sign In';
   }
 }
 
@@ -478,28 +850,90 @@ async function doLogin() {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
   const statusEl = document.getElementById('login-status');
+
   if (!username || !password) {
-    statusEl.textContent = 'Enter username and password.'; statusEl.className = 'status-msg err';
+    statusEl.textContent = 'Enter username and password.';
+    statusEl.className = 'status-msg err';
     return;
   }
-  statusEl.textContent = 'Signing in…'; statusEl.className = 'status-msg';
+
+  statusEl.textContent = '';
+  statusEl.className = 'status-msg';
+  setLoginLoading(true);
+
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'login', username, password })
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'login',
+        username: username,
+        password: password
+      }),
+      redirect: 'follow',
+      cache: 'no-store'
     });
-    const result = await res.json();
-    if (result.error) { statusEl.textContent = result.error; statusEl.className = 'status-msg err'; return; }
+
+    const raw = await res.text();
+
+    if (!res.ok) {
+      statusEl.textContent = 'Server returned HTTP ' + res.status + '. Check Apps Script deployment.';
+      statusEl.className = 'status-msg err';
+      console.error('Login HTTP error:', res.status, raw);
+      return;
+    }
+
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch (parseErr) {
+      statusEl.textContent = 'Apps Script did not return JSON. Redeploy the Web App and try again.';
+      statusEl.className = 'status-msg err';
+      console.error('Login non-JSON response:', raw);
+      return;
+    }
+
+    if (result.error) {
+      statusEl.textContent = result.error;
+      statusEl.className = 'status-msg err';
+      return;
+    }
+
+    if (!result.token) {
+      statusEl.textContent = 'Login response has no session token. Redeploy the latest Code.gs.';
+      statusEl.className = 'status-msg err';
+      console.error('Invalid login response:', result);
+      return;
+    }
+
     TOKEN = result.token;
-    SESSION = { role: result.role, unit: result.unit, displayName: result.displayName };
+    SESSION = {
+      username: result.username,
+      role: result.role,
+      unit: result.unit,
+      displayName: result.displayName
+    };
+
     sessionStorage.setItem('svd_token', TOKEN);
     sessionStorage.setItem('svd_session', JSON.stringify(SESSION));
+
+    statusEl.textContent = 'Welcome back — loading your dashboard…';
+    statusEl.className = 'status-msg ok';
+
     showApp();
   } catch (e) {
-    statusEl.textContent = 'Could not reach the server.'; statusEl.className = 'status-msg err';
+    console.error('Login fetch failed:', e);
+    statusEl.textContent = 'Could not reach Apps Script. Make sure the latest Web App deployment is active and accessible.';
+    statusEl.className = 'status-msg err';
+  } finally {
+    setLoginLoading(false);
   }
 }
+
+['login-username','login-password'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doLogin(); } });
+});
 
 function doLogout() {
   sessionStorage.removeItem('svd_token');
@@ -509,101 +943,197 @@ function doLogout() {
   document.getElementById('login-screen').style.display = 'flex';
 }
 
+function applyRoleUI() {
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const perms = new Set((data?.v2 && data.v2.permissions) || []);
+  const can = p => role === 'owner' || perms.has(p);
+
+  // Navigation is role-specific and intentionally simple.
+  const allowed = new Set(['orders','stock','complaints','discussion']);
+  if (role === 'owner' || role === 'ppc' || role === 'admin' || can('create_orders')) {
+    allowed.add('multiple');
+    allowed.add('new');
+  }
+  if (role === 'owner' || role === 'ppc') allowed.add('sets');
+  if (role === 'owner' || role === 'dispatch' || (can('view_dispatch') && can('mark_dispatched') && role !== 'ppc')) {
+    allowed.add('multiple');
+    allowed.add('new');
+  }
+  if (role === 'owner' || role === 'admin' || can('access_admin_panel')) allowed.add('admin');
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.style.display = allowed.has(t.dataset.tab) ? '' : 'none';
+  });
+
+  const multipleTab = document.getElementById('multiple-tab');
+  const newTab = document.getElementById('new-tab');
+  const setsTab = document.getElementById('sets-tab');
+  if (multipleTab) multipleTab.textContent = role === 'dispatch' ? 'Multiple Dispatch' : 'Multiple Orders';
+  if (newTab) newTab.textContent = role === 'dispatch' ? 'Single Dispatch' : 'New Order';
+  if (setsTab) setsTab.textContent = role === 'dispatch' ? 'IKEA Sets' : 'IKEA Sets';
+
+  const setBuilderCard = document.getElementById('set-builder-card');
+  if (setBuilderCard) setBuilderCard.style.display = role === 'ppc' || role === 'owner' ? '' : 'none';
+
+  const ppcCard = document.getElementById('ppc-multiple-card');
+  const dispatchMulti = document.getElementById('dispatch-multiple-card');
+  const dispatchHistory = document.getElementById('dispatch-history-card');
+  const singleOrderCard = document.getElementById('single-order-card');
+  const dispatchEntryCard = document.getElementById('dispatch-entry-card');
+  if (ppcCard) ppcCard.style.display = role === 'ppc' || role === 'owner' || role === 'admin' ? '' : 'none';
+  if (dispatchMulti) dispatchMulti.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
+  if (dispatchHistory) dispatchHistory.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
+  if (singleOrderCard) singleOrderCard.style.display = role === 'dispatch' ? 'none' : '';
+  if (dispatchEntryCard) dispatchEntryCard.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
+  const singleTitle = document.getElementById('single-order-title');
+  if (singleTitle) singleTitle.textContent = role === 'dispatch' ? 'Single Dispatch' : 'New Order';
+
+  // PPC never receives actual dispatch controls. Backend also enforces this.
+  if (role === 'ppc') {
+    const modeEl = document.getElementById('d-mode');
+    if (modeEl) modeEl.value = 'pending';
+  }
+
+  const stockAdminCard = document.getElementById('stock-admin-card');
+  if (stockAdminCard) stockAdminCard.style.display = ['owner','dispatch','ppc'].includes(role) ? '' : 'none';
+
+  const adminBadge = document.getElementById('admin-role-badge');
+  if (adminBadge) adminBadge.textContent = (SESSION?.displayName || SESSION?.username || '') + ' · ' + (SESSION?.role || '');
+
+  const activeTab = document.querySelector('.tab.active');
+  if (activeTab && activeTab.style.display === 'none') switchTab('orders');
+}
+
+function lockUnitFieldsForSession(){
+  const role=String(SESSION?.role||'').trim().toLowerCase();
+  const unit=String(SESSION?.unit||'').trim();
+  const restricted=['ppc','dispatch'].includes(role);
+  ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(restricted && unit){
+      el.innerHTML=`<option value="${esc(unit)}" selected>${esc(unit)}</option>`;
+      el.value=unit;
+      el.disabled=true;
+      el.title='Locked to your assigned unit';
+    }else{
+      el.disabled=false;
+      el.title='';
+    }
+  });
+  // Multiple-order rows are rebuilt dynamically, so renderPPCBulkRows handles
+  // the row-level Unit lock separately.
+}
+
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   document.getElementById('role-badge').textContent = SESSION.displayName + ' · ' + SESSION.role + (SESSION.unit ? ' (' + SESSION.unit + ')' : '');
-  document.getElementById('csv-btn').style.display = SESSION.role === 'Owner' ? 'inline-block' : 'none';
-  document.getElementById('scope-sub').textContent = (SESSION.unit && SESSION.role !== 'Owner' && SESSION.role !== 'ViewOnly') ? 'Showing orders for ' + SESSION.unit + ' only' : 'Live order tracking across all units';
+  document.getElementById('csv-btn').style.display = String(SESSION.role).toLowerCase() === 'owner' ? 'inline-block' : 'none';
+  document.getElementById('scope-sub').textContent = (SESSION.unit && !['owner','viewonly','admin'].includes(String(SESSION.role).toLowerCase()))
+    ? 'Showing orders for ' + SESSION.unit + ' only'
+    : 'Live order tracking across all units';
 
-  if (SESSION.unit && SESSION.role !== 'Owner' && SESSION.role !== 'ViewOnly') {
-    ['n-unit','d-unit','f-unit'].forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.innerHTML = `<option value="${esc(SESSION.unit)}">${esc(SESSION.unit)}</option>`;
-      el.value = SESSION.unit;
-      el.disabled = true;
-    });
-  } else if (SESSION.role === 'Owner' || SESSION.role === 'ViewOnly') {
-    const fu = document.getElementById('f-unit');
-    if (fu) {
-      fu.disabled = false;
-      fu.innerHTML = '<option value="">All units</option>' + (data.units || ['Unit 1','Unit 2','Unit 5','Unit Delta']).map(u => `<option>${esc(u)}</option>`).join('');
-    }
-  }
+  const role = String(SESSION.role || '').trim().toLowerCase();
+  lockUnitFieldsForSession();
 
-  const tabPerms = {
-    Owner: ['orders','new','dispatch','stock','complaints','discussion'],
-    PPC: ['orders','new','stock','complaints','discussion'],
-    Dispatch: ['orders','dispatch','stock','complaints','discussion'],
-    Editor: ['orders','dispatch'],
-    ViewOnly: ['orders','stock','complaints','discussion']
-  };
-  const allowed = tabPerms[SESSION.role] || ['orders'];
-  const modeEl = document.getElementById('d-mode');
-  if (modeEl) {
-    const isPPC = SESSION.role === 'PPC';
-    modeEl.innerHTML = isPPC
-      ? '<option value="pending">Still Pending — No Dispatch</option>'
-      : '<option value="dispatch">Dispatch Completed / Partial Dispatch</option><option value="pending">Still Pending — No Dispatch</option>';
-    modeEl.value = isPPC ? 'pending' : 'dispatch';
-    toggleDispatchMode();
-  }
-  document.querySelectorAll('.tab').forEach(t => { t.style.display = allowed.includes(t.dataset.tab) ? '' : 'none'; });
-  const stockEditorRole = String(SESSION.role || '').trim().toLowerCase();
-  document.getElementById('stock-admin-card').style.display = (stockEditorRole === 'owner' || stockEditorRole === 'dispatch' || stockEditorRole === 'ppc') ? '' : 'none';
-  const dispatchEntryCard = document.getElementById('dispatch-entry-card');
-  if (dispatchEntryCard) {
-    dispatchEntryCard.style.display =
-      (SESSION.role === 'Owner' || SESSION.role === 'Dispatch') ? '' : 'none';
-  }
-  const activeTab = document.querySelector('.tab.active');
-  if (activeTab && activeTab.style.display === 'none') switchTab('orders');
+  // Apply immediately using role fallback, then load V2 permissions and apply
+  // again. This prevents a race where Admin/Dispatch appear only after data loads.
+  applyRoleUI();
   loadData();
 }
-
 function setConn(state, msg) {
   const el = document.getElementById('conn');
   el.className = 'conn ' + state;
   el.textContent = msg;
 }
 
+let loadInFlight = null;
 async function loadData() {
+  if(loadInFlight) return loadInFlight;
+  const tbody = document.querySelector('#orders-table tbody');
+  if (tbody && !tbody.children.length) tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
   setConn('', 'Loading…');
-  try {
-    const res = await fetch(APPS_SCRIPT_URL + '?token=' + encodeURIComponent(TOKEN));
-    const json = await res.json();
-    if (json.error === 'AUTH_REQUIRED') { doLogout(); return; }
-    if (json.error) { setConn('err', json.error); return; }
-    data = json;
-    const count = Array.isArray(data.orders) ? data.orders.length : 0;
-    setConn('ok', 'Live — connected · ' + count + ' orders');
-    populateDropdowns();
-    renderStats();
-    renderTable();
-    populateDispatchOrderSelect();
-    renderDispatchHistory();
-    renderComplaints();
-    renderDiscussion();
-  } catch (e) {
-    setConn('err', 'Connection failed');
-  }
+  loadInFlight=(async()=>{
+    try {
+      const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN), {cache:'no-store'});
+      const json = await res.json();
+      if (json.error && /session has expired|auth_required/i.test(json.error)) { setConn('err','Session expired — please sign in again.'); return false; }
+      if (json.error) { setConn('err', json.error); return false; }
+      data = {...data,...json};
+      logShipToIndex={};
+      (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
+      const count = Array.isArray(data.orders) ? data.orders.length : 0;
+      setConn('ok', 'Live — connected · ' + count + ' orders');
+      populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI();
+      if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
+      return true;
+    } catch (e) { setConn('err', 'Connection failed — data not lost.'); return false; }
+    finally { loadInFlight=null; }
+  })();
+  return loadInFlight;
+}
+let v2Loaded=false, v2InFlight=null;
+async function loadV2(force=false){
+  if(v2Loaded && !force) return true;
+  if(v2InFlight) return v2InFlight;
+  v2InFlight=(async()=>{
+    try{
+      const res=await fetch(APPS_SCRIPT_URL+'?mode=v2&token='+encodeURIComponent(TOKEN),{cache:'no-store'});
+      const json=await res.json();
+      if(json.error){setConn('err',json.error);return false;}
+      data.v2=json.v2||{permissions:[]};
+      v2Loaded=true;
+      renderV2();
+      applyRoleUI();
+      return true;
+    }catch(e){return false;} finally{v2InFlight=null;}
+  })();
+  return v2InFlight;
+}
+let auxLoaded={complaints:false,discussion:false};
+async function loadAux(mode){
+  if(auxLoaded[mode]) return;
+  try{const res=await fetch(APPS_SCRIPT_URL+'?mode='+mode+'&token='+encodeURIComponent(TOKEN),{cache:'no-store'});const json=await res.json();if(json.error)return;if(mode==='complaints'){data.complaints=json.complaints||[];data.complaintComments=json.complaintComments||[];renderComplaints();}else{data.discussion=json.discussion||[];renderDiscussion();}auxLoaded[mode]=true;}catch(e){}
 }
 
 function switchTab(name) {
-  ['orders','new','dispatch','stock','complaints','discussion'].forEach(t => {
+  ['multiple','sets','orders','new','stock','complaints','discussion','admin'].forEach(t => {
     const panel = document.getElementById('tab-' + t);
     const tab = document.querySelector(`.tab[data-tab="${t}"]`);
-    if (panel) panel.style.display = t === name ? 'block' : 'none';
+    if (panel) {
+      panel.style.display = t === name ? 'block' : 'none';
+      if (t === name) { panel.classList.remove('tab-panel'); void panel.offsetWidth; panel.classList.add('tab-panel'); }
+    }
     if (tab) tab.classList.toggle('active', t === name);
   });
-  if (name === 'dispatch') { populateDispatchOrderSelect(); renderDispatchHistory(); }
+  if (name === 'multiple') {
+    if (String(SESSION?.role||'').toLowerCase() === 'dispatch') { renderBulkDispatchRows(); renderDispatchHistory(); }
+    else { renderPPCBulkRows(); }
+  }
+  if (name === 'new') { populateDispatchOrderSelect(); }
   if (name === 'stock') renderStockTable();
-  if (name === 'complaints') renderComplaints();
-  if (name === 'discussion') renderDiscussion();
+  if (name === 'complaints') { renderComplaints(); loadAux('complaints'); }
+  if (name === 'discussion') { renderDiscussion(); loadAux('discussion'); }
+  if (name === 'admin') loadV2();
+  if (name === 'sets') { initSetBuilder(); }
+  if (name === 'admin') loadUsers();
 }
 
 function populateDropdowns() {
+  const uoms = (data.uoms && data.uoms.length) ? data.uoms : ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'];
+  ['n-uom','e-uom','d-uom','de-uom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const current = el.value;
+    el.innerHTML = uoms.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    if (current && uoms.includes(current)) el.value = current;
+    else el.value = 'Nos';
+  });
+  const setSel=document.getElementById('n-set');
+  if(setSel) setSel.innerHTML='<option value="">— Select Set —</option>'+(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}">${esc(x.SetCode)} — ${esc(x.SetName||'')}</option>`).join('');
+  const setOrderSel=document.getElementById('d-set-order');
+  if(setOrderSel) setOrderSel.innerHTML='<option value="">— Select pending set —</option>'+(data.setOrders||[]).filter(x=>x.status==='Pending').sort((a,b)=>new Date(b.scheduledDate)-new Date(a.scheduledDate)).map(x=>`<option value="${esc(x.setOrderId)}">${esc(x.setCode)} · ${esc(x.customer)} · ${x.pendingSets} sets pending · ${esc(x.unit)}</option>`).join('');
   const dept = document.getElementById('d-dept');
   if (dept) dept.innerHTML = '<option value="">— Select —</option>' + (data.departments || []).map(d => `<option>${esc(d)}</option>`).join('');
   toggleDispatchMode();
@@ -611,6 +1141,16 @@ function populateDropdowns() {
   document.getElementById('dl-parts').innerHTML = data.partCodes.map(p => `<option value="${esc(p)}">`).join('');
   document.getElementById('dl-locations').innerHTML = (data.locations||[]).map(l => `<option value="${esc(l)}">`).join('');
   document.getElementById('dl-shipto').innerHTML = (data.shipToParties||[]).map(p => `<option value="${esc(p)}">`).join('');
+  const bulkCustomers = [...new Set((data.customers||[]).filter(Boolean).map(String))].sort((a,b)=>a.localeCompare(b));
+  const bulkLocations = [...new Set((data.locations||[]).filter(Boolean).map(String))].sort((a,b)=>a.localeCompare(b));
+  const bulkAddresses = [...new Set((data.orders||[]).map(o=>String(o.ShipToAddress||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const bc = document.getElementById('dl-bulk-customers');
+  const bl = document.getElementById('dl-bulk-locations');
+  const ba = document.getElementById('dl-bulk-shipto-addresses');
+  if (bc) bc.innerHTML = bulkCustomers.map(v=>`<option value="${esc(v)}">`).join('');
+  if (bl) bl.innerHTML = bulkLocations.map(v=>`<option value="${esc(v)}">`).join('');
+  if (ba) ba.innerHTML = bulkAddresses.map(v=>`<option value="${esc(v)}">`).join('');
+  lockUnitFieldsForSession();
 
   const fc = document.getElementById('f-customer');
   fc.innerHTML = '<option value="">All customers</option>' + data.customers.map(c => `<option>${esc(c)}</option>`).join('');
@@ -658,10 +1198,7 @@ function getFiltered() {
     .filter(o => !date || fmtDate(o.ScheduledDate) === date)
     .filter(o => {
       if (!q) return true;
-      const dispatchShipTo = (data.logs || [])
-        .filter(l => String(l.OrderID) === String(o.OrderID))
-        .map(l => String(l.ShipToParty||''))
-        .join(' ');
+      const dispatchShipTo = (logShipToIndex[String(o.OrderID)] || []).join(' ');
       const haystack = [o.OrderID,o.Customer,o.CustomerLocation,o.PartCode,o.Unit,o.Priority,
         o.OrderQty,o.DispatchedQty,o.PendingQty,o.PendingDepartment,o.PendingReason,
         o.FGStatus,o.Status,dispatchShipTo].join(' ').toLowerCase();
@@ -674,51 +1211,59 @@ function clearFilters() {
   renderTable();
 }
 
+let tableRenderTimer=null;
+function debouncedRenderTable(){clearTimeout(tableRenderTimer);tableRenderTimer=setTimeout(renderTable,120);}
+
 function renderTable() {
   const rows = getFiltered();
   const tbl = document.getElementById('orders-table');
   const empty = document.getElementById('orders-empty');
-
+  const canBulk = SESSION && (SESSION.role === 'Owner' || (data.v2.permissions||[]).includes('edit_orders'));
   tbl.querySelector('thead').innerHTML = `<tr>
-    <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>Priority</th><th>Order Qty</th>
-    <th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
+    <th class="select-col"><input id="select-all-orders" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" ${rows.length && rows.every(o=>selectedOrders.has(String(o.OrderID)))?'checked':''}></th>
+    <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>UOM</th><th>Priority</th><th>Order Qty</th>
+    <th>Planned</th><th>Additional</th><th>Total Dispatch</th><th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
     <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Status</th><th>Action</th>
   </tr>`;
-
-  if (rows.length === 0) {
-    tbl.querySelector('tbody').innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
-
+  if (rows.length === 0) { tbl.querySelector('tbody').innerHTML=''; empty.style.display='block'; updateBulkBar(); return; }
+  empty.style.display='none';
+  const plans=(data.v2&&data.v2.plans)||{}, adds=(data.v2&&data.v2.additional)||{};
   tbl.querySelector('tbody').innerHTML = rows.map(o => {
-    const orderQty = Number(o.OrderQty||0);
-    const dispatched = Number(o.DispatchedQty||0);
-    const pct = orderQty ? Math.min(100, Math.round(dispatched/orderQty*100)) : 0;
-    const statusPill = o.Status === 'Completed' ? 'pill-completed' : 'pill-pending';
-    const prioPill = o.Priority === 'High' ? 'pill-high' : o.Priority === 'Low' ? 'pill-low' : 'pill-medium';
-    const canEdit = SESSION && (SESSION.role === 'Owner' || SESSION.role === 'Editor');
-     const action = canEdit ? `<button class="btn-ghost btn-small" onclick="openEditOrder('${esc(o.OrderID)}')">Edit</button>` : '—';
-     return `<tr>
-       <td>${esc(o.Customer)}</td>
-      <td>${esc(o.CustomerLocation||'—')}</td>
-      <td>${esc(o.PartCode)}</td>
-      <td>${esc(o.Unit||'—')}</td>
-      <td><span class="pill ${prioPill}">${esc(o.Priority||'')}</span></td>
-      <td>${orderQty.toLocaleString()}</td>
-      <td>${dispatched.toLocaleString()}</td>
-      <td>${Number(o.PendingQty||0).toLocaleString()}</td>
-      <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td>
-      <td>${fmtDate(o.ScheduledDate)}</td>
-      <td>${o.FGStatus === 'In Stock' ? '<span class="pill pill-completed">In Stock</span>' : o.FGStatus ? '<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>' : '—'}</td>
-      <td>${esc(o.PendingDepartment||'—')}</td>
-      <td>${esc(o.PendingReason||'—')}</td>
-      <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td>
-      <td class="action-cell">${action}</td>
+    const orderQty=Number(o.OrderQty||0), dispatched=Number(o.DispatchedQty||0);
+    const plan=plans[o.OrderID], planned=plan?Number(plan.PlannedQty||0):0, additional=Number(adds[o.OrderID]||0), total=planned+additional;
+    const pct=orderQty?Math.min(100,Math.round(dispatched/orderQty*100)):0;
+    const statusPill=o.Status==='Completed'?'pill-completed':'pill-pending';
+    const prioPill=o.Priority==='High'?'pill-high':o.Priority==='Low'?'pill-low':'pill-medium';
+    const canEdit=SESSION && (SESSION.role==='Owner'||(data.v2.permissions||[]).includes('edit_orders'));
+    const canAdd=SESSION && (SESSION.role==='Owner'||(data.v2.permissions||[]).includes('add_additional_qty')) && plan && String(plan.Status).toLowerCase()==='finalized';
+    const action=(canEdit?`<button class="btn-ghost btn-small" onclick="openEditOrder('${esc(o.OrderID)}')">Edit</button>`:'') + (canAdd?` <button class="btn-primary btn-small" onclick="openAdditionalQty('${esc(o.OrderID)}')">+ Qty</button>`:'');
+    return `<tr>
+      <td class="select-col">${canBulk?`<input class="row-check" type="checkbox" data-order-id="${esc(o.OrderID)}" onchange="toggleOrderSelection('${esc(o.OrderID)}',this.checked)" ${selectedOrders.has(String(o.OrderID))?'checked':''}>`:''}</td>
+      <td>${esc(o.Customer)}</td><td>${esc(o.CustomerLocation||'—')}</td><td>${esc(o.PartCode)}</td><td>${esc(o.Unit||'—')}</td><td>${esc(o.UOM||'Nos')}</td>
+      <td><span class="pill ${prioPill}">${esc(o.Priority||'')}</span></td><td>${orderQty.toLocaleString()}</td>
+      <td>${planned?planned.toLocaleString():'—'}</td><td>${additional?additional.toLocaleString():'—'}</td><td>${total?total.toLocaleString():'—'}</td>
+      <td>${dispatched.toLocaleString()}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td>
+      <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td><td>${fmtDate(o.ScheduledDate)}</td>
+      <td>${o.FGStatus==='In Stock'?'<span class="pill pill-completed">In Stock</span>':o.FGStatus?'<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>':'—'}</td>
+      <td>${esc(o.PendingDepartment||'—')}</td><td>${esc(o.PendingReason||'—')}</td>
+      <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td><td class="action-cell">${action||'—'}</td>
     </tr>`;
   }).join('');
+  updateBulkBar();
 }
+
+function updateBulkBar(){
+  const bar=document.getElementById('bulkbar'); if(!bar)return;
+  const canBulk=SESSION&&(SESSION.role==='Owner'||(data.v2.permissions||[]).includes('edit_orders'));
+  bar.classList.toggle('show',canBulk&&selectedOrders.size>0);
+  document.getElementById('bulk-count').textContent=selectedOrders.size+' selected';
+}
+function toggleOrderSelection(id,checked){if(checked)selectedOrders.add(String(id));else selectedOrders.delete(String(id));updateBulkBar();}
+function toggleSelectAllVisible(checked){getFiltered().forEach(o=>{if(checked)selectedOrders.add(String(o.OrderID));else selectedOrders.delete(String(o.OrderID));});renderTable();}
+function selectAllMatching(){getFiltered().forEach(o=>selectedOrders.add(String(o.OrderID)));renderTable();}
+function clearSelection(){selectedOrders.clear();renderTable();}
+async function applyBulkStatus(){const status=document.getElementById('bulk-status').value;if(!status||!selectedOrders.size)return;try{const res=await postAction({action:'bulkChangeStatus',orderIds:[...selectedOrders],status});if(res.error)throw new Error(res.error);alert(`Completed: ${res.successCount}\nFailed: ${res.failCount}`);selectedOrders.clear();await loadData();}catch(e){alert(e.message);}}
+
 
 function getStockFor(partCode) {
   const row = data.stock.find(s => String(s.PartCode) === String(partCode));
@@ -822,7 +1367,8 @@ function dispatchOrderSearchText(o) {
     fmtDate(o.ScheduledDate),
     o.PendingDepartment,
     o.PendingReason,
-    o.Status
+    o.Status,
+    o.ShipToParty
   ].join(' ').toLowerCase();
 }
 
@@ -884,6 +1430,10 @@ function selectDispatchOrder(orderId) {
   document.getElementById('d-order').value = o.OrderID;
   document.getElementById('d-order-search').value = formatDispatchOrderLabel(o);
   document.getElementById('d-order-results').classList.remove('open');
+  document.getElementById('d-uom').value = o.UOM || 'Nos';
+  // PPC-registered Ship To Party is the default at Dispatch. Dispatch may edit it if needed.
+  const shipToEl = document.getElementById('d-shipto');
+  if (shipToEl) shipToEl.value = o.ShipToParty || '';
 
   updateOrderInfo();
 }
@@ -906,6 +1456,7 @@ function updateOrderInfo() {
 
   info.innerHTML =
     `Order ID: <b>${esc(o.OrderID)}</b> · ` +
+    `UOM: <b>${esc(o.UOM || 'Nos')}</b> · ` +
     `Customer: <b>${esc(o.Customer)}</b> · ` +
     `Part Code: <b>${esc(o.PartCode)}</b> · ` +
     `Scheduled: <b>${esc(fmtDate(o.ScheduledDate))}</b> · ` +
@@ -938,93 +1489,48 @@ document.getElementById('d-order-search').addEventListener('keydown', function(e
   }
 });
 
+function toggleOrderType(){
+  const type=document.getElementById('n-order-type')?.value||'STANDARD';
+  const isSet=type==='SET';
+  const pf=document.getElementById('n-part-field'),sf=document.getElementById('n-set-field'),uf=document.getElementById('n-uom-field');
+  if(pf)pf.style.display=isSet?'none':''; if(sf)sf.style.display=isSet?'':'none'; if(uf)uf.style.display=isSet?'none':'';
+  const info=document.getElementById('n-stock-info'); if(info&&isSet)info.textContent='Select an IKEA Set. The BOM will expand automatically into individual pending articles.';
+}
+function toggleDispatchItemType(){
+  const isSet=(document.getElementById('d-dispatch-type')?.value||'STANDARD')==='SET';
+  const sf=document.getElementById('d-set-order-field'); if(sf)sf.style.display=isSet?'':'none';
+  const search=document.querySelector('.searchable-order-field'); if(search)search.style.display=isSet?'none':'';
+  const info=document.getElementById('d-order-info'); if(info&&isSet)info.textContent='Select a pending set. One dispatch quantity will be applied to every BOM component.';
+}
+
 async function submitOrder() {
-  const customer = document.getElementById('n-customer').value.trim();
-  const location = document.getElementById('n-location').value.trim();
-  const part = document.getElementById('n-part').value.trim();
-  const unit = document.getElementById('n-unit').value;
-  const qty = document.getElementById('n-qty').value;
-  const priority = document.getElementById('n-priority').value;
-  const date = document.getElementById('n-date').value;
-  const statusEl = document.getElementById('new-status');
-  if (!customer || !part || !unit || !qty || !date) { statusEl.textContent = 'Customer, part code, unit, quantity and scheduled date are required.'; statusEl.className = 'status-msg err'; return; }
-  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
-  try {
-    const res = await postAction({ action:'addOrder', customer, customerLocation:location, partCode:part, unit, orderQty:qty, priority, scheduledDate:date });
-    if (res.error) throw new Error(res.error);
-    statusEl.textContent = `Order created. FG status: ${res.fgStatus}. Available stock: ${Number(res.availableStock||0).toLocaleString()}`;
-    statusEl.className = 'status-msg ok';
-    document.getElementById('n-part').value=''; document.getElementById('n-qty').value=''; document.getElementById('n-location').value='';
-    if (!SESSION.unit) document.getElementById('n-unit').value='';
-    await loadData();
-  } catch(e) { statusEl.textContent='Failed: '+e.message; statusEl.className='status-msg err'; }
+  const type=document.getElementById('n-order-type')?.value||'STANDARD';
+  const customer=document.getElementById('n-customer').value.trim(), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=document.getElementById('n-uom').value||'Nos', priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
+  const statusEl=document.getElementById('new-status');
+  if(!customer||!unit||!qty||!date||(type==='SET'?!setCode:!part)){statusEl.textContent=type==='SET'?'Customer, Set, unit, quantity and scheduled date are required.':'Customer, part code, unit, quantity and scheduled date are required.';statusEl.className='status-msg err';return;}
+  statusEl.textContent='Saving…';statusEl.className='status-msg';
+  try{const res=await postAction({action:'addOrder',orderType:type,setCode,customer,customerLocation:location,partCode:part,unit,uom,orderQty:qty,priority,scheduledDate:date,shipToParty,shipToAddress});if(res.error)throw new Error(res.error);
+    (res.orders||[res.order]).filter(Boolean).forEach(o=>data.orders.unshift(o)); data.orders.sort((a,b)=>new Date(b.CreatedAt)-new Date(a.CreatedAt));
+    const addLocal=(arr,v)=>{if(v&&!arr.includes(v))arr.push(v)}; (res.orders||[res.order]).filter(Boolean).forEach(o=>{addLocal(data.customers,o.Customer);addLocal(data.partCodes,o.PartCode);addLocal(data.locations,o.CustomerLocation);addLocal(data.shipToParties,o.ShipToParty)});
+    statusEl.textContent=res.message||`✓ Order created.`;statusEl.className='status-msg ok';
+    document.getElementById('n-part').value='';document.getElementById('n-qty').value='';document.getElementById('n-location').value='';document.getElementById('n-shipto').value='';document.getElementById('n-shipto-address').value='';if(document.getElementById('n-set'))document.getElementById('n-set').value='';
+    if(!SESSION.unit)document.getElementById('n-unit').value=''; populateDropdowns();renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();
+  }catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
 }
 
 async function submitDispatch() {
-  const mode = document.getElementById('d-mode').value;
-  const orderId = document.getElementById('d-order').value;
-  const qty = document.getElementById('d-qty').value;
-  const unit = document.getElementById('d-unit').value;
-  const shipToParty = document.getElementById('d-shipto').value.trim();
-  const date = document.getElementById('d-date').value;
-  const dept = document.getElementById('d-dept').value;
-  const reason = document.getElementById('d-reason').value.trim();
-  const statusEl = document.getElementById('dispatch-status');
-
-  if (!orderId) {
-    statusEl.textContent = 'Select an order.'; statusEl.className = 'status-msg err';
-    return;
+  const mode=document.getElementById('d-mode').value, type=document.getElementById('d-dispatch-type')?.value||'STANDARD', setOrderId=document.getElementById('d-set-order')?.value||'', orderId=document.getElementById('d-order').value, qty=document.getElementById('d-qty').value, unit=document.getElementById('d-unit').value, shipToParty=document.getElementById('d-shipto').value.trim(), shipToAddress=document.getElementById('d-shipto-address')?.value.trim()||'', date=document.getElementById('d-date').value, dept=document.getElementById('d-dept').value, reason=document.getElementById('d-reason').value.trim(), statusEl=document.getElementById('dispatch-status');
+  if(mode==='pending'){if(!orderId){statusEl.textContent='Select an order.';statusEl.className='status-msg err';return;}if(!dept||!reason){statusEl.textContent='For Still Pending, select the department and enter the reason.';statusEl.className='status-msg err';return;}try{const res=await postAction({action:'updatePending',orderId,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.PendingQty=res.pending;o.PendingDepartment=dept;o.PendingReason=reason;o.Status='Pending';}statusEl.textContent=`✓ Still pending — ${res.pending} quantity pending.`;statusEl.className='status-msg ok';renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}return;}
+  if(SESSION.role==='PPC'){statusEl.textContent='PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';statusEl.className='status-msg err';return;}
+  if(type==='SET'){
+    if(!setOrderId||!qty||!unit||!shipToParty||!date){statusEl.textContent='For Set dispatch, select the Set Order and enter quantity, unit, Ship To Party and date.';statusEl.className='status-msg err';return;}
+    statusEl.textContent='Dispatching set…';statusEl.className='status-msg';try{const res=await postAction({action:'dispatchSet',setOrderId,setQty:qty,unit,shipToParty,shipToAddress,dispatchedDate:date,note:reason});if(res.error)throw new Error(res.error);
+    (res.components||[]).forEach(u=>{const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));if(o){o.DispatchedQty=u.dispatched;o.PendingQty=u.pending;o.Status=u.status;o.LastUpdated=new Date().toISOString();if(u.status==='Completed'){o.PendingDepartment='';o.PendingReason='';}if(shipToAddress)o.ShipToAddress=shipToAddress;}});
+    renderStats();renderTable();populateDispatchOrderSelect();renderBulkDispatchRows();renderPPCPendingRows();renderDispatchHistory();
+    statusEl.textContent=res.message||'✓ Set dispatched successfully.';statusEl.className='status-msg ok';document.getElementById('d-qty').value='';document.getElementById('d-set-order').value='';document.getElementById('d-shipto-address').value='';toggleDispatchItemType();}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}return;
   }
-
-  if (mode === 'pending') {
-    if (!dept || !reason) {
-      statusEl.textContent = 'For Still Pending, select the department and enter the reason. Quantity is not required.';
-      statusEl.className = 'status-msg err';
-      return;
-    }
-    statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
-    try {
-      const res = await postAction({ action:'updatePending', orderId, pendingDepartment:dept, pendingReason:reason });
-      if (res.error) throw new Error(res.error);
-      statusEl.textContent = `Still pending — ${res.pending} quantity pending.`;
-      statusEl.className = 'status-msg ok';
-      document.getElementById('d-reason').value = '';
-      await loadData();
-    } catch (e) {
-      statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
-    }
-    return;
-  }
-
-  if (!qty || !unit || !shipToParty || !date) {
-    statusEl.textContent = 'For a dispatch entry, Ship To Party, unit, quantity and date are required.';
-    statusEl.className = 'status-msg err';
-    return;
-  }
-
-  if (SESSION.role === 'PPC') {
-    statusEl.textContent = 'PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';
-    statusEl.className = 'status-msg err';
-    return;
-  }
-
-  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
-  try {
-    const res = await postAction({
-      action:'addDispatch', orderId, unit, dispatchedQty:qty, dispatchedDate:date,
-      shipToParty, pendingDepartment:dept, pendingReason:reason
-    });
-    if (res.error) throw new Error(res.error);
-    statusEl.textContent = res.status === 'Completed'
-      ? 'Logged — order is now Completed.'
-      : `Logged — ${res.pending} still pending.`;
-    statusEl.className = 'status-msg ok';
-    document.getElementById('d-qty').value = '';
-    document.getElementById('d-reason').value = '';
-    await loadData();
-  } catch (e) {
-    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
-  }
+  if(!orderId||!qty||!unit||!shipToParty||!date){statusEl.textContent='For a dispatch entry, Ship To Party, unit, quantity and date are required.';statusEl.className='status-msg err';return;}
+  statusEl.textContent='Saving…';statusEl.className='status-msg';try{const res=await postAction({action:'addDispatch',orderId,unit,dispatchedQty:qty,dispatchedDate:date,shipToParty,shipToAddress,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.DispatchedQty=res.dispatched;o.PendingQty=res.pending;o.Status=res.status;o.LastUpdated=new Date().toISOString();if(shipToAddress)o.ShipToAddress=shipToAddress;if(res.status==='Completed'){o.PendingDepartment='';o.PendingReason='';}}if(res.log)data.logs.push(res.log);renderStats();renderTable();populateDispatchOrderSelect();renderBulkDispatchRows();renderPPCPendingRows();renderDispatchHistory();statusEl.textContent=res.status==='Completed'?'✓ Logged — order is now Completed.':`✓ Logged — ${res.pending} still pending.`;statusEl.className='status-msg ok';document.getElementById('d-qty').value='';document.getElementById('d-reason').value='';}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
 }
 
 function toggleDispatchMode() {
@@ -1040,14 +1546,25 @@ function toggleDispatchMode() {
 
 async function postAction(body) {
   body.token = TOKEN;
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(body)
-  });
-  const result = await res.json();
-  if (result.error === 'AUTH_REQUIRED') doLogout();
-  return result;
+  let res;
+  try {
+    res = await fetch(APPS_SCRIPT_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(body)
+    });
+  } catch (networkErr) {
+    return {error:'Could not reach the server. Check your internet connection and try again.'};
+  }
+  const raw = await res.text();
+  try {
+    const json = JSON.parse(raw);
+    if (json.error && /session has expired/i.test(json.error)) {
+      sessionStorage.removeItem('svd_token');
+      sessionStorage.removeItem('svd_session');
+    }
+    return json;
+  } catch (parseErr) {
+    return {error:'The server sent back an unexpected response. Redeploy the Apps Script Web App with a new version and try again.'};
+  }
 }
 
 async function sendDiscussion() {
@@ -1107,7 +1624,7 @@ function renderDispatchHistory() {
       <div><b>${esc(o ? o.PartCode : l.OrderID)}</b><div class="sub">${esc(o ? o.Customer : '')}</div></div>
       <div>${esc(l.ShipToParty || '—')}<div class="sub">Ship To Party</div></div>
       <div>${esc(l.Unit || '—')}<div class="sub">Dispatch Unit</div></div>
-      <div>${Number(l.DispatchedQty||0).toLocaleString()}<div class="sub">Qty</div></div>
+      <div>${Number(l.DispatchedQty||0).toLocaleString()} ${esc(l.UOM||o?.UOM||'Nos')}<div class="sub">Qty</div></div>
       <div>${esc(fmtDate(l.DispatchedDate))}<div class="sub">${esc(fmtDateTime(l.LoggedAt))}</div></div>
       ${actions}
     </div>`;
@@ -1120,6 +1637,7 @@ function openEditDispatch(logId) {
   document.getElementById('de-log-id').value = l.LogID;
   document.getElementById('de-shipto').value = l.ShipToParty || '';
   document.getElementById('de-qty').value = l.DispatchedQty || '';
+  document.getElementById('de-uom').value = l.UOM || (data.orders.find(x => String(x.OrderID) === String(l.OrderID))?.UOM) || 'Nos';
   document.getElementById('de-unit').value = l.Unit || '';
   document.getElementById('de-date').value = fmtDate(l.DispatchedDate) === '—' ? '' : fmtDate(l.DispatchedDate);
   document.getElementById('de-dept').innerHTML = '<option value="">— Select —</option>' + (data.departments || []).map(d => `<option>${esc(d)}</option>`).join('');
@@ -1128,10 +1646,12 @@ function openEditDispatch(logId) {
   document.getElementById('de-reason').value = o ? (o.PendingReason || '') : '';
   document.getElementById('de-note').value = l.Note || '';
   document.getElementById('dispatch-edit-status').textContent = '';
+  document.getElementById('dispatch-edit-modal-backdrop').classList.add('open');
   document.getElementById('dispatch-edit-modal-backdrop').style.display = 'flex';
 }
 
 function closeDispatchEditModal() {
+  document.getElementById('dispatch-edit-modal-backdrop').classList.remove('open');
   document.getElementById('dispatch-edit-modal-backdrop').style.display = 'none';
 }
 
@@ -1142,6 +1662,7 @@ async function saveEditedDispatch() {
     logId:document.getElementById('de-log-id').value,
     shipToParty:document.getElementById('de-shipto').value.trim(),
     dispatchedQty:document.getElementById('de-qty').value,
+    uom:document.getElementById('de-uom').value || 'Nos',
     unit:document.getElementById('de-unit').value,
     dispatchedDate:document.getElementById('de-date').value,
     pendingDepartment:document.getElementById('de-dept').value,
@@ -1181,6 +1702,7 @@ function openEditOrder(orderId) {
   document.getElementById('e-part').value = o.PartCode || '';
   document.getElementById('e-unit').value = o.Unit || '';
   document.getElementById('e-qty').value = o.OrderQty || '';
+  document.getElementById('e-uom').value = o.UOM || 'Nos';
   document.getElementById('e-priority').value = o.Priority || 'Medium';
   document.getElementById('e-date').value = fmtDate(o.ScheduledDate) === '—' ? '' : fmtDate(o.ScheduledDate);
   const dept = document.getElementById('e-dept');
@@ -1189,10 +1711,12 @@ function openEditOrder(orderId) {
   document.getElementById('e-reason').value = o.PendingReason || '';
   document.getElementById('e-dispatched-note').textContent = `Already dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}. Order quantity cannot be reduced below this amount.`;
   document.getElementById('edit-status').textContent = '';
+  document.getElementById('edit-modal-backdrop').classList.add('open');
   document.getElementById('edit-modal-backdrop').style.display = 'flex';
 }
 
 function closeEditModal() {
+  document.getElementById('edit-modal-backdrop').classList.remove('open');
   document.getElementById('edit-modal-backdrop').style.display = 'none';
 }
 
@@ -1207,6 +1731,7 @@ async function saveEditedOrder() {
     partCode: document.getElementById('e-part').value.trim(),
     unit: document.getElementById('e-unit').value,
     orderQty: document.getElementById('e-qty').value,
+    uom: document.getElementById('e-uom').value || 'Nos',
     priority: document.getElementById('e-priority').value,
     scheduledDate: document.getElementById('e-date').value,
     pendingDepartment: document.getElementById('e-dept').value,
@@ -1256,18 +1781,329 @@ async function closeComplaint(id){
   const resolution=prompt('Enter resolution / closing note:','Resolved'); if(resolution===null)return;
   try{const res=await postAction({action:'closeComplaint',complaintId:id,resolution});if(res.error)throw new Error(res.error);await loadData();}catch(e){alert(e.message);}
 }
+
+
+let ppcBulkRows = [];
+let ppcPendingSelected = new Set();
+let bulkDispatchSelected = new Set();
+let bulkDispatchQty = {};
+let bulkDispatchShipTo = {};
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function addPPCBulkRow(seed={}){
+  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
+  renderPPCBulkRows();
+}
+function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
+function renderPPCBulkRows(){
+ const tb=document.querySelector('#ppc-order-bulk-table tbody');if(!tb)return;if(!ppcBulkRows.length)addPPCBulkRow();
+ tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr>
+ <td><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"></td><td><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
+ <td><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></td>
+ <td>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets Configured —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
+ <td>${String(SESSION?.role||'').toLowerCase()==='owner'?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td><td><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"></td><td>${r.orderType==='SET'?`<select data-p="uom" data-i="${i}" disabled><option value="Set" selected>Set</option></select>`:`<select data-p="uom" data-i="${i}">${(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter']).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}</td><td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td><td><input data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td><td><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"></td><td><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Ship-to Address" autocomplete="off"></td><td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})">×</button></td></tr>`).join('');
+ tb.querySelectorAll('[data-p]').forEach(el=>el.addEventListener('input',()=>{
+   const i=Number(el.dataset.i), field=el.dataset.p;
+   if(field==='unit' && ['ppc','dispatch'].includes(String(SESSION?.role||'').toLowerCase()) && SESSION?.unit){
+     ppcBulkRows[i].unit=SESSION.unit;
+     el.value=SESSION.unit;
+   } else {
+     ppcBulkRows[i][field]=el.value;
+   }
+   if(field==='shipToParty'){
+     const matches=bulkShipToAddressSuggestions(el.value);
+     if(matches.length && !String(ppcBulkRows[i].shipToAddress||'').trim()) ppcBulkRows[i].shipToAddress=matches[0];
+   }
+ }));
+}
+function bulkShipToAddressSuggestions(party){
+  const q=String(party||'').trim().toLowerCase();
+  if(!q)return [];
+  return [...new Set((data.orders||[]).filter(o=>String(o.ShipToParty||'').trim().toLowerCase()===q).map(o=>String(o.ShipToAddress||'').trim()).filter(Boolean))];
+}
+function removePPCBulkRow(i){ppcBulkRows.splice(i,1);renderPPCBulkRows();}
+async function savePPCBulkOrders(){
+  const st=document.getElementById('ppc-bulk-status');
+  const rows=ppcBulkRows.filter(r=>r.customer||r.partCode||r.orderQty);
+  if(!rows.length){st.textContent='Add at least one order.';st.className='status-msg err';return;}
+  st.textContent='Saving '+rows.length+' orders…';st.className='status-msg';
+  try{
+    const r=await postAction({action:'bulkCreateOrders',orders:rows});
+    if(r.error) throw new Error((r.validationErrors||[]).join('\n')||r.error);
+    (r.orders||[]).forEach(o=>data.orders.push(o));
+    data.orders.sort((a,b)=>new Date(b.CreatedAt)-new Date(a.CreatedAt));
+    if(r.orders?.length){ const seen=new Set(data.customers||[]); r.orders.forEach(o=>{if(o.Customer&&!seen.has(o.Customer)){seen.add(o.Customer);data.customers.push(o.Customer);}}); }
+    populateDropdowns();renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();
+    st.textContent='✓ '+r.count+' orders created in one batch.';st.className='status-msg ok';
+    clearPPCBulkRows();
+  }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+function renderPPCPendingRows(){
+  const tb=document.querySelector('#ppc-pending-table tbody'); if(!tb)return;
+  const q=(document.getElementById('ppc-pending-search')?.value||'').toLowerCase().trim();
+  const rows=(data.orders||[]).filter(o=>String(o.Status||'').toLowerCase()==='pending' && (!q || [o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate,o.PendingReason,o.ShipToParty].join(' ').toLowerCase().includes(q)));
+  tb.innerHTML=rows.slice(0,150).map(o=>`<tr>
+    <td><input type="checkbox" class="ppc-pending-check" data-id="${esc(o.OrderID)}" ${ppcPendingSelected.has(String(o.OrderID))?'checked':''}></td>
+    <td>${esc(o.OrderID)}</td><td>${esc(o.Customer)}</td><td>${esc(o.PartCode)}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td>
+    <td><select data-pend-dept="${esc(o.OrderID)}">${(data.departments||[]).map(d=>`<option ${String(o.PendingDepartment||'')===d?'selected':''}>${esc(d)}</option>`).join('')}</select></td>
+    <td><input data-pend-reason="${esc(o.OrderID)}" value="${esc(o.PendingReason||'')}" placeholder="Why pending?"></td>
+    <td><input value="${esc(o.ShipToParty||'')}" disabled></td>
+  </tr>`).join('')||'<tr><td colspan="8" class="empty">No pending orders found.</td></tr>';
+  tb.querySelectorAll('.ppc-pending-check').forEach(el=>el.onchange=()=>{if(el.checked)ppcPendingSelected.add(el.dataset.id);else ppcPendingSelected.delete(el.dataset.id);});
+}
+function selectAllPPCPending(){document.querySelectorAll('.ppc-pending-check').forEach(el=>{el.checked=true;ppcPendingSelected.add(el.dataset.id);});}
+async function savePPCPendingBatch(){
+  const st=document.getElementById('ppc-pending-status'); const items=[];
+  ppcPendingSelected.forEach(id=>{const d=document.querySelector(`[data-pend-dept="${CSS.escape(id)}"]`),r=document.querySelector(`[data-pend-reason="${CSS.escape(id)}"]`);if(d&&r)items.push({orderId:id,pendingDepartment:d.value,pendingReason:r.value.trim()});});
+  if(!items.length){st.textContent='Select at least one pending order.';st.className='status-msg err';return;}
+  st.textContent='Saving '+items.length+' pending updates…';st.className='status-msg';
+  try{const r=await postAction({action:'bulkUpdatePending',items});if(r.error)throw new Error((r.validationErrors||[]).join('\n')||r.error);(r.orders||[]).forEach(u=>{const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));if(o){o.PendingQty=u.pending;o.PendingDepartment=u.pendingDepartment;o.PendingReason=u.pendingReason;o.Status='Pending';o.LastUpdated=new Date().toISOString();}});ppcPendingSelected.clear();renderStats();renderTable();renderPPCPendingRows();st.textContent='✓ '+r.count+' pending updates saved.';st.className='status-msg ok';}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+function renderBulkDispatchRows(){
+  const tb=document.querySelector('#bulk-dispatch-table tbody');if(!tb)return;
+  const q=(document.getElementById('bulk-dispatch-search')?.value||'').toLowerCase().trim();
+  const rows=(data.orders||[]).filter(o=>String(o.Status||'').toLowerCase()==='pending'&&(!q||[o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate,o.CustomerLocation,o.ShipToParty].join(' ').toLowerCase().includes(q)));
+  tb.innerHTML=rows.slice(0,150).map(o=>`<tr>
+    <td><input type="checkbox" class="bulk-dispatch-check" data-id="${esc(o.OrderID)}" ${bulkDispatchSelected.has(String(o.OrderID))?'checked':''}></td>
+    <td>${esc(o.OrderID)}</td><td>${esc(o.Customer)}</td><td>${esc(o.PartCode)}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td><td>${esc(o.UOM||'Nos')}</td>
+    <td><input type="number" min="1" max="${Number(o.PendingQty||0)}" data-bqty="${esc(o.OrderID)}" value="${esc(bulkDispatchQty[o.OrderID]||'')}" placeholder="Qty"></td>
+    <td><input list="dl-shipto" data-bship="${esc(o.OrderID)}" value="${esc(bulkDispatchShipTo[o.OrderID]||o.ShipToParty||'')}" placeholder="Ship To"></td>
+  </tr>`).join('')||'<tr><td colspan="8" class="empty">No pending orders found.</td></tr>';
+  tb.querySelectorAll('.bulk-dispatch-check').forEach(el=>el.onchange=()=>{if(el.checked)bulkDispatchSelected.add(el.dataset.id);else bulkDispatchSelected.delete(el.dataset.id);});
+  tb.querySelectorAll('[data-bqty]').forEach(el=>el.oninput=()=>bulkDispatchQty[el.dataset.bqty]=el.value);
+  tb.querySelectorAll('[data-bship]').forEach(el=>el.oninput=()=>bulkDispatchShipTo[el.dataset.bship]=el.value);
+}
+function selectAllBulkDispatch(){document.querySelectorAll('.bulk-dispatch-check').forEach(el=>{el.checked=true;bulkDispatchSelected.add(el.dataset.id);});}
+function clearBulkDispatchSelection(){bulkDispatchSelected.clear();bulkDispatchQty={};bulkDispatchShipTo={};renderBulkDispatchRows();}
+async function saveBulkDispatch(){
+  const st=document.getElementById('bulk-dispatch-status'),unit=document.getElementById('bulk-d-unit').value,date=document.getElementById('bulk-d-date').value||todayISO(),note=document.getElementById('bulk-d-note').value.trim();
+  if(!unit){st.textContent='Select dispatching unit.';st.className='status-msg err';return;}
+  const items=[...bulkDispatchSelected].map(id=>({orderId:id,uom:data.orders.find(o=>String(o.OrderID)===id)?.UOM||'Nos',dispatchedQty:bulkDispatchQty[id],shipToParty:bulkDispatchShipTo[id]||data.orders.find(o=>String(o.OrderID)===id)?.ShipToParty||'',shipToAddress:data.orders.find(o=>String(o.OrderID)===id)?.ShipToAddress||''}));
+  if(!items.length){st.textContent='Select at least one order.';st.className='status-msg err';return;}
+  st.textContent='Dispatching '+items.length+' orders…';st.className='status-msg';
+  try{const r=await postAction({action:'bulkDispatch',items,unit,dispatchedDate:date,note});if(r.error)throw new Error((r.validationErrors||[]).join('\n')||r.error);
+    (r.orders||[]).forEach(u=>{const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));if(o){o.DispatchedQty=u.dispatched;o.PendingQty=u.pending;o.Status=u.status;o.LastUpdated=new Date().toISOString();if(o.Status==='Completed'){o.PendingDepartment='';o.PendingReason='';}}});
+    (r.logs||[]).forEach(l=>data.logs.push(l));
+    populateDispatchOrderSelect();renderBulkDispatchRows();renderStats();renderTable();renderDispatchHistory();clearBulkDispatchSelection();
+    st.textContent='✓ '+r.count+' dispatches saved in one batch.';st.className='status-msg ok';
+  }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+
+const PERMISSION_LABELS = {
+  view_orders:'View orders', edit_orders:'Edit orders', create_orders:'Create new orders', delete_orders:'Delete orders',
+  view_dispatch:'View dispatch history', edit_dispatch:'Correct dispatch entries', mark_dispatched:'Log a dispatch',
+  add_additional_qty:'Add additional quantity to a finalized plan', view_ppc_plan:'View PPC plan', edit_ppc_plan:'Edit PPC plan (draft)',
+  finalize_ppc_plan:'Finalize & lock PPC plan', unlock_ppc_plan:'Unlock a finalized PPC plan', access_admin_panel:'Access Admin panel',
+  manage_fields:'Add custom fields', manage_dropdowns:'Add dropdown options', manage_roles:'Create/manage roles', manage_users:'Assign roles to users',
+  view_audit_log:'View audit log', view_reports:'View reports', export_reports:'Export reports (CSV)'
+};
+function renderAdminPermissionChecklist(){
+  const list=document.getElementById('admin-permissions'); if(!list)return;
+  list.innerHTML=Object.keys(PERMISSION_LABELS).map(p=>`<label class="config-row" style="cursor:pointer;"><span>${esc(PERMISSION_LABELS[p])}</span><input type="checkbox" class="admin-perm-check" value="${esc(p)}" style="accent-color:var(--accent);width:16px;height:16px;"></label>`).join('');
+}
+
+function renderV2(){
+  const v=data.v2||{};
+  const admin=document.querySelector('.tab[data-tab="admin"]');
+  if(admin) admin.style.display=(SESSION.role==='Owner'||(v.permissions||[]).includes('access_admin_panel'))?'':'none';
+  renderAdminPermissionChecklist();
+  const rl=document.getElementById('admin-role-list');
+  if(rl) rl.innerHTML=(v.roles||[]).map(r=>`<div class="config-row"><b>${esc(r.RoleName)}</b><span>${String(r.Active).toLowerCase()!=='false'?'Active':'Inactive'}</span></div>`).join('')||'<div class="empty">No roles.</div>';
+  const fl=document.getElementById('admin-field-list');
+  if(fl) fl.innerHTML=(v.fields||[]).map(f=>`<div class="config-row"><span><b>${esc(f.Label)}</b> · ${esc(f.Module)}.${esc(f.FieldName)}</span><span>${esc(f.Type)}</span></div>`).join('')||'<div class="empty">No custom fields yet.</div>';
+  const note=document.getElementById('aq-threshold-note'); if(note)note.textContent='Approval is required for additions above '+Number(v.additionalApprovalThreshold||1000).toLocaleString()+'.';
+  renderPPCSummary();
+  populateAdminUserDropdowns();
+  populateNewUserRoleDropdown();
+  renderPPCBulkRows(); renderPPCPendingRows(); renderBulkDispatchRows();
+}
+function renderPPCSummary(){const box=document.getElementById('ppc-summary');if(!box)return;const plans=data.v2?.plans||{}, adds=data.v2?.additional||{};const rows=data.orders.filter(o=>plans[o.OrderID]);box.innerHTML=rows.length?rows.slice(0,200).map(o=>{const p=plans[o.OrderID],a=Number(adds[o.OrderID]||0),q=Number(p.PlannedQty||0);return `<div class="config-row"><span><b>${esc(o.OrderID)}</b> · ${esc(o.Customer)} · ${esc(o.PartCode)}</span><span>${q.toLocaleString()} + ${a.toLocaleString()} = ${(q+a).toLocaleString()} · ${esc(p.Status)}</span></div>`}).join(''):'<div class="empty">No PPC plans created yet.</div>';}
+function filterPPCOrders(){const q=(document.getElementById('ppc-order-search').value||'').toLowerCase().trim(),box=document.getElementById('ppc-order-results');ppcSearchIndex=data.orders;const rows=q?ppcSearchIndex.filter(o=>[o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate].join(' ').toLowerCase().includes(q)):ppcSearchIndex;box.innerHTML=rows.slice(0,100).map(o=>`<button type="button" class="order-result" onclick="selectPPCOrder('${esc(o.OrderID)}')"><div class="order-result-main">${esc(o.Customer)} · ${esc(o.PartCode)} · ${esc(o.Unit)}</div><div class="order-result-meta">${esc(o.OrderID)} · ${Number(o.OrderQty||0).toLocaleString()} ordered</div></button>`).join('')||'<div class="order-no-results">No orders found.</div>';box.classList.add('open');}
+function selectPPCOrder(id){const o=data.orders.find(x=>String(x.OrderID)===String(id));if(!o)return;document.getElementById('ppc-order').value=o.OrderID;document.getElementById('ppc-order-search').value=`${o.Customer} — ${o.PartCode} [${o.Unit}]`;document.getElementById('ppc-order-results').classList.remove('open');const p=(data.v2.plans||{})[o.OrderID];document.getElementById('ppc-planned-qty').value=p?.PlannedQty||o.OrderQty||'';document.getElementById('ppc-plan-status').value=p?.Status||'Draft';document.getElementById('ppc-order-info').textContent=`Order quantity: ${Number(o.OrderQty||0).toLocaleString()} ${esc(o.UOM||'Nos')} · Current dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}`;document.getElementById('ppc-unlock-btn').style.display=(SESSION.role==='Owner'&&p?.Status==='Finalized')?'inline-block':'none';}
+async function savePPCPlan(){
+  const id=document.getElementById('ppc-order').value, qty=Number(document.getElementById('ppc-planned-qty').value);
+  const st=document.getElementById('ppc-status');
+  if(!id||!Number.isFinite(qty)||qty<=0)return;
+  st.textContent='Saving plan…';st.className='status-msg';
+  try{
+    const r=await postAction({action:'savePPCPlan',orderId:id,plannedQty:qty});
+    if(r.error)throw new Error(r.error);
+    data.v2=data.v2||{permissions:[],plans:{},additional:{}};
+    data.v2.plans=data.v2.plans||{};
+    const old=data.v2.plans[id]||{};
+    data.v2.plans[id]={...old,OrderID:id,PlannedQty:r.plannedQty,Status:r.status||'Draft',LastUpdated:new Date().toISOString()};
+    v2Loaded=true;
+    selectPPCOrder(id);renderTable();renderPPCSummary();
+    st.textContent='✓ Plan saved instantly.';st.className='status-msg ok';
+  }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+async function finalizePPCPlan(){
+  const id=document.getElementById('ppc-order').value, qty=Number(document.getElementById('ppc-planned-qty').value);
+  const st=document.getElementById('ppc-status');
+  if(!id||!Number.isFinite(qty)||qty<=0)return;
+  st.textContent='Finalizing plan…';st.className='status-msg';
+  try{
+    const r=await postAction({action:'finalizePPCPlan',orderId:id,plannedQty:qty});
+    if(r.error)throw new Error(r.error);
+    data.v2=data.v2||{permissions:[],plans:{},additional:{}};
+    data.v2.plans=data.v2.plans||{};
+    const old=data.v2.plans[id]||{};
+    data.v2.plans[id]={...old,OrderID:id,PlannedQty:r.plannedQty,Status:'Finalized',FinalizedBy:SESSION.displayName,FinalizedAt:new Date().toISOString(),LastUpdated:new Date().toISOString()};
+    v2Loaded=true;
+    selectPPCOrder(id);renderTable();renderPPCSummary();
+    st.textContent='✓ PPC plan finalized and locked.';st.className='status-msg ok';
+  }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+async function unlockPPCPlan(){
+  const id=document.getElementById('ppc-order').value;if(!id)return;
+  const reason=prompt('Reason for unlocking this PPC plan:');if(!reason)return;
+  try{
+    const r=await postAction({action:'unlockPPCPlan',orderId:id,reason});if(r.error)throw new Error(r.error);
+    data.v2=data.v2||{permissions:[],plans:{},additional:{}};data.v2.plans=data.v2.plans||{};
+    const old=data.v2.plans[id]||{};data.v2.plans[id]={...old,OrderID:id,Status:'Draft',LastUpdated:new Date().toISOString()};
+    v2Loaded=true;selectPPCOrder(id);renderTable();renderPPCSummary();
+  }catch(e){alert(e.message);}
+}
+function openAdditionalQty(id){const o=data.orders.find(x=>String(x.OrderID)===String(id));if(!o)return;document.getElementById('aq-order-id').value=id;document.getElementById('aq-order-info').textContent=`${o.Customer} · ${o.PartCode} · Planned: ${Number(data.v2.plans[id]?.PlannedQty||0).toLocaleString()} · Existing additional: ${Number(data.v2.additional[id]||0).toLocaleString()}`;document.getElementById('aq-qty').value='';document.getElementById('aq-note').value='';document.getElementById('aq-approved-by').value='';document.getElementById('aq-status').textContent='';document.getElementById('additional-qty-modal').classList.add('open');document.getElementById('additional-qty-modal').style.display='flex';}
+function closeAdditionalQty(){document.getElementById('additional-qty-modal').classList.remove('open');document.getElementById('additional-qty-modal').style.display='none';}
+async function submitAdditionalQty(){const id=document.getElementById('aq-order-id').value,qty=document.getElementById('aq-qty').value,reason=document.getElementById('aq-reason').value,note=document.getElementById('aq-note').value.trim(),approved=document.getElementById('aq-approved-by').value.trim(),st=document.getElementById('aq-status');st.textContent='Saving…';try{const r=await postAction({action:'addAdditionalQty',orderId:id,qty,reason,reasonNote:note,approvedBy:approved});if(r.error)throw new Error(r.error);st.textContent='Additional quantity added successfully.';st.className='status-msg ok';await loadV2(true);setTimeout(closeAdditionalQty,300);}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}}
+let setBuilderRows = [];
+function defaultSetComponent(){
+  return {partCode:'',size:'',qty:'',uom:'Nos',unit:SESSION?.unit||'Unit 5'};
+}
+function initSetBuilder(){
+  if(!setBuilderRows.length) setBuilderRows=[defaultSetComponent()];
+  renderSetBuilder();
+}
+function addSetBuilderRow(seed={}){
+  setBuilderRows.push({...defaultSetComponent(),...seed});
+  renderSetBuilder();
+}
+function removeSetBuilderRow(i){
+  if(setBuilderRows.length<=1){setBuilderRows=[defaultSetComponent()];}
+  else setBuilderRows.splice(i,1);
+  renderSetBuilder();
+}
+function clearSetBuilder(){
+  setBuilderRows=[defaultSetComponent()];
+  ['set-builder-code','set-builder-name','set-builder-customer'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  renderSetBuilder();
+  const st=document.getElementById('set-builder-status');if(st){st.textContent='';st.className='status-msg';}
+}
+function renderSetBuilder(){
+  const tb=document.querySelector('#set-component-table tbody'); if(!tb)return;
+  if(!setBuilderRows.length)setBuilderRows=[defaultSetComponent()];
+  const uoms=data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter'];
+  const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  tb.innerHTML=setBuilderRows.map((r,i)=>`<tr>
+    <td class="row-no">${i+1}</td>
+    <td><input data-sb="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Select / type part code" autocomplete="off"></td>
+    <td class="size-col"><input data-sb="size" data-i="${i}" value="${esc(r.size)}" placeholder="e.g. 300 × 450 mm" autocomplete="off"></td>
+    <td class="qty-col"><input data-sb="qty" data-i="${i}" type="number" min="0.001" step="any" value="${esc(r.qty)}" placeholder="1"></td>
+    <td class="uom-col"><select data-sb="uom" data-i="${i}">${uoms.map(u=>`<option value="${esc(u)}" ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
+    <td class="unit-col"><select data-sb="unit" data-i="${i}">${units.map(u=>`<option value="${esc(u)}" ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
+    <td><button class="btn-ghost btn-small" onclick="removeSetBuilderRow(${i})" title="Remove">×</button></td>
+  </tr>`).join('');
+  tb.querySelectorAll('[data-sb]').forEach(el=>el.addEventListener('input',()=>{
+    const i=Number(el.dataset.i), field=el.dataset.sb;
+    setBuilderRows[i][field]=el.value;
+    updateSetBuilderSummary();
+  }));
+  updateSetBuilderSummary();
+}
+function updateSetBuilderSummary(){
+  const el=document.getElementById('set-builder-summary');if(!el)return;
+  const valid=setBuilderRows.filter(r=>String(r.partCode||'').trim()&&Number(r.qty)>0);
+  const duplicates={};
+  valid.forEach(r=>{const k=(String(r.partCode).trim()+'|'+String(r.size||'').trim()).toLowerCase();duplicates[k]=(duplicates[k]||0)+1;});
+  const dupCount=Object.values(duplicates).filter(n=>n>1).length;
+  el.innerHTML=`<b>${valid.length}</b> child article${valid.length===1?'':'s'} added. `+
+    `Same Part Code with different Size / Variant is allowed. `+
+    (dupCount?`<span style="color:#ff6b6b">Remove exact duplicate Part Code + Size rows before saving.</span>`:'');
+}
+async function savePPCSet(){
+  const st=document.getElementById('set-builder-status');
+  const code=document.getElementById('set-builder-code').value.trim();
+  const name=document.getElementById('set-builder-name').value.trim();
+  const customer=document.getElementById('set-builder-customer').value.trim();
+  const valid=setBuilderRows.map(r=>({...r,partCode:String(r.partCode||'').trim(),size:String(r.size||'').trim(),qty:Number(r.qty)})).filter(r=>r.partCode||r.qty);
+  if(!code||!name){st.textContent='Set Code and Set Name are required.';st.className='status-msg err';return;}
+  if(!valid.length){st.textContent='Add at least one child article.';st.className='status-msg err';return;}
+  const errors=[];const seen=new Set();
+  valid.forEach((r,i)=>{
+    if(!r.partCode)errors.push('Row '+(i+1)+': Part Code is required');
+    if(!Number.isFinite(r.qty)||r.qty<=0)errors.push('Row '+(i+1)+': Qty / Set must be greater than 0');
+    const key=(r.partCode+'|'+r.size).toLowerCase();
+    if(seen.has(key))errors.push('Row '+(i+1)+': exact duplicate Part Code + Size / Variant');
+    seen.add(key);
+  });
+  if(errors.length){st.textContent=errors.join(' • ');st.className='status-msg err';return;}
+  st.textContent='Saving Set…';st.className='status-msg';
+  try{
+    const r=await postAction({action:'saveSet',setCode:code,setName:name,customer,components:valid.map(x=>({partCode:x.partCode,size:x.size,qty:x.qty,uom:x.uom,unit:x.unit}))});
+    if(r.error)throw new Error(r.error);
+    data.sets=data.sets||[];
+    data.sets.push({SetCode:r.setCode||code,SetName:r.setName||name,Customer:customer,Active:true,components:r.components||valid});
+    populateDropdowns();renderPPCBulkRows();
+    st.textContent='✓ '+code+' saved with '+valid.length+' child article(s).';st.className='status-msg ok';
+    setBuilderRows=[defaultSetComponent()];
+    ['set-builder-code','set-builder-name','set-builder-customer'].forEach(id=>document.getElementById(id).value='');
+    renderSetBuilder();
+  }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+
+async function createAdminRole(){const st=document.getElementById('admin-role-status');const name=document.getElementById('admin-role-name').value.trim();const permissions=[...(data.v2.permissions||[])];if(!name){st.textContent='Role name is required';st.className='status-msg err';return;}try{const r=await postAction({action:'createRole',roleName:name,permissions});if(r.error)throw new Error(r.error);st.textContent='Role created.';st.className='status-msg ok';await loadV2(true);}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}}
+async function createAdminField(){const st=document.getElementById('admin-field-status');try{const r=await postAction({action:'createField',module:document.getElementById('admin-field-module').value.trim(),fieldName:document.getElementById('admin-field-name').value.trim(),label:document.getElementById('admin-field-label').value.trim(),type:document.getElementById('admin-field-type').value,dropdownId:document.getElementById('admin-field-dropdown').value.trim()});if(r.error)throw new Error(r.error);st.textContent='Field added to configuration.';st.className='status-msg ok';await loadV2(true);}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}}
+async function createAdminDropdownOption(){const st=document.getElementById('admin-dd-status');try{const r=await postAction({action:'createDropdownOption',dropdownName:document.getElementById('admin-dd-name').value.trim(),optionValue:document.getElementById('admin-dd-option').value.trim()});if(r.error)throw new Error(r.error);st.textContent='Dropdown option added.';st.className='status-msg ok';await loadV2(true);}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}}
+async function assignAdminUserRole(){
+ const st=document.getElementById('admin-user-status'),username=document.getElementById('admin-user-name').value,role=document.getElementById('admin-user-role').value;
+ if(!username||!role){st.textContent='Pick a user and a role.';st.className='status-msg err';return;}
+ st.textContent='Saving…';st.className='status-msg';
+ try{const r=await postAction({action:'assignUserRole',username,role});if(r.error)throw new Error(r.error);st.textContent=username+' is now '+role+'.';st.className='status-msg ok';await loadUsers(true);}
+ catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+
+let usersLoaded=false;
+let usersState=[];
+async function loadUsers(force=false){
+ if(usersLoaded&&!force)return;
+ const box=document.getElementById('u-list');if(box)box.innerHTML='<div class="empty">Loading users…</div>';
+ try{const r=await postAction({action:'listUsers'});if(r.error){if(box)box.innerHTML='<div class="empty">'+esc(r.error)+'</div>';return;}usersState=r.users||[];usersLoaded=true;renderUsersList();populateAdminUserDropdowns();populateNewUserRoleDropdown();}
+ catch(e){if(box)box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
+}
+function renderUsersList(){
+ const box=document.getElementById('u-list');if(!box)return;if(!usersState.length){box.innerHTML='<div class="empty">No users yet.</div>';return;}
+ box.innerHTML=usersState.map(u=>`<div class="config-row"><span><b>${esc(u.DisplayName||u.Username)}</b> · ${esc(u.Username)} · <span class="pill pill-role">${esc(u.Role)}</span> ${u.AssignedUnit?'· '+esc(u.AssignedUnit):''}</span><span class="action-cell"><button class="btn-ghost btn-small" onclick="promptResetPassword('${esc(u.Username)}')">Reset PW</button><button class="btn-ghost btn-small" onclick="promptDeleteUser('${esc(u.Username)}')">Delete</button></span></div>`).join('');
+}
+function populateAdminUserDropdowns(){
+ const userSel=document.getElementById('admin-user-name');if(userSel)userSel.innerHTML='<option value="">— Select user —</option>'+usersState.map(u=>`<option value="${esc(u.Username)}">${esc(u.DisplayName||u.Username)} · ${esc(u.Username)}</option>`).join('');
+ const roleSel=document.getElementById('admin-user-role');if(roleSel){const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');roleSel.innerHTML='<option value="">— Select role —</option>'+roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('');}
+}
+function populateNewUserRoleDropdown(){
+ const sel=document.getElementById('u-new-role');if(!sel)return;const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');sel.innerHTML=roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('')||'<option>Owner</option><option>PPC</option><option>Dispatch</option><option>Editor</option><option>ViewOnly</option>';
+}
+async function createNewUser(){
+ const st=document.getElementById('u-new-status'),username=document.getElementById('u-new-username').value.trim(),displayName=document.getElementById('u-new-displayname').value.trim(),password=document.getElementById('u-new-password').value,role=document.getElementById('u-new-role').value,unit=document.getElementById('u-new-unit').value;
+ if(!username||!password||!role){st.textContent='Username, password and role are required.';st.className='status-msg err';return;}
+ st.textContent='Creating…';st.className='status-msg';
+ try{const r=await postAction({action:'createUser',username,password,role,unit,displayName});if(r.error)throw new Error(r.error);st.textContent='User "'+username+'" created.';st.className='status-msg ok';['u-new-username','u-new-displayname','u-new-password'].forEach(id=>document.getElementById(id).value='');await loadUsers(true);}
+ catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+async function promptResetPassword(username){const p=prompt('New password for '+username+' (min 4 characters):');if(!p)return;try{const r=await postAction({action:'resetPassword',username,newPassword:p});if(r.error)throw new Error(r.error);alert('Password reset for '+username+'.');}catch(e){alert('Failed: '+e.message);}}
+async function promptDeleteUser(username){if(!confirm('Delete user "'+username+'"? This cannot be undone.'))return;try{const r=await postAction({action:'deleteUser',username});if(r.error)throw new Error(r.error);await loadUsers(true);}catch(e){alert('Failed: '+e.message);}}
+
 function fmtDateTime(v){if(!v)return '—';const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleString();}
 
 function exportCSV() {
   if (SESSION.role !== 'Owner') return;
   const rows = getFiltered();
   const headers = ['Order ID','Customer','Location','Part Code','Unit','Priority','Order Qty','Dispatched Qty','Pending Qty',
-    'Scheduled Date','Pending Department','Pending Reason','Status'];
+    'Scheduled Date','Ship To Party','Ship-to Address','Pending Department','Pending Reason','Status'];
   const lines = [headers.join(',')];
   rows.forEach(o => {
     const line = [
       o.OrderID, o.Customer, o.CustomerLocation||'', o.PartCode, o.Unit, o.Priority, o.OrderQty, o.DispatchedQty, o.PendingQty,
-      fmtDate(o.ScheduledDate), o.PendingDepartment||'', o.PendingReason||'', o.Status
+      fmtDate(o.ScheduledDate), o.ShipToParty||'', o.ShipToAddress||'', o.PendingDepartment||'', o.PendingReason||'', o.Status
     ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
     lines.push(line);
   });
@@ -1291,7 +2127,12 @@ function esc(s) {
 }
 
 document.getElementById('n-date').valueAsDate = new Date();
+if(document.getElementById('d-date')) document.getElementById('d-date').valueAsDate = new Date();
+if(document.getElementById('bulk-d-date')) document.getElementById('bulk-d-date').valueAsDate = new Date();
 document.getElementById('d-date').valueAsDate = new Date();
+if(document.getElementById('n-order-type')) toggleOrderType();
+if(document.getElementById('d-dispatch-type')) toggleDispatchItemType();
+document.addEventListener('click', e => { if(!e.target.closest('.searchable-order-field')) document.querySelectorAll('.order-search-results').forEach(x=>x.classList.remove('open')); });
 init();
 </script>
 </body>
