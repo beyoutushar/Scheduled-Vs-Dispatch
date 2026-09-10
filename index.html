@@ -1318,6 +1318,7 @@ async function doLogin() {
 });
 
 function doLogout() {
+  stopAutoRefresh();
   sessionStorage.removeItem('svd_token');
   sessionStorage.removeItem('svd_session');
   TOKEN = ''; SESSION = null;
@@ -1423,7 +1424,40 @@ function showApp() {
   // again. This prevents a race where Admin/Dispatch appear only after data loads.
   applyRoleUI();
   loadData();
+  startAutoRefresh();
 }
+
+/* =========================================================
+   LIVE AUTO-REFRESH
+   Fetches fresh MIS data without reloading the webpage.
+   ========================================================= */
+const AUTO_REFRESH_MS = 5000;
+let autoRefreshTimer = null;
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  if (!TOKEN || !SESSION) return;
+
+  autoRefreshTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (!TOKEN || !SESSION) return;
+    loadData(true);
+  }, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && TOKEN && SESSION) {
+    loadData(true);
+  }
+});
+
 function setConn(state, msg) {
   const el = document.getElementById('conn');
   el.className = 'conn ' + state;
@@ -1431,16 +1465,16 @@ function setConn(state, msg) {
 }
 
 let loadInFlight = null;
-async function loadData() {
+async function loadData(silent=false) {
   if(loadInFlight) return loadInFlight;
   const tbody = document.querySelector('#orders-table tbody');
   if (tbody && !tbody.children.length) tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
-  setConn('', 'Loading…');
+  if (!silent) setConn('', 'Loading…');
   loadInFlight=(async()=>{
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN), {cache:'no-store'});
       const json = await res.json();
-      if (json.error && /session has expired|auth_required/i.test(json.error)) { setConn('err','Session expired — please sign in again.'); return false; }
+      if (json.error && /session has expired|auth_required/i.test(json.error)) { stopAutoRefresh(); setConn('err','Session expired — please sign in again.'); return false; }
       if (json.error) { setConn('err', json.error); return false; }
       data = {...data,...json};
       logShipToIndex={};
