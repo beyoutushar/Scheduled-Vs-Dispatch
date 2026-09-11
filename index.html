@@ -2482,10 +2482,34 @@ async function assignAdminUserRole(){
 let usersLoaded=false;
 let usersState=[];
 async function loadUsers(force=false){
- if(usersLoaded&&!force)return;
- const box=document.getElementById('u-list');if(box)box.innerHTML='<div class="empty">Loading users…</div>';
- try{const r=await postAction({action:'listUsers'});if(r.error){if(box)box.innerHTML='<div class="empty">'+esc(r.error)+'</div>';return;}usersState=r.users||[];usersLoaded=true;renderUsersList();populateAdminUserDropdowns();populateNewUserRoleDropdown();}
- catch(e){if(box)box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
+  if(usersLoaded && !force) return;
+
+  const box=document.getElementById('u-list');
+  if(box) box.innerHTML='<div class="empty">Loading users…</div>';
+
+  try{
+    // Make sure V2 roles are loaded before populating role dropdowns
+    await loadV2();
+
+    const r=await postAction({action:'listUsers'});
+
+    if(r.error){
+      if(box) box.innerHTML='<div class="empty">'+esc(r.error)+'</div>';
+      return;
+    }
+
+    usersState=r.users||[];
+    usersLoaded=true;
+
+    renderUsersList();
+
+    // Now data.v2.roles is guaranteed to be available
+    populateAdminUserDropdowns();
+    populateNewUserRoleDropdown();
+
+  }catch(e){
+    if(box) box.innerHTML='<div class="empty">'+esc(e.message)+'</div>';
+  }
 }
 function renderUsersList(){
  const box=document.getElementById('u-list');if(!box)return;if(!usersState.length){box.innerHTML='<div class="empty">No users yet.</div>';return;}
