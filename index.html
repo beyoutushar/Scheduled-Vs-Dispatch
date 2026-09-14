@@ -122,9 +122,6 @@
   tr { transition: background .12s var(--ease); }
   tr:hover td { background:var(--panel-2); }
   .table-scroll { overflow-x:auto; border-radius:var(--radius-sm); }
-  .stock-toolbar { margin-bottom:12px; }
-  .stock-toolbar input { flex:1; min-width:220px; }
-  .stock-toolbar select { min-width:150px; }
 
   .pill { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:.01em; }
   .pill-pending { background:rgba(234,184,77,.15); color:var(--warn); }
@@ -382,40 +379,18 @@
   .set-help { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 14px; }
   .set-help-item { border:1px solid var(--border-soft); background:var(--panel-2); border-radius:9px; padding:9px 10px; font-size:11px; color:var(--muted); }
   .set-help-item b { display:block; color:var(--text); margin-bottom:3px; font-size:11px; }
-  .set-component-table { width:100%; border-collapse:collapse; min-width:700px; }
+  .set-component-table { width:100%; border-collapse:collapse; min-width:820px; }
   .set-component-table th { text-align:left; font-size:10px; color:var(--muted); font-weight:600; padding:8px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .set-component-table td { padding:7px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
   .set-component-table input,.set-component-table select { width:100%; min-width:0; }
   .set-component-table .row-no { width:28px; color:var(--muted); text-align:center; font-size:11px; }
+  .set-component-table .qty-col { width:120px; }
   .set-component-table .size-col { width:180px; }
-  .set-component-table .unit-col { width:150px; }
-  .set-list { margin-top:14px; }
-  .set-list-card { border:1px solid var(--border); background:var(--panel); border-radius:14px; padding:16px; margin-bottom:14px; }
-  .set-list-row { display:grid; grid-template-columns:1.1fr 1fr 1.4fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--border-soft); }
-  .set-list-row:last-child { border-bottom:0; }
-  .set-list-meta { color:var(--muted); font-size:11px; margin-top:3px; }
+  .set-component-table .uom-col { width:110px; }
+  .set-component-table .unit-col { width:125px; }
   .set-builder-summary { margin-top:10px; padding:10px 12px; border:1px dashed var(--border); border-radius:9px; background:var(--panel-2); font-size:11px; color:var(--muted); }
   .set-builder-summary b { color:var(--text); }
-  .set-preview { margin:8px 0 14px; border:1px solid rgba(139,92,246,.28); background:rgba(139,92,246,.055); border-radius:12px; padding:12px; }
-  .set-preview-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
-  .set-preview-title { font-weight:700; font-size:13px; }
-  .set-preview-meta { color:var(--muted); font-size:11px; }
-  .set-preview-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
-  .set-preview-item { border:1px solid var(--border-soft); background:rgba(0,0,0,.12); border-radius:8px; padding:8px 9px; min-width:0; }
-  .set-preview-item .k { color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.04em; }
-  .set-preview-item .v { margin-top:2px; font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .set-order-bom { margin-top:10px; border-top:1px solid var(--border-soft); padding-top:10px; }
-  .set-order-bom-head { display:grid; grid-template-columns:2fr 1.2fr .8fr 1fr; gap:8px; padding:0 8px 6px; color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.04em; }
-  .set-order-bom-row { display:grid; grid-template-columns:2fr 1.2fr .8fr 1fr; gap:8px; align-items:center; padding:7px 8px; border:1px solid var(--border-soft); background:rgba(0,0,0,.12); border-radius:8px; margin-bottom:6px; }
-  .set-order-bom-code { font-weight:700; font-size:12px; }
-  .set-order-bom-meta { color:var(--muted); font-size:10px; margin-top:2px; }
-  .set-order-bom-row input { padding:7px 8px; }
-  .set-order-bom-total { font-size:12px; font-weight:700; }
-  .set-order-bom-note { margin-top:8px; color:var(--muted); font-size:10.5px; }
-  @media(max-width:700px){.set-order-bom-head,.set-order-bom-row{grid-template-columns:1.5fr .9fr .7fr 1fr;}}
-
-  @media(max-width:800px){.set-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
-  @media(max-width:800px){.set-help{grid-template-columns:1fr;}.set-builder-head{flex-direction:column;}.set-component-table{min-width:700px;}.set-list-row{grid-template-columns:1fr;gap:6px;}}
+  @media(max-width:800px){.set-help{grid-template-columns:1fr;}.set-builder-head{flex-direction:column;}.set-component-table{min-width:760px;}}
   .admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .admin-panel {
     background: var(--panel-2); border:1px solid var(--border); border-radius:14px; padding:16px;
@@ -821,8 +796,8 @@ body {
       </div>
       <div class="set-help">
         <div class="set-help-item"><b>1. Set identity</b>Give the set a unique code and a clear name.</div>
-        <div class="set-help-item"><b>2. Add child articles</b>Select the Part Code, optionally enter Size / Variant, and choose the production unit.</div>
-        <div class="set-help-item"><b>3. Save</b>Each child is one piece per set. Set quantity and UOM are entered later when PPC creates the order.</div>
+        <div class="set-help-item"><b>2. Add child articles</b>Select the Part Code, then enter Size/Variant and quantity needed for one set.</div>
+        <div class="set-help-item"><b>3. Save</b>The MIS expands every child requirement automatically when PPC orders the set.</div>
       </div>
       <div class="grid">
         <div class="field"><label>Set Code *</label><input id="set-builder-code" placeholder="IKEA-SET-001" autocomplete="off"></div>
@@ -831,7 +806,7 @@ body {
       </div>
       <div class="table-scroll">
         <table class="set-component-table" id="set-component-table">
-          <thead><tr><th>#</th><th>Child Part Code *</th><th>Size / Variant</th><th>Production Unit</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Child Part Code *</th><th>Size / Variant</th><th>Qty / Set *</th><th>UOM</th><th>Production Unit</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -839,15 +814,8 @@ body {
         <button class="btn-ghost" onclick="addSetBuilderRow()">＋ Add Child Article</button>
         <div style="display:flex;gap:8px;"><button class="btn-ghost" onclick="clearSetBuilder()">Clear</button><button class="btn-primary" onclick="savePPCSet()">Save Set</button></div>
       </div>
-      <div class="set-builder-summary" id="set-builder-summary">Each child article represents <b>1 piece per set</b>. Quantity and UOM are chosen when PPC places the Customer Set order.</div>
+      <div class="set-builder-summary" id="set-builder-summary">Add the child articles that make up <b>1 set</b>. You can use the <b>same Part Code more than once</b> when the Size / Variant is different.</div>
       <div class="status-msg" id="set-builder-status"></div>
-    </div>
-
-    <div class="set-list-card" id="set-list-card">
-      <div class="set-builder-head" style="margin-bottom:8px;">
-        <div><h2 style="margin:0;font-size:15px;">Saved Customer Sets</h2><div class="sub">Edit a set to rename it, change the customer, remove a child, or add a new child article.</div></div>
-      </div>
-      <div id="saved-sets-list"><div class="empty">Loading sets…</div></div>
     </div>
 
   </div>
@@ -863,11 +831,8 @@ body {
         <div class="field combo" id="n-part-field"><label>Part Code</label><input id="n-part" list="dl-parts" placeholder="Select or type new" oninput="showStock()"><datalist id="dl-parts"></datalist></div>
         <div class="field combo" id="n-set-field" style="display:none"><label>Set Code</label><select id="n-set"><option value="">— Select Set —</option></select></div>
         <div class="field"><label>Unit</label><select id="n-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
-        <div class="field"><label id="n-qty-label">Order Quantity</label><input id="n-qty" type="number" min="1" placeholder="1000"></div>
+        <div class="field"><label>Order Quantity</label><input id="n-qty" type="number" min="1" placeholder="1000"></div>
         <div class="field" id="n-uom-field"><label>UOM</label><select id="n-uom"></select></div>
-      </div>
-      <div id="n-set-preview" class="set-preview" style="display:none"></div>
-      <div class="grid">
         <div class="field"><label>Priority Level</label><select id="n-priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
         <div class="field"><label>Scheduled Date</label><input id="n-date" type="date"></div>
         <div class="field combo"><label>Ship To Party</label><input id="n-shipto" list="dl-shipto" placeholder="Select or type ship-to party"></div>
@@ -890,7 +855,6 @@ body {
         <select id="d-set-order"><option value="">— Select pending set —</option></select>
         <div class="mini-note">Selecting a set dispatches every BOM component automatically.</div>
       </div>
-      <div id="d-set-preview" class="set-preview" style="display:none"></div>
       <div class="field">
         <label>Entry Type</label>
         <select id="d-mode" onchange="toggleDispatchMode()">
@@ -976,7 +940,7 @@ body {
       <h2>Dispatch — Multiple Orders</h2>
       <div class="sub" style="margin-bottom:10px;">Select multiple pending orders. Their PPC Ship To Party is pre-filled automatically; Dispatch may change it only when necessary.</div>
       <div class="toolbar"><input id="bulk-dispatch-search" type="search" placeholder="Search customer, part, Order ID, date…" oninput="renderBulkDispatchRows()"><button class="btn-ghost btn-small" onclick="selectAllBulkDispatch()">Select all visible</button></div>
-      <div class="table-scroll"><table id="bulk-dispatch-table"><thead><tr><th>Select</th><th>Order</th><th>Customer</th><th>Set / Part</th><th>Size / Variant</th><th>Pending</th><th>UOM</th><th>Dispatch Qty</th><th>Ship To Party</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-scroll"><table id="bulk-dispatch-table"><thead><tr><th>Select</th><th>Order</th><th>Customer</th><th>Part</th><th>Pending</th><th>UOM</th><th>Dispatch Qty</th><th>Ship To Party</th></tr></thead><tbody></tbody></table></div>
       <div class="grid" style="margin-top:10px;">
         <div class="field"><label>Dispatching Unit</label><select id="bulk-d-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
         <div class="field"><label>Dispatch Date</label><input id="bulk-d-date" type="date"></div>
@@ -1080,18 +1044,14 @@ body {
           <input id="s-part" list="dl-parts" placeholder="Select or type" oninput="showCurrentStock()">
         </div>
         <div class="field">
-          <label>Production Unit</label>
-          <select id="s-unit" onchange="showCurrentStock()"></select>
-        </div>
-        <div class="field">
           <label>Production Quantity</label>
           <input id="s-qty" type="number" min="0" placeholder="500">
         </div>
         <div class="field">
           <label>Mode</label>
           <select id="s-mode">
-            <option value="add">Add to current stock</option>
             <option value="set">Set to this value</option>
+            <option value="add">Add to current stock</option>
           </select>
         </div>
       </div>
@@ -1101,20 +1061,9 @@ body {
     </div>
     <div class="card">
       <h2>Current FG Stock</h2>
-      <div class="toolbar stock-toolbar">
-        <input id="stock-search" placeholder="Search Part Code…" oninput="renderStockTable()">
-        <select id="stock-unit-filter" onchange="renderStockTable()"></select>
-        <select id="stock-status-filter" onchange="renderStockTable()">
-          <option value="all">All Stock</option>
-          <option value="available">Available Only</option>
-          <option value="zero">Zero Stock</option>
-        </select>
-        <button class="btn-ghost btn-small" onclick="clearStockFilters()">Clear</button>
-        <span class="spacer"></span><span class="mini-note" id="stock-result-count"></span>
-      </div>
       <div class="table-scroll">
         <table id="stock-table">
-          <thead><tr><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th></tr></thead>
+          <thead><tr><th>Part Code</th><th>Available Qty</th><th>Last Updated</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -1441,7 +1390,7 @@ function applyRoleUI() {
 function lockUnitFieldsForSession(){
   const role=String(SESSION?.role||'').trim().toLowerCase();
   const unit=String(SESSION?.unit||'').trim();
-  const restricted=['ppc','dispatch'].includes(role);
+  const restricted=['ppc','dispatch','viewonly'].includes(role);
   ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
@@ -1516,81 +1465,28 @@ function setConn(state, msg) {
 }
 
 let loadInFlight = null;
-
-// Incremented whenever the user successfully changes FG stock.
-// A core refresh that was already in flight before the stock change must not
-// overwrite the just-updated local stock with its older snapshot.
-let stockMutationEpoch = 0;
-
 async function loadData(silent=false) {
   if(loadInFlight) return loadInFlight;
-
-  const requestStockEpoch = stockMutationEpoch;
   const tbody = document.querySelector('#orders-table tbody');
-  if (tbody && !tbody.children.length) {
-    tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
-  }
+  if (tbody && !tbody.children.length) tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
   if (!silent) setConn('', 'Loading…');
-
   loadInFlight=(async()=>{
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN), {cache:'no-store'});
       const json = await res.json();
-
-      if (json.error && /session has expired|auth_required/i.test(json.error)) {
-        stopAutoRefresh();
-        setConn('err','Session expired — please sign in again.');
-        return false;
-      }
+      if (json.error && /session has expired|auth_required/i.test(json.error)) { stopAutoRefresh(); setConn('err','Session expired — please sign in again.'); return false; }
       if (json.error) { setConn('err', json.error); return false; }
-
-      // Orders/etc. can always be replaced by the newest response.
-      // Stock is special: if this request started BEFORE a successful stock
-      // update, keep the local stock mutation instead of flashing old data.
-      const freshStock = Array.isArray(json.stock) ? json.stock : null;
-      const preserveLocalStock = requestStockEpoch < stockMutationEpoch;
-
-      // Never spread json.stock into data before deciding whether it is safe
-      // to replace the browser's stock snapshot. Otherwise a stale in-flight
-      // request would overwrite the value we just displayed.
-      const { stock: ignoredServerStock, ...jsonWithoutStock } = json;
-      data = {...data, ...jsonWithoutStock};
-      if (!preserveLocalStock && freshStock) {
-        data.stock = freshStock;
-      }
-
+      data = {...data,...json};
       logShipToIndex={};
-      (data.logs||[]).forEach(l=>{
-        const id=String(l.OrderID||'');
-        if(!id)return;
-        (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));
-      });
-
+      (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
       const count = Array.isArray(data.orders) ? data.orders.length : 0;
       setConn('ok', 'Live — connected · ' + count + ' orders');
-      populateDropdowns();
-      toggleOrderType();
-      toggleDispatchItemType();
-      populateStockControls();
-      renderStats();
-      renderTable();
-      renderStockTable();
-      populateDispatchOrderSelect();
-      renderBulkDispatchRows();
-      renderPPCPendingRows();
-      renderDispatchHistory();
-      applyRoleUI();
-
+      populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
-    } catch (e) {
-      setConn('err', 'Connection failed — data not lost.');
-      return false;
-    } finally {
-      loadInFlight=null;
-    }
+    } catch (e) { setConn('err', 'Connection failed — data not lost.'); return false; }
+    finally { loadInFlight=null; }
   })();
-
   return loadInFlight;
 }
 let v2Loaded=false, v2InFlight=null;
@@ -1607,7 +1503,7 @@ async function loadV2(force=false){
       renderV2();
       applyRoleUI();
       return true;
-    }catch(e){console.error('V2 load failed:',e);setConn('err','Admin configuration could not be loaded.');return false;} finally{v2InFlight=null;}
+    }catch(e){return false;} finally{v2InFlight=null;}
   })();
   return v2InFlight;
 }
@@ -1632,11 +1528,11 @@ function switchTab(name) {
     else { renderPPCBulkRows(); }
   }
   if (name === 'new') { populateDispatchOrderSelect(); }
-  if (name === 'stock') { populateStockControls(); renderStockTable(); showCurrentStock(); }
+  if (name === 'stock') renderStockTable();
   if (name === 'complaints') { renderComplaints(); loadAux('complaints'); }
   if (name === 'discussion') { renderDiscussion(); loadAux('discussion'); }
   if (name === 'admin') loadV2();
-  if (name === 'sets') { initSetBuilder(); renderSavedSets(); }
+  if (name === 'sets') { initSetBuilder(); }
   if (name === 'admin') loadUsers();
 }
 
@@ -1651,9 +1547,9 @@ function populateDropdowns() {
     else el.value = 'Nos';
   });
   const setSel=document.getElementById('n-set');
-  if(setSel) setSel.innerHTML='<option value="">— Select Set —</option>'+(data.sets||[]).map(x=>{const children=(x.components||[]).map(c=>c.partCode).filter(Boolean);const childText=children.length?' · '+children.slice(0,3).join(', ')+(children.length>3?' +'+(children.length-3):''):'';return `<option value="${esc(x.SetCode)}">${esc(x.SetCode)} — ${esc(x.SetName||'')}${esc(childText)}</option>`}).join('');
+  if(setSel) setSel.innerHTML='<option value="">— Select Set —</option>'+(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}">${esc(x.SetCode)} — ${esc(x.SetName||'')}</option>`).join('');
   const setOrderSel=document.getElementById('d-set-order');
-  if(setOrderSel) setOrderSel.innerHTML='<option value="">— Select pending set —</option>'+(data.setOrders||[]).filter(x=>x.status==='Pending').sort((a,b)=>new Date(b.scheduledDate)-new Date(a.scheduledDate)).map(x=>{const children=(x.components||[]).map(c=>c.partCode).filter(Boolean);const childText=children.length?' · '+children.slice(0,3).join(', ')+(children.length>3?' +'+(children.length-3):''):'';return `<option value="${esc(x.setOrderId)}">${esc(x.setCode)} · ${esc(x.customer)}${esc(childText)} · ${x.pendingSets} sets pending · ${esc(x.unit)}</option>`}).join('');
+  if(setOrderSel) setOrderSel.innerHTML='<option value="">— Select pending set —</option>'+(data.setOrders||[]).filter(x=>x.status==='Pending').sort((a,b)=>new Date(b.scheduledDate)-new Date(a.scheduledDate)).map(x=>`<option value="${esc(x.setOrderId)}">${esc(x.setCode)} · ${esc(x.customer)} · ${x.pendingSets} sets pending · ${esc(x.unit)}</option>`).join('');
   const dept = document.getElementById('d-dept');
   if (dept) dept.innerHTML = '<option value="">— Select —</option>' + (data.departments || []).map(d => `<option>${esc(d)}</option>`).join('');
   toggleDispatchMode();
@@ -1681,7 +1577,11 @@ function populateDropdowns() {
 }
 
 function renderStats() {
-  const orders = data.orders;
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const assignedUnit = String(SESSION?.unit || '').trim();
+  const orders = (role === 'owner' || !assignedUnit)
+    ? data.orders
+    : data.orders.filter(o => String(o.Unit || '').trim() === assignedUnit);
   const pending = orders.filter(o => o.Status === 'Pending');
   const completed = orders.filter(o => o.Status === 'Completed');
   const totalOrderQty = orders.reduce((s,o) => s + Number(o.OrderQty||0), 0);
@@ -1709,7 +1609,13 @@ function getFiltered() {
   const date = document.getElementById('f-date').value;
   const q = (document.getElementById('f-search').value || '').trim().toLowerCase();
 
-  return data.orders
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const assignedUnit = String(SESSION?.unit || '').trim();
+  const scopedOrders = (role === 'owner' || !assignedUnit)
+    ? data.orders
+    : data.orders.filter(o => String(o.Unit || '').trim() === assignedUnit);
+
+  return scopedOrders
     .filter(o => !c || String(o.Customer||'') === c)
     .filter(o => !p || String(o.PartCode||'') === p)
     .filter(o => !u || String(o.Unit||'') === u)
@@ -1741,7 +1647,7 @@ function renderTable() {
   const canBulk = SESSION && (SESSION.role === 'Owner' || (data.v2.permissions||[]).includes('edit_orders'));
   tbl.querySelector('thead').innerHTML = `<tr>
     <th class="select-col"><input id="select-all-orders" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" ${rows.length && rows.every(o=>selectedOrders.has(String(o.OrderID)))?'checked':''}></th>
-    <th>Customer</th><th>Location</th><th>Set / Part</th><th>Size / Variant</th><th>Part Code</th><th>Unit</th><th>UOM</th><th>Priority</th><th>Order Qty</th>
+    <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>UOM</th><th>Priority</th><th>Order Qty</th>
     <th>Planned</th><th>Additional</th><th>Total Dispatch</th><th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
     <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Status</th><th>Action</th>
   </tr>`;
@@ -1759,7 +1665,7 @@ function renderTable() {
     const action=(canEdit?`<button class="btn-ghost btn-small" onclick="openEditOrder('${esc(o.OrderID)}')">Edit</button>`:'') + (canAdd?` <button class="btn-primary btn-small" onclick="openAdditionalQty('${esc(o.OrderID)}')">+ Qty</button>`:'');
     return `<tr>
       <td class="select-col">${canBulk?`<input class="row-check" type="checkbox" data-order-id="${esc(o.OrderID)}" onchange="toggleOrderSelection('${esc(o.OrderID)}',this.checked)" ${selectedOrders.has(String(o.OrderID))?'checked':''}>`:''}</td>
-      <td>${esc(o.Customer)}</td><td>${esc(o.CustomerLocation||'—')}</td><td>${o.OrderType==='SET'?`<span class="pill pill-role">${esc(o.SetCode||'SET')}</span>`:'—'}</td><td>${esc(o.SetComponentSize||'—')}</td><td>${esc(o.PartCode)}</td><td>${esc(o.Unit||'—')}</td><td>${esc(o.UOM||'Nos')}</td>
+      <td>${esc(o.Customer)}</td><td>${esc(o.CustomerLocation||'—')}</td><td>${esc(o.PartCode)}</td><td>${esc(o.Unit||'—')}</td><td>${esc(o.UOM||'Nos')}</td>
       <td><span class="pill ${prioPill}">${esc(o.Priority||'')}</span></td><td>${orderQty.toLocaleString()}</td>
       <td>${planned?planned.toLocaleString():'—'}</td><td>${additional?additional.toLocaleString():'—'}</td><td>${total?total.toLocaleString():'—'}</td>
       <td>${dispatched.toLocaleString()}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td>
@@ -1785,183 +1691,64 @@ function clearSelection(){selectedOrders.clear();renderTable();}
 async function applyBulkStatus(){const status=document.getElementById('bulk-status').value;if(!status||!selectedOrders.size)return;try{const res=await postAction({action:'bulkChangeStatus',orderIds:[...selectedOrders],status});if(res.error)throw new Error(res.error);alert(`Completed: ${res.successCount}\nFailed: ${res.failCount}`);selectedOrders.clear();await loadData();}catch(e){alert(e.message);}}
 
 
-function getSelectedStockUnit() {
-  const el = document.getElementById('s-unit');
-  return el ? String(el.value || '') : String(SESSION?.unit || '');
-}
-
-function getStockFor(partCode, unit) {
-  const code = String(partCode || '').trim();
-  const targetUnit = String(unit || '').trim();
-  if (!code || !targetUnit) return 0;
-  return data.stock
-    .filter(s => String(s.PartCode || '') === code && String(s.Unit || '') === targetUnit)
-    .reduce((sum, s) => sum + (Number(s.AvailableQty) || 0), 0);
-}
-
-function populateStockControls() {
-  const units = Array.isArray(data.units) && data.units.length ? data.units : ['Unit 1','Unit 2','Unit 5','Unit Delta'];
-  const role = String(SESSION?.role || '').toLowerCase();
-  const assigned = String(SESSION?.unit || '');
-  const global = role === 'owner' || role === 'viewonly';
-
-  const update = document.getElementById('s-unit');
-  if (update) {
-    update.innerHTML = units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    if (global) {
-      update.disabled = false;
-      update.value = assigned && units.includes(assigned) ? assigned : units[0];
-    } else {
-      update.value = assigned;
-      update.disabled = true;
-    }
-  }
-
-  const filter = document.getElementById('stock-unit-filter');
-  if (filter) {
-    if (global) {
-      filter.disabled = false;
-      filter.innerHTML = `<option value="">All Units</option>` + units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    } else {
-      filter.innerHTML = `<option value="${esc(assigned)}">${esc(assigned || 'My Unit')}</option>`;
-      filter.value = assigned;
-      filter.disabled = true;
-    }
-  }
+function getStockFor(partCode) {
+  const row = data.stock.find(s => String(s.PartCode) === String(partCode));
+  return row ? Number(row.AvailableQty) || 0 : 0;
 }
 
 function showStock() {
   const part = document.getElementById('n-part').value.trim();
   const info = document.getElementById('n-stock-info');
   if (!part) { info.textContent = 'Enter a Part Code to see current FG stock.'; return; }
-  const unit = document.getElementById('n-unit')?.value || SESSION?.unit || '';
-  const stock = getStockFor(part, unit);
+  const stock = getStockFor(part);
   if (stock > 0) {
-    info.innerHTML = `Available FG stock for <b>${esc(unit)}</b>: <b>${stock.toLocaleString()}</b> — if this covers the order quantity it'll route straight to Dispatch, otherwise to PPC Planning.`;
+    info.innerHTML = `Available FG stock: <b>${stock}</b> — if this covers the order quantity it'll route straight to Dispatch, otherwise to PPC Planning.`;
   } else {
-    info.textContent = `No FG stock for ${unit || 'this unit'} on record for this part code — order will route to PPC Planning.`;
+    info.textContent = 'No FG stock on record for this part code — order will route to PPC Planning.';
   }
 }
 
 function showCurrentStock() {
   const part = document.getElementById('s-part').value.trim();
-  const unit = getSelectedStockUnit();
   const el = document.getElementById('s-current');
-  if (!part) { el.textContent = unit ? `Selected unit: ${unit}` : ''; return; }
-  el.textContent = `Current stock — ${unit}: ${getStockFor(part, unit).toLocaleString()}`;
+  if (!part) { el.textContent = ''; return; }
+  el.textContent = `Current stock: ${getStockFor(part)}`;
 }
 
 async function submitStock() {
   const part = document.getElementById('s-part').value.trim();
   const qty = document.getElementById('s-qty').value;
   const mode = document.getElementById('s-mode').value;
-  const unit = getSelectedStockUnit();
   const statusEl = document.getElementById('stock-status');
-  const button = document.querySelector('#stock-admin-card button[onclick="submitStock()"]');
-
-  if (!part || qty === '' || !unit) {
-    statusEl.textContent = 'Part code, unit and quantity are required.';
-    statusEl.className = 'status-msg err';
+  if (!part || qty === '') {
+    statusEl.textContent = 'Part code and quantity are required.'; statusEl.className = 'status-msg err';
     return;
   }
-
-  statusEl.textContent = 'Saving…';
-  statusEl.className = 'status-msg';
-  if (button) { button.disabled = true; button.dataset.originalText = button.textContent; button.textContent = 'Updating…'; }
-
+  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
   try {
-    const res = await postAction({ action: 'setStock', partCode: part, qty, mode, unit });
+    const res = await postAction({ action: 'setStock', partCode: part, qty, mode });
     if (res.error) throw new Error(res.error);
-
-    const savedUnit = String(res.unit || unit);
-    const newQty = Number(res.newQty || 0);
-
-    // IMPORTANT: update the browser's stock immediately after the backend
-    // confirms the write. Do not wait for the 5-second auto-refresh or an
-    // already-running loadData() request.
-    stockMutationEpoch++;
-    if (!Array.isArray(data.stock)) data.stock = [];
-
-    const existing = data.stock.find(r =>
-      String(r.PartCode || '').trim() === part &&
-      String(r.Unit || '').trim() === savedUnit
-    );
-
-    if (existing) {
-      existing.AvailableQty = newQty;
-      existing.LastUpdated = new Date().toISOString();
-    } else {
-      data.stock.push({
-        PartCode: part,
-        Unit: savedUnit,
-        AvailableQty: newQty,
-        LastUpdated: new Date().toISOString()
-      });
-    }
-
-    statusEl.textContent = `Stock updated for ${savedUnit} — now ${newQty.toLocaleString()}.`;
-    statusEl.className = 'status-msg ok';
+    statusEl.textContent = `Stock updated — now ${res.newQty}.`; statusEl.className = 'status-msg ok';
     document.getElementById('s-qty').value = '';
-
-    // Paint the new row immediately.
-    populateStockControls();
+    await loadData();
     renderStockTable();
     showCurrentStock();
-
-    // Do NOT await this. If another core request is already running, the
-    // epoch protection above prevents its stale stock snapshot from replacing
-    // the value we just displayed. A later refresh will reconcile with Sheets.
-    loadData(true);
   } catch (e) {
-    statusEl.textContent = 'Failed: ' + e.message;
-    statusEl.className = 'status-msg err';
-  } finally {
-    if (button) { button.disabled = false; button.textContent = button.dataset.originalText || 'Update Stock'; }
+    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
   }
-}
-
-function clearStockFilters() {
-  const q = document.getElementById('stock-search');
-  const u = document.getElementById('stock-unit-filter');
-  const st = document.getElementById('stock-status-filter');
-  if (q) q.value = '';
-  if (u && !u.disabled) u.value = '';
-  if (st) st.value = 'all';
-  renderStockTable();
 }
 
 function renderStockTable() {
   const tbody = document.querySelector('#stock-table tbody');
   if (!tbody) return;
-  const q = String(document.getElementById('stock-search')?.value || '').trim().toLowerCase();
-  const unit = String(document.getElementById('stock-unit-filter')?.value || '').trim();
-  const status = String(document.getElementById('stock-status-filter')?.value || 'all');
-
-  let rows = [...data.stock].filter(r => {
-    const code = String(r.PartCode || '');
-    const rowUnit = String(r.Unit || '');
-    const qty = Number(r.AvailableQty || 0);
-    if (q && !code.toLowerCase().includes(q)) return false;
-    if (unit && rowUnit !== unit) return false;
-    if (status === 'available' && qty <= 0) return false;
-    if (status === 'zero' && qty !== 0) return false;
-    return true;
-  }).sort((a,b) => {
-    const c = String(a.PartCode||'').localeCompare(String(b.PartCode||''));
-    return c || String(a.Unit||'').localeCompare(String(b.Unit||''));
-  });
-
-  const count = document.getElementById('stock-result-count');
-  if (count) count.textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
-
+  const rows = [...data.stock].sort((a,b) => String(a.PartCode||'').localeCompare(String(b.PartCode||'')));
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td>${esc(r.PartCode)}</td>
-      <td>${esc(r.Unit || 'Unassigned')}</td>
-      <td><b>${Number(r.AvailableQty||0).toLocaleString()}</b></td>
+      <td>${Number(r.AvailableQty||0).toLocaleString()}</td>
       <td>${fmtDate(r.LastUpdated)}</td>
     </tr>
-  `).join('') || '<tr><td colspan="4" class="empty">No stock matches the selected filters.</td></tr>';
+  `).join('') || '<tr><td colspan="3" class="empty">No stock recorded yet.</td></tr>';
 }
 
 let dispatchSearchIndex = [];
@@ -1997,8 +1784,6 @@ function dispatchOrderSearchText(o) {
     o.Customer,
     o.CustomerLocation,
     o.PartCode,
-    o.SetCode,
-    o.SetComponentSize,
     o.Unit,
     o.Priority,
     o.OrderQty,
@@ -2046,9 +1831,7 @@ function filterDispatchOrders() {
         <div class="order-result-main">
           <span>${esc(o.Customer || '—')}</span>
           <span>·</span>
-          ${o.OrderType==='SET'?`<span class="pill pill-role">${esc(o.SetCode||'SET')}</span><span>·</span>`:''}
           <span>${esc(o.PartCode || '—')}</span>
-          ${o.SetComponentSize?`<span>·</span><span>${esc(o.SetComponentSize)}</span>`:''}
           <span>·</span>
           <span>${esc(o.Unit || '?')}</span>
         </div>
@@ -2099,11 +1882,9 @@ function updateOrderInfo() {
 
   info.innerHTML =
     `Order ID: <b>${esc(o.OrderID)}</b> · ` +
-    (o.OrderType==='SET'?`Set: <b>${esc(o.SetCode||'Customer Set')}</b> · `:'') +
     `UOM: <b>${esc(o.UOM || 'Nos')}</b> · ` +
     `Customer: <b>${esc(o.Customer)}</b> · ` +
     `Part Code: <b>${esc(o.PartCode)}</b> · ` +
-    (o.SetComponentSize?`Size / Variant: <b>${esc(o.SetComponentSize)}</b> · `:'') +
     `Scheduled: <b>${esc(fmtDate(o.ScheduledDate))}</b> · ` +
     `Order Qty: <b>${Number(o.OrderQty || 0).toLocaleString()}</b> · ` +
     `Dispatched: <b>${Number(o.DispatchedQty || 0).toLocaleString()}</b> · ` +
@@ -2134,99 +1915,31 @@ document.getElementById('d-order-search').addEventListener('keydown', function(e
   }
 });
 
-function getSetOrderOverrides(setCode){
-  const s=(data.sets||[]).find(x=>String(x.SetCode).toLowerCase()===String(setCode||'').toLowerCase());
-  const map={};
-  (s?.components||[]).forEach(c=>{
-    const key=String(c.partCode||'').toLowerCase()+'|'+String(c.size||'').toLowerCase();
-    map[key]=Number(setOrderComponentOverrides[key] ?? c.qty ?? 1) || 1;
-  });
-  return map;
-}
-function renderSetPreview(setCode, qty, targetId, mode='order'){
-  const box=document.getElementById(targetId); if(!box)return;
-  const s=(data.sets||[]).find(x=>String(x.SetCode).toLowerCase()===String(setCode||'').toLowerCase());
-  if(!s){box.style.display='none';box.innerHTML='';return;}
-  const sets=Math.max(Number(qty)||0,0);
-  const comps=s.components||[];
-  if(mode==='order'){
-    const rows=comps.map((c,i)=>{
-      const key=String(c.partCode||'').toLowerCase()+'|'+String(c.size||'').toLowerCase();
-      const per=Math.max(Number(setOrderComponentOverrides[key] ?? c.qty ?? 1),1);
-      const total=sets*per;
-      return `<div class="set-order-bom-row">
-        <div><div class="set-order-bom-code">${esc(c.partCode)}</div><div class="set-order-bom-meta">${c.size?esc(c.size)+' · ':''}${esc(c.unit||'')}</div></div>
-        <div class="set-order-bom-meta">Child ${i+1}</div>
-        <div><input type="number" min="1" step="1" value="${per}" data-set-order-qty="${esc(key)}" title="Quantity of this child article required for one set"></div>
-        <div class="set-order-bom-total" data-set-order-total="${esc(key)}">${total.toLocaleString()}</div>
-      </div>`;
-    }).join('');
-    box.style.display='';
-    box.innerHTML=`<div class="set-preview-head"><div><div class="set-preview-title">${esc(s.SetCode)} — ${esc(s.SetName||'Customer Set')}</div><div class="set-preview-meta">${comps.length} child article${comps.length===1?'':'s'} · Enter child quantity per set${sets?` · ${sets.toLocaleString()} sets`:''}</div></div><span class="pill pill-role">BOM Preview</span></div>
-      <div class="set-order-bom"><div class="set-order-bom-head"><span>Child Part Code</span><span>Details</span><span>Qty / Set</span><span>Total Required</span></div>${rows||'<div class="set-preview-meta">No active child articles.</div>'}</div>
-      <div class="set-order-bom-note">Set quantity = number of complete sets ordered. Child Qty / Set can be changed for this order only; the saved Set master is not changed.</div>`;
-    box.querySelectorAll('[data-set-order-qty]').forEach(el=>{
-      el.addEventListener('input',()=>{
-        const key=el.dataset.setOrderQty; let v=Math.floor(Number(el.value)||0); if(v<1)v=1;
-        setOrderComponentOverrides[key]=v; el.value=v;
-        const total=Number(qty)||0; const out=box.querySelector(`[data-set-order-total="${CSS.escape(key)}"]`); if(out)out.textContent=(total*v).toLocaleString();
-      });
-    });
-  } else {
-    const rows=comps.map((c,i)=>{const per=Number(c.qty)||1,total=sets*per;return `<div class="set-preview-item"><div class="k">Child ${i+1} · Part Code</div><div class="v">${esc(c.partCode)}</div><div class="set-preview-meta">${c.size?esc(c.size)+' · ':''}${esc(c.unit||'')} · ${per} / set${sets?` · ${total.toLocaleString()} total`:''}</div></div>`}).join('');
-    box.style.display='';box.innerHTML=`<div class="set-preview-head"><div><div class="set-preview-title">${esc(s.SetCode)} — ${esc(s.SetName||'Customer Set')}</div><div class="set-preview-meta">${comps.length} child article${comps.length===1?'':'s'} · ${sets?sets.toLocaleString()+' sets pending':''}</div></div><span class="pill pill-role">${mode==='dispatch'?'Dispatch BOM':'BOM Preview'}</span></div><div class="set-preview-grid">${rows||'<div class="set-preview-meta">No active child articles.</div>'}</div>`;
-  }
-}
 function toggleOrderType(){
   const type=document.getElementById('n-order-type')?.value||'STANDARD';
   const isSet=type==='SET';
   const pf=document.getElementById('n-part-field'),sf=document.getElementById('n-set-field'),uf=document.getElementById('n-uom-field');
-  if(pf)pf.style.display=isSet?'none':'';
-  if(sf)sf.style.display=isSet?'':'none';
-  if(uf)uf.style.display=isSet?'none':'';
-  
-  const info=document.getElementById('n-stock-info');
-  if(info)info.textContent=isSet?'Select the Customer Set, enter the number of Sets, then adjust Qty / Set for any child article if this order needs a different requirement.':'Enter a Part Code to see current FG stock.';
-  const ql=document.getElementById('n-qty-label'); if(ql)ql.textContent=isSet?'Number of Sets':'Order Quantity';
-  renderSetPreview(isSet?document.getElementById('n-set')?.value:'',isSet?document.getElementById('n-qty')?.value:0,'n-set-preview','order');
+  if(pf)pf.style.display=isSet?'none':''; if(sf)sf.style.display=isSet?'':'none'; if(uf)uf.style.display=isSet?'none':'';
+  const info=document.getElementById('n-stock-info'); if(info&&isSet)info.textContent='Select an Customer Sets. The BOM will expand automatically into individual pending articles.';
 }
 function toggleDispatchItemType(){
   const isSet=(document.getElementById('d-dispatch-type')?.value||'STANDARD')==='SET';
   const sf=document.getElementById('d-set-order-field'); if(sf)sf.style.display=isSet?'':'none';
   const search=document.querySelector('.searchable-order-field'); if(search)search.style.display=isSet?'none':'';
   const info=document.getElementById('d-order-info'); if(info&&isSet)info.textContent='Select a pending set. One dispatch quantity will be applied to every BOM component.';
-  if(isSet) renderSelectedDispatchSet(); else {const box=document.getElementById('d-set-preview');if(box){box.style.display='none';box.innerHTML='';}}
 }
-function renderSelectedDispatchSet(){
-  const id=document.getElementById('d-set-order')?.value||'';
-  const g=(data.setOrders||[]).find(x=>String(x.setOrderId)===String(id));
-  const box=document.getElementById('d-set-preview'); if(!box)return;
-  if(!g){box.style.display='none';box.innerHTML='';return;}
-  const rows=(g.components||[]).map((c,i)=>`<div class="set-preview-item"><div class="k">Child ${i+1} · Part Code</div><div class="v">${esc(c.partCode)}</div><div class="set-preview-meta">${c.size?esc(c.size)+' · ':''}${esc(c.unit||g.unit)} · Pending ${Number(c.pendingQty||0).toLocaleString()}</div></div>`).join('');
-  box.style.display=''; box.innerHTML=`<div class="set-preview-head"><div><div class="set-preview-title">${esc(g.setCode)} — ${esc(g.customer)}</div><div class="set-preview-meta">${Number(g.pendingSets||0).toLocaleString()} complete set${Number(g.pendingSets||0)===1?'':'s'} pending · ${g.components.length} child articles</div></div><span class="pill pill-pending">Pending</span></div><div class="set-preview-grid">${rows}</div>`;
-}
-
-document.getElementById('n-set')?.addEventListener('change',()=>{setOrderComponentOverrides={};renderSetPreview(document.getElementById('n-set').value,document.getElementById('n-qty').value,'n-set-preview','order');});
-document.getElementById('n-qty')?.addEventListener('input',()=>{if(document.getElementById('n-order-type')?.value==='SET')renderSetPreview(document.getElementById('n-set').value,document.getElementById('n-qty').value,'n-set-preview','order');});
-document.getElementById('d-set-order')?.addEventListener('change',renderSelectedDispatchSet);
 
 async function submitOrder() {
   const type=document.getElementById('n-order-type')?.value||'STANDARD';
-  const customer=document.getElementById('n-customer').value.trim(), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=type==='SET'?'Set':(document.getElementById('n-uom').value||'Nos'), priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
-  let components=[];
-  if(type==='SET'){
-    const s=(data.sets||[]).find(x=>String(x.SetCode).toLowerCase()===String(setCode).toLowerCase());
-    components=(s?.components||[]).map(c=>{const key=String(c.partCode||'').toLowerCase()+'|'+String(c.size||'').toLowerCase();return {partCode:c.partCode,size:c.size||'',unit:c.unit||unit,qty:Math.max(Math.floor(Number(setOrderComponentOverrides[key] ?? c.qty ?? 1)),1)};});
-    const bad=components.find(c=>!Number.isFinite(c.qty)||c.qty<1); if(bad){statusEl.textContent='Each child Qty / Set must be 1 or greater.';statusEl.className='status-msg err';return;}
-  }
+  const customer=document.getElementById('n-customer').value.trim(), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=document.getElementById('n-uom').value||'Nos', priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
   const statusEl=document.getElementById('new-status');
   if(!customer||!unit||!qty||!date||(type==='SET'?!setCode:!part)){statusEl.textContent=type==='SET'?'Customer, Set, unit, quantity and scheduled date are required.':'Customer, part code, unit, quantity and scheduled date are required.';statusEl.className='status-msg err';return;}
   statusEl.textContent='Saving…';statusEl.className='status-msg';
-  try{const res=await postAction({action:'addOrder',orderType:type,setCode,components,customer,customerLocation:location,partCode:part,unit,uom,orderQty:qty,priority,scheduledDate:date,shipToParty,shipToAddress});if(res.error)throw new Error(res.error);
+  try{const res=await postAction({action:'addOrder',orderType:type,setCode,customer,customerLocation:location,partCode:part,unit,uom,orderQty:qty,priority,scheduledDate:date,shipToParty,shipToAddress});if(res.error)throw new Error(res.error);
     (res.orders||[res.order]).filter(Boolean).forEach(o=>data.orders.unshift(o)); data.orders.sort((a,b)=>new Date(b.CreatedAt)-new Date(a.CreatedAt));
     const addLocal=(arr,v)=>{if(v&&!arr.includes(v))arr.push(v)}; (res.orders||[res.order]).filter(Boolean).forEach(o=>{addLocal(data.customers,o.Customer);addLocal(data.partCodes,o.PartCode);addLocal(data.locations,o.CustomerLocation);addLocal(data.shipToParties,o.ShipToParty)});
     statusEl.textContent=res.message||`✓ Order created.`;statusEl.className='status-msg ok';
-    document.getElementById('n-part').value='';document.getElementById('n-qty').value='';document.getElementById('n-location').value='';document.getElementById('n-shipto').value='';document.getElementById('n-shipto-address').value='';if(document.getElementById('n-set'))document.getElementById('n-set').value='';setOrderComponentOverrides={};renderSetPreview('',0,'n-set-preview','order');
+    document.getElementById('n-part').value='';document.getElementById('n-qty').value='';document.getElementById('n-location').value='';document.getElementById('n-shipto').value='';document.getElementById('n-shipto-address').value='';if(document.getElementById('n-set'))document.getElementById('n-set').value='';
     if(!SESSION.unit)document.getElementById('n-unit').value=''; populateDropdowns();renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();
   }catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
 }
@@ -2554,14 +2267,14 @@ async function savePPCBulkOrders(){
 function renderPPCPendingRows(){
   const tb=document.querySelector('#ppc-pending-table tbody'); if(!tb)return;
   const q=(document.getElementById('ppc-pending-search')?.value||'').toLowerCase().trim();
-  const rows=(data.orders||[]).filter(o=>String(o.Status||'').toLowerCase()==='pending' && (!q || [o.OrderID,o.Customer,o.PartCode,o.SetCode,o.SetComponentSize,o.Unit,o.ScheduledDate,o.PendingReason,o.ShipToParty].join(' ').toLowerCase().includes(q)));
+  const rows=(data.orders||[]).filter(o=>String(o.Status||'').toLowerCase()==='pending' && (!q || [o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate,o.PendingReason,o.ShipToParty].join(' ').toLowerCase().includes(q)));
   tb.innerHTML=rows.slice(0,150).map(o=>`<tr>
     <td><input type="checkbox" class="ppc-pending-check" data-id="${esc(o.OrderID)}" ${ppcPendingSelected.has(String(o.OrderID))?'checked':''}></td>
-    <td>${esc(o.OrderID)}</td><td>${esc(o.Customer)}</td><td>${o.OrderType==='SET'?`<span class="pill pill-role">${esc(o.SetCode||'SET')}</span>`:'—'}</td><td>${esc(o.PartCode)}</td><td>${esc(o.SetComponentSize||'—')}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td>
+    <td>${esc(o.OrderID)}</td><td>${esc(o.Customer)}</td><td>${esc(o.PartCode)}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td>
     <td><select data-pend-dept="${esc(o.OrderID)}">${(data.departments||[]).map(d=>`<option ${String(o.PendingDepartment||'')===d?'selected':''}>${esc(d)}</option>`).join('')}</select></td>
     <td><input data-pend-reason="${esc(o.OrderID)}" value="${esc(o.PendingReason||'')}" placeholder="Why pending?"></td>
     <td><input value="${esc(o.ShipToParty||'')}" disabled></td>
-  </tr>`).join('')||'<tr><td colspan="10" class="empty">No pending orders found.</td></tr>';
+  </tr>`).join('')||'<tr><td colspan="8" class="empty">No pending orders found.</td></tr>';
   tb.querySelectorAll('.ppc-pending-check').forEach(el=>el.onchange=()=>{if(el.checked)ppcPendingSelected.add(el.dataset.id);else ppcPendingSelected.delete(el.dataset.id);});
 }
 function selectAllPPCPending(){document.querySelectorAll('.ppc-pending-check').forEach(el=>{el.checked=true;ppcPendingSelected.add(el.dataset.id);});}
@@ -2575,13 +2288,13 @@ async function savePPCPendingBatch(){
 function renderBulkDispatchRows(){
   const tb=document.querySelector('#bulk-dispatch-table tbody');if(!tb)return;
   const q=(document.getElementById('bulk-dispatch-search')?.value||'').toLowerCase().trim();
-  const rows=(data.orders||[]).filter(o=>String(o.Status||'').toLowerCase()==='pending'&&(!q||[o.OrderID,o.Customer,o.PartCode,o.SetCode,o.SetComponentSize,o.Unit,o.ScheduledDate,o.CustomerLocation,o.ShipToParty].join(' ').toLowerCase().includes(q)));
+  const rows=(data.orders||[]).filter(o=>String(o.Status||'').toLowerCase()==='pending'&&(!q||[o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate,o.CustomerLocation,o.ShipToParty].join(' ').toLowerCase().includes(q)));
   tb.innerHTML=rows.slice(0,150).map(o=>`<tr>
     <td><input type="checkbox" class="bulk-dispatch-check" data-id="${esc(o.OrderID)}" ${bulkDispatchSelected.has(String(o.OrderID))?'checked':''}></td>
-    <td>${esc(o.OrderID)}</td><td>${esc(o.Customer)}</td><td>${o.OrderType==='SET'?`<span class="pill pill-role">${esc(o.SetCode||'SET')}</span>`:esc(o.PartCode)}</td><td>${esc(o.SetComponentSize||'—')}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td><td>${esc(o.UOM||'Nos')}</td>
+    <td>${esc(o.OrderID)}</td><td>${esc(o.Customer)}</td><td>${esc(o.PartCode)}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td><td>${esc(o.UOM||'Nos')}</td>
     <td><input type="number" min="1" max="${Number(o.PendingQty||0)}" data-bqty="${esc(o.OrderID)}" value="${esc(bulkDispatchQty[o.OrderID]||'')}" placeholder="Qty"></td>
     <td><input list="dl-shipto" data-bship="${esc(o.OrderID)}" value="${esc(bulkDispatchShipTo[o.OrderID]||o.ShipToParty||'')}" placeholder="Ship To"></td>
-  </tr>`).join('')||'<tr><td colspan="10" class="empty">No pending orders found.</td></tr>';
+  </tr>`).join('')||'<tr><td colspan="8" class="empty">No pending orders found.</td></tr>';
   tb.querySelectorAll('.bulk-dispatch-check').forEach(el=>el.onchange=()=>{if(el.checked)bulkDispatchSelected.add(el.dataset.id);else bulkDispatchSelected.delete(el.dataset.id);});
   tb.querySelectorAll('[data-bqty]').forEach(el=>el.oninput=()=>bulkDispatchQty[el.dataset.bqty]=el.value);
   tb.querySelectorAll('[data-bship]').forEach(el=>el.oninput=()=>bulkDispatchShipTo[el.dataset.bship]=el.value);
@@ -2630,9 +2343,9 @@ function renderV2(){
   populateNewUserRoleDropdown();
   renderPPCBulkRows(); renderPPCPendingRows(); renderBulkDispatchRows();
 }
-function renderPPCSummary(){const box=document.getElementById('ppc-summary');if(!box)return;const plans=data.v2?.plans||{}, adds=data.v2?.additional||{};const rows=data.orders.filter(o=>plans[o.OrderID]);box.innerHTML=rows.length?rows.slice(0,200).map(o=>{const p=plans[o.OrderID],a=Number(adds[o.OrderID]||0),q=Number(p.PlannedQty||0);return `<div class="config-row"><span><b>${esc(o.OrderID)}</b> · ${esc(o.Customer)} · ${o.OrderType==='SET'?`<span class="pill pill-role">${esc(o.SetCode||'SET')}</span> · `:''}${esc(o.PartCode)}${o.SetComponentSize?' · '+esc(o.SetComponentSize):''}</span><span>${q.toLocaleString()} + ${a.toLocaleString()} = ${(q+a).toLocaleString()} · ${esc(p.Status)}</span></div>`}).join(''):'<div class="empty">No PPC plans created yet.</div>';}
-function filterPPCOrders(){const q=(document.getElementById('ppc-order-search').value||'').toLowerCase().trim(),box=document.getElementById('ppc-order-results');ppcSearchIndex=data.orders;const rows=q?ppcSearchIndex.filter(o=>[o.OrderID,o.Customer,o.PartCode,o.SetCode,o.SetComponentSize,o.Unit,o.ScheduledDate].join(' ').toLowerCase().includes(q)):ppcSearchIndex;box.innerHTML=rows.slice(0,100).map(o=>`<button type="button" class="order-result" onclick="selectPPCOrder('${esc(o.OrderID)}')"><div class="order-result-main">${esc(o.Customer)} · ${o.OrderType==='SET'?`<span class="pill pill-role">${esc(o.SetCode||'SET')}</span> · `:''}${esc(o.PartCode)}${o.SetComponentSize?' · '+esc(o.SetComponentSize):''} · ${esc(o.Unit)}</div><div class="order-result-meta">${esc(o.OrderID)} · ${Number(o.OrderQty||0).toLocaleString()} ordered</div></button>`).join('')||'<div class="order-no-results">No orders found.</div>';box.classList.add('open');}
-function selectPPCOrder(id){const o=data.orders.find(x=>String(x.OrderID)===String(id));if(!o)return;document.getElementById('ppc-order').value=o.OrderID;document.getElementById('ppc-order-search').value=`${o.Customer} — ${o.PartCode} [${o.Unit}]`;document.getElementById('ppc-order-results').classList.remove('open');const p=(data.v2.plans||{})[o.OrderID];document.getElementById('ppc-planned-qty').value=p?.PlannedQty||o.OrderQty||'';document.getElementById('ppc-plan-status').value=p?.Status||'Draft';document.getElementById('ppc-order-info').innerHTML=o.OrderType==='SET'?`<b>${esc(o.SetCode||'Customer Set')}</b> · Child Part: <b>${esc(o.PartCode)}</b>${o.SetComponentSize?' · Size / Variant: <b>'+esc(o.SetComponentSize)+'</b>':''} · ${Number(o.SetComponentQty||1)} / set · Order: <b>${Number(o.SetQty||0).toLocaleString()} sets</b> · Child requirement: <b>${Number(o.OrderQty||0).toLocaleString()} ${esc(o.UOM||'Nos')}</b> · Dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}`:`Order quantity: ${Number(o.OrderQty||0).toLocaleString()} ${esc(o.UOM||'Nos')} · Current dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}`;document.getElementById('ppc-unlock-btn').style.display=(SESSION.role==='Owner'&&p?.Status==='Finalized')?'inline-block':'none';}
+function renderPPCSummary(){const box=document.getElementById('ppc-summary');if(!box)return;const plans=data.v2?.plans||{}, adds=data.v2?.additional||{};const rows=data.orders.filter(o=>plans[o.OrderID]);box.innerHTML=rows.length?rows.slice(0,200).map(o=>{const p=plans[o.OrderID],a=Number(adds[o.OrderID]||0),q=Number(p.PlannedQty||0);return `<div class="config-row"><span><b>${esc(o.OrderID)}</b> · ${esc(o.Customer)} · ${esc(o.PartCode)}</span><span>${q.toLocaleString()} + ${a.toLocaleString()} = ${(q+a).toLocaleString()} · ${esc(p.Status)}</span></div>`}).join(''):'<div class="empty">No PPC plans created yet.</div>';}
+function filterPPCOrders(){const q=(document.getElementById('ppc-order-search').value||'').toLowerCase().trim(),box=document.getElementById('ppc-order-results');ppcSearchIndex=data.orders;const rows=q?ppcSearchIndex.filter(o=>[o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate].join(' ').toLowerCase().includes(q)):ppcSearchIndex;box.innerHTML=rows.slice(0,100).map(o=>`<button type="button" class="order-result" onclick="selectPPCOrder('${esc(o.OrderID)}')"><div class="order-result-main">${esc(o.Customer)} · ${esc(o.PartCode)} · ${esc(o.Unit)}</div><div class="order-result-meta">${esc(o.OrderID)} · ${Number(o.OrderQty||0).toLocaleString()} ordered</div></button>`).join('')||'<div class="order-no-results">No orders found.</div>';box.classList.add('open');}
+function selectPPCOrder(id){const o=data.orders.find(x=>String(x.OrderID)===String(id));if(!o)return;document.getElementById('ppc-order').value=o.OrderID;document.getElementById('ppc-order-search').value=`${o.Customer} — ${o.PartCode} [${o.Unit}]`;document.getElementById('ppc-order-results').classList.remove('open');const p=(data.v2.plans||{})[o.OrderID];document.getElementById('ppc-planned-qty').value=p?.PlannedQty||o.OrderQty||'';document.getElementById('ppc-plan-status').value=p?.Status||'Draft';document.getElementById('ppc-order-info').textContent=`Order quantity: ${Number(o.OrderQty||0).toLocaleString()} ${esc(o.UOM||'Nos')} · Current dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}`;document.getElementById('ppc-unlock-btn').style.display=(SESSION.role==='Owner'&&p?.Status==='Finalized')?'inline-block':'none';}
 async function savePPCPlan(){
   const id=document.getElementById('ppc-order').value, qty=Number(document.getElementById('ppc-planned-qty').value);
   const st=document.getElementById('ppc-status');
@@ -2681,120 +2394,87 @@ function openAdditionalQty(id){const o=data.orders.find(x=>String(x.OrderID)===S
 function closeAdditionalQty(){document.getElementById('additional-qty-modal').classList.remove('open');document.getElementById('additional-qty-modal').style.display='none';}
 async function submitAdditionalQty(){const id=document.getElementById('aq-order-id').value,qty=document.getElementById('aq-qty').value,reason=document.getElementById('aq-reason').value,note=document.getElementById('aq-note').value.trim(),approved=document.getElementById('aq-approved-by').value.trim(),st=document.getElementById('aq-status');st.textContent='Saving…';try{const r=await postAction({action:'addAdditionalQty',orderId:id,qty,reason,reasonNote:note,approvedBy:approved});if(r.error)throw new Error(r.error);st.textContent='Additional quantity added successfully.';st.className='status-msg ok';await loadV2(true);setTimeout(closeAdditionalQty,300);}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}}
 let setBuilderRows = [];
-let setEditingCode = '';
-
 function defaultSetComponent(){
-  return {partCode:'',size:'',unit:SESSION?.unit||'Unit 5'};
+  return {partCode:'',size:'',qty:'',uom:'Nos',unit:SESSION?.unit||'Unit 5'};
 }
 function initSetBuilder(){
   if(!setBuilderRows.length) setBuilderRows=[defaultSetComponent()];
   renderSetBuilder();
-  renderSavedSets();
 }
-function addSetBuilderRow(seed={}){ setBuilderRows.push({...defaultSetComponent(),...seed}); renderSetBuilder(); }
+function addSetBuilderRow(seed={}){
+  setBuilderRows.push({...defaultSetComponent(),...seed});
+  renderSetBuilder();
+}
 function removeSetBuilderRow(i){
-  if(setBuilderRows.length<=1)setBuilderRows=[defaultSetComponent()];
+  if(setBuilderRows.length<=1){setBuilderRows=[defaultSetComponent()];}
   else setBuilderRows.splice(i,1);
   renderSetBuilder();
 }
 function clearSetBuilder(){
-  setEditingCode='';
   setBuilderRows=[defaultSetComponent()];
   ['set-builder-code','set-builder-name','set-builder-customer'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  const codeEl=document.getElementById('set-builder-code');
-  if(codeEl){codeEl.disabled=false;codeEl.title='';}
-  const saveBtn=document.querySelector('#set-builder-card button.btn-primary[onclick="savePPCSet()"]');
-  if(saveBtn)saveBtn.textContent='Save Set';
-  const st=document.getElementById('set-builder-status');
-  if(st){st.textContent='';st.className='status-msg';}
   renderSetBuilder();
+  const st=document.getElementById('set-builder-status');if(st){st.textContent='';st.className='status-msg';}
 }
 function renderSetBuilder(){
-  const tb=document.querySelector('#set-component-table tbody');if(!tb)return;
+  const tb=document.querySelector('#set-component-table tbody'); if(!tb)return;
   if(!setBuilderRows.length)setBuilderRows=[defaultSetComponent()];
+  const uoms=data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter'];
   const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
   tb.innerHTML=setBuilderRows.map((r,i)=>`<tr>
     <td class="row-no">${i+1}</td>
     <td><input data-sb="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Select / type part code" autocomplete="off"></td>
     <td class="size-col"><input data-sb="size" data-i="${i}" value="${esc(r.size)}" placeholder="e.g. 300 × 450 mm" autocomplete="off"></td>
+    <td class="qty-col"><input data-sb="qty" data-i="${i}" type="number" min="0.001" step="any" value="${esc(r.qty)}" placeholder="1"></td>
+    <td class="uom-col"><select data-sb="uom" data-i="${i}">${uoms.map(u=>`<option value="${esc(u)}" ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
     <td class="unit-col"><select data-sb="unit" data-i="${i}">${units.map(u=>`<option value="${esc(u)}" ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
-    <td><button class="btn-ghost btn-small" onclick="removeSetBuilderRow(${i})" title="Remove child">×</button></td>
+    <td><button class="btn-ghost btn-small" onclick="removeSetBuilderRow(${i})" title="Remove">×</button></td>
   </tr>`).join('');
-  tb.querySelectorAll('[data-sb]').forEach(el=>{
-    const handler=()=>{const i=Number(el.dataset.i),field=el.dataset.sb;setBuilderRows[i][field]=el.value;updateSetBuilderSummary();};
-    el.addEventListener(el.tagName==='SELECT'?'change':'input',handler);
-  });
+  tb.querySelectorAll('[data-sb]').forEach(el=>el.addEventListener('input',()=>{
+    const i=Number(el.dataset.i), field=el.dataset.sb;
+    setBuilderRows[i][field]=el.value;
+    updateSetBuilderSummary();
+  }));
   updateSetBuilderSummary();
 }
 function updateSetBuilderSummary(){
   const el=document.getElementById('set-builder-summary');if(!el)return;
-  const valid=setBuilderRows.filter(r=>String(r.partCode||'').trim());
+  const valid=setBuilderRows.filter(r=>String(r.partCode||'').trim()&&Number(r.qty)>0);
   const duplicates={};
   valid.forEach(r=>{const k=(String(r.partCode).trim()+'|'+String(r.size||'').trim()).toLowerCase();duplicates[k]=(duplicates[k]||0)+1;});
   const dupCount=Object.values(duplicates).filter(n=>n>1).length;
   el.innerHTML=`<b>${valid.length}</b> child article${valid.length===1?'':'s'} added. `+
-    `Each child is <b>1 piece per set</b>. `+
-    (dupCount?`<span style="color:#ff6b6b">Remove exact duplicate Part Code + Size / Variant rows before saving.</span>`:'');
-}
-function renderSavedSets(){
-  const box=document.getElementById('saved-sets-list');if(!box)return;
-  const sets=(data.sets||[]).filter(s=>String(s.Active).toLowerCase()!=='false');
-  if(!sets.length){box.innerHTML='<div class="empty">No Customer Sets configured yet.</div>';return;}
-  box.innerHTML=sets.map(s=>{
-    const comps=s.components||[];
-    return `<div class="set-list-row">
-      <div><b>${esc(s.SetCode)}</b><div class="set-list-meta">${esc(s.SetName||'')}</div></div>
-      <div>${esc(s.Customer||'No customer')}</div>
-      <div><b>${comps.length}</b> child article${comps.length===1?'':'s'}<div class="set-list-meta">${comps.slice(0,4).map(c=>esc(c.partCode)+(c.size?' · '+esc(c.size):'')).join(' | ')}${comps.length>4?' …':''}</div></div>
-      <div class="action-cell"><button class="btn-ghost btn-small" onclick="editSavedSet('${esc(s.SetCode)}')">Edit / Add Child</button></div>
-    </div>`;
-  }).join('');
-}
-function editSavedSet(code){
-  const s=(data.sets||[]).find(x=>String(x.SetCode).toLowerCase()===String(code).toLowerCase());if(!s)return;
-  setEditingCode=s.SetCode;
-  document.getElementById('set-builder-code').value=s.SetCode||'';
-  document.getElementById('set-builder-name').value=s.SetName||'';
-  document.getElementById('set-builder-customer').value=s.Customer||'';
-  const codeEl=document.getElementById('set-builder-code');
-  codeEl.disabled=true;codeEl.title='Set Code is locked while editing. Use Clear to start a new Set.';
-  setBuilderRows=(s.components||[]).map(c=>({partCode:c.partCode||'',size:c.size||'',unit:c.unit||SESSION?.unit||'Unit 5'}));
-  if(!setBuilderRows.length)setBuilderRows=[defaultSetComponent()];
-  const saveBtn=document.querySelector('#set-builder-card button.btn-primary[onclick="savePPCSet()"]');
-  if(saveBtn)saveBtn.textContent='Update Set';
-  const st=document.getElementById('set-builder-status');
-  if(st){st.textContent='Editing '+s.SetCode+'. Add or remove child articles, then click Update Set.';st.className='status-msg';}
-  renderSetBuilder();
-  document.getElementById('set-builder-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+    `Same Part Code with different Size / Variant is allowed. `+
+    (dupCount?`<span style="color:#ff6b6b">Remove exact duplicate Part Code + Size rows before saving.</span>`:'');
 }
 async function savePPCSet(){
   const st=document.getElementById('set-builder-status');
   const code=document.getElementById('set-builder-code').value.trim();
   const name=document.getElementById('set-builder-name').value.trim();
   const customer=document.getElementById('set-builder-customer').value.trim();
-  const valid=setBuilderRows.map(r=>({partCode:String(r.partCode||'').trim(),size:String(r.size||'').trim(),unit:String(r.unit||'').trim()})).filter(r=>r.partCode);
+  const valid=setBuilderRows.map(r=>({...r,partCode:String(r.partCode||'').trim(),size:String(r.size||'').trim(),qty:Number(r.qty)})).filter(r=>r.partCode||r.qty);
   if(!code||!name){st.textContent='Set Code and Set Name are required.';st.className='status-msg err';return;}
   if(!valid.length){st.textContent='Add at least one child article.';st.className='status-msg err';return;}
   const errors=[];const seen=new Set();
   valid.forEach((r,i)=>{
     if(!r.partCode)errors.push('Row '+(i+1)+': Part Code is required');
-    if(!r.unit)errors.push('Row '+(i+1)+': Production Unit is required');
+    if(!Number.isFinite(r.qty)||r.qty<=0)errors.push('Row '+(i+1)+': Qty / Set must be greater than 0');
     const key=(r.partCode+'|'+r.size).toLowerCase();
     if(seen.has(key))errors.push('Row '+(i+1)+': exact duplicate Part Code + Size / Variant');
     seen.add(key);
   });
   if(errors.length){st.textContent=errors.join(' • ');st.className='status-msg err';return;}
-  st.textContent=setEditingCode?'Updating Set…':'Saving Set…';st.className='status-msg';
+  st.textContent='Saving Set…';st.className='status-msg';
   try{
-    const r=await postAction({action:'saveSet',setCode:code,setName:name,customer,components:valid});
+    const r=await postAction({action:'saveSet',setCode:code,setName:name,customer,components:valid.map(x=>({partCode:x.partCode,size:x.size,qty:x.qty,uom:x.uom,unit:x.unit}))});
     if(r.error)throw new Error(r.error);
     data.sets=data.sets||[];
-    const updated={SetCode:r.setCode||code,SetName:r.setName||name,Customer:r.customer||customer,Active:true,components:r.components||valid};
-    const idx=data.sets.findIndex(x=>String(x.SetCode).toLowerCase()===code.toLowerCase());
-    if(idx>=0)data.sets[idx]=updated;else data.sets.push(updated);
-    populateDropdowns();renderPPCBulkRows();renderSavedSets();
-    st.textContent='✓ '+code+(r.updated?' updated':' saved')+' with '+valid.length+' child article(s).';st.className='status-msg ok';
-    clearSetBuilder();
+    data.sets.push({SetCode:r.setCode||code,SetName:r.setName||name,Customer:customer,Active:true,components:r.components||valid});
+    populateDropdowns();renderPPCBulkRows();
+    st.textContent='✓ '+code+' saved with '+valid.length+' child article(s).';st.className='status-msg ok';
+    setBuilderRows=[defaultSetComponent()];
+    ['set-builder-code','set-builder-name','set-builder-customer'].forEach(id=>document.getElementById(id).value='');
+    renderSetBuilder();
   }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
 
