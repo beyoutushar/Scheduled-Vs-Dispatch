@@ -1503,7 +1503,11 @@ async function loadV2(force=false){
       renderV2();
       applyRoleUI();
       return true;
-    }catch(e){return false;} finally{v2InFlight=null;}
+    }catch(e){
+      console.error('V2 load failed:', e);
+      setConn('err','Admin configuration could not be loaded.');
+      return false;
+    } finally{v2InFlight=null;}
   })();
   return v2InFlight;
 }
@@ -2171,11 +2175,43 @@ async function saveEditedOrder() {
 }
 
 async function submitComplaint(){
-  const subject=document.getElementById('c-subject').value.trim(), description=document.getElementById('c-description').value.trim();
+  const subject=document.getElementById('c-subject').value.trim();
+  const description=document.getElementById('c-description').value.trim();
   const status=document.getElementById('complaint-status');
-  if(!subject||!description){status.textContent='Subject and description are required.';status.className='status-msg err';return;}
-  status.textContent='Saving…';status.className='status-msg';
-  try{const res=await postAction({action:'addComplaint',category:document.getElementById('c-category').value,priority:document.getElementById('c-priority').value,title:subject,description});if(res.error)throw new Error(res.error);status.textContent='Complaint raised: '+res.complaintId;status.className='status-msg ok';document.getElementById('c-subject').value='';document.getElementById('c-description').value='';await loadData();}catch(e){status.textContent='Failed: '+e.message;status.className='status-msg err';}
+
+  if(!subject||!description){
+    status.textContent='Subject and description are required.';
+    status.className='status-msg err';
+    return;
+  }
+
+  status.textContent='Saving…';
+  status.className='status-msg';
+
+  try{
+    const res=await postAction({
+      action:'addComplaint',
+      category:document.getElementById('c-category').value,
+      priority:document.getElementById('c-priority').value,
+      title:subject,
+      description:description,
+      unit:'All'
+    });
+
+    if(res.error) throw new Error(res.error);
+
+    status.textContent='Complaint raised: '+(res.complaintId||'Success');
+    status.className='status-msg ok';
+    document.getElementById('c-subject').value='';
+    document.getElementById('c-description').value='';
+
+    // Refresh the complaints tab immediately instead of only refreshing core data.
+    auxLoaded.complaints=false;
+    await loadAux('complaints');
+  }catch(e){
+    status.textContent='Failed: '+e.message;
+    status.className='status-msg err';
+  }
 }
 function renderComplaints(){
   const box=document.getElementById('complaints-list'); if(!box)return;
