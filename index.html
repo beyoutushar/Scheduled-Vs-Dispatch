@@ -355,6 +355,10 @@
   .order-result-pending { color:var(--warn); font-weight:700; }
   .order-no-results { padding:16px 12px; color:var(--muted); font-size:12px; text-align:center; }
 
+  .date-filter-group { display:flex; flex-direction:column; gap:3px; min-width:125px; }
+  .date-filter-group label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .date-filter-group input { min-width:125px; }
+
   .select-col { width:38px; text-align:center; }
   .row-check, #select-all-orders { width:16px; height:16px; cursor:pointer; accent-color:var(--accent); }
   .bulkbar { display:none; align-items:center; gap:8px; padding:10px 12px; margin:-4px 0 12px; border:1px solid rgba(91,141,239,.35); background:rgba(91,141,239,.08); border-radius:10px; }
@@ -742,6 +746,7 @@ body {
     <div class="tab" data-tab="orders" onclick="switchTab('orders')">All Orders</div>
     <div class="tab" data-tab="new" onclick="switchTab('new')" id="new-tab">New Order</div>
     <div class="tab" data-tab="stock" onclick="switchTab('stock')">FG Stock</div>
+    <div class="tab" data-tab="dispatch-history" onclick="switchTab('dispatch-history')" id="dispatch-history-tab">Dispatch History</div>
     <div class="tab" data-tab="complaints" onclick="switchTab('complaints')">Complaints</div>
     <div class="tab" data-tab="discussion" onclick="switchTab('discussion')">Discussion</div>
     <div class="tab" data-tab="admin" onclick="switchTab('admin')">Admin</div>
@@ -766,7 +771,14 @@ body {
           <option value="Completed">Completed</option>
         </select>
         <select id="f-dept" onchange="renderTable()"><option value="">All departments</option></select>
-        <input id="f-date" type="date" onchange="renderTable()">
+        <div class="date-filter-group">
+          <label for="f-from-date">From Date</label>
+          <input id="f-from-date" type="date" onchange="renderTable()">
+        </div>
+        <div class="date-filter-group">
+          <label for="f-to-date">To Date</label>
+          <input id="f-to-date" type="date" onchange="renderTable()">
+        </div>
         <div class="spacer"></div>
         <button class="btn-ghost btn-small" onclick="clearFilters()">Clear filters</button>
         <button class="btn-primary btn-small" id="csv-btn" onclick="exportCSV()" style="display:none;">Export CSV</button>
@@ -950,8 +962,37 @@ body {
       <div class="status-msg" id="bulk-dispatch-status"></div>
     </div>
 
-    <div class="card" id="dispatch-history-card" style="display:none;">
-      <h2>Dispatch History</h2><div id="dispatch-history"></div>
+  </div>
+
+  <!-- DISPATCH HISTORY TAB -->
+  <div id="tab-dispatch-history" class="tab-panel">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h2>Dispatch History</h2>
+          <div class="sub">Search and filter completed dispatch transactions. Dispatch users see only their assigned unit.</div>
+        </div>
+        <span class="badge" id="dispatch-history-scope">Dispatch History</span>
+      </div>
+      <div class="toolbar" style="margin-top:14px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;">
+        <div class="field" style="margin:0;"><label>Search</label><input id="dh-search" type="search" placeholder="Order ID, customer, part code, ship to…" oninput="renderDispatchHistory()"></div>
+        <div class="field" style="margin:0;"><label>From Date</label><input id="dh-from" type="date" onchange="renderDispatchHistory()"></div>
+        <div class="field" style="margin:0;"><label>To Date</label><input id="dh-to" type="date" onchange="renderDispatchHistory()"></div>
+        <div class="field" style="margin:0;"><label>Unit</label><select id="dh-unit" onchange="renderDispatchHistory()"><option value="">All Units</option></select></div>
+        <div class="field" style="margin:0;"><label>UOM</label><select id="dh-uom" onchange="renderDispatchHistory()"><option value="">All UOM</option></select></div>
+        <button class="btn-ghost" type="button" onclick="clearDispatchHistoryFilters()">Clear</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;gap:10px;">
+        <div class="sub" id="dispatch-history-result-count">0 records</div>
+        <button class="btn-ghost btn-small" type="button" onclick="renderDispatchHistory()">Refresh View</button>
+      </div>
+      <div class="table-scroll">
+        <table id="dispatch-history-table">
+          <thead><tr><th>Date</th><th>Order ID</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Logged At</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="empty" id="dispatch-history-empty" style="display:none;">No dispatch history matches the selected filters.</div>
     </div>
   </div>
 
@@ -1039,10 +1080,21 @@ body {
     <div class="card" id="stock-admin-card">
       <h2>Update FG Stock</h2>
       <div class="grid">
-        <div class="field combo"><label>Part Code</label><input id="s-part" list="dl-parts" placeholder="Select or type" oninput="showCurrentStock()"></div>
-        <div class="field"><label>Production Unit</label><select id="s-unit"></select></div>
-        <div class="field"><label>Production Quantity</label><input id="s-qty" type="number" min="0" placeholder="500"></div>
-        <div class="field"><label>Mode</label><select id="s-mode"><option value="add">Add to current stock</option><option value="set">Set to this value</option></select></div>
+        <div class="field combo">
+          <label>Part Code</label>
+          <input id="s-part" list="dl-parts" placeholder="Select or type" oninput="showCurrentStock()">
+        </div>
+        <div class="field">
+          <label>Production Quantity</label>
+          <input id="s-qty" type="number" min="0" placeholder="500">
+        </div>
+        <div class="field">
+          <label>Mode</label>
+          <select id="s-mode">
+            <option value="set">Set to this value</option>
+            <option value="add">Add to current stock</option>
+          </select>
+        </div>
       </div>
       <div class="sub" id="s-current" style="margin:-4px 0 12px;"></div>
       <button class="btn-primary btn-block" onclick="submitStock()">Update Stock</button>
@@ -1050,15 +1102,31 @@ body {
     </div>
     <div class="card">
       <h2>Current FG Stock</h2>
-      <div class="toolbar">
-        <div class="search-wrap"><input id="sf-search" type="search" placeholder="Search Part Code…" oninput="renderStockTable()"></div>
-        <select id="sf-unit" onchange="renderStockTable()"></select>
-        <select id="sf-status" onchange="renderStockTable()"><option value="">All Stock</option><option value="available">Available Only</option><option value="zero">Zero Stock</option></select>
-        <div class="spacer"></div><span class="sub" id="sf-count">0 rows</span>
-        <button class="btn-ghost btn-small" onclick="clearStockFilters()">Clear</button>
+      <div class="grid" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end;gap:10px;margin-bottom:12px;">
+        <div class="field">
+          <label>Search Part Code</label>
+          <input id="stock-search" type="search" placeholder="Search Part Code..." oninput="renderStockTable()">
+        </div>
+        <div class="field">
+          <label>Production Unit</label>
+          <select id="stock-unit-filter" onchange="renderStockTable()"></select>
+        </div>
+        <div class="field">
+          <label>Stock Status</label>
+          <select id="stock-status-filter" onchange="renderStockTable()">
+            <option value="all">All Stock</option>
+            <option value="available">Available Only</option>
+            <option value="zero">Zero Stock</option>
+          </select>
+        </div>
+        <button type="button" class="btn-secondary" onclick="clearStockFilters()">Clear</button>
       </div>
+      <div class="sub" id="stock-result-count" style="margin:-2px 0 8px;text-align:right;"></div>
       <div class="table-scroll">
-        <table id="stock-table"><thead><tr><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th></tr></thead><tbody></tbody></table>
+        <table id="stock-table">
+          <thead><tr><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1326,6 +1394,7 @@ function applyRoleUI() {
 
   // Navigation is role-specific and intentionally simple.
   const allowed = new Set(['orders','stock','complaints','discussion']);
+  if (role === 'owner' || role === 'dispatch' || can('view_dispatch')) allowed.add('dispatch-history');
   if (role === 'owner' || role === 'ppc' || role === 'admin' || can('create_orders')) {
     allowed.add('multiple');
     allowed.add('new');
@@ -1353,12 +1422,10 @@ function applyRoleUI() {
 
   const ppcCard = document.getElementById('ppc-multiple-card');
   const dispatchMulti = document.getElementById('dispatch-multiple-card');
-  const dispatchHistory = document.getElementById('dispatch-history-card');
   const singleOrderCard = document.getElementById('single-order-card');
   const dispatchEntryCard = document.getElementById('dispatch-entry-card');
   if (ppcCard) ppcCard.style.display = role === 'ppc' || role === 'owner' || role === 'admin' ? '' : 'none';
   if (dispatchMulti) dispatchMulti.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
-  if (dispatchHistory) dispatchHistory.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
   if (singleOrderCard) singleOrderCard.style.display = role === 'dispatch' ? 'none' : '';
   if (dispatchEntryCard) dispatchEntryCard.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
   const singleTitle = document.getElementById('single-order-title');
@@ -1384,7 +1451,7 @@ function lockUnitFieldsForSession(){
   const role=String(SESSION?.role||'').trim().toLowerCase();
   const unit=String(SESSION?.unit||'').trim();
   const restricted=['ppc','dispatch','viewonly'].includes(role);
-  ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit','s-unit','sf-unit'].forEach(id=>{
+  ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     if(restricted && unit){
@@ -1406,24 +1473,14 @@ function showApp() {
   document.getElementById('main-app').style.display = 'block';
   document.getElementById('role-badge').textContent = SESSION.displayName + ' · ' + SESSION.role + (SESSION.unit ? ' (' + SESSION.unit + ')' : '');
   document.getElementById('csv-btn').style.display = String(SESSION.role).toLowerCase() === 'owner' ? 'inline-block' : 'none';
-  document.getElementById('scope-sub').textContent = (SESSION.unit && String(SESSION.role || '').toLowerCase() !== 'owner')
+  document.getElementById('scope-sub').textContent = (SESSION.unit && !['owner','admin'].includes(String(SESSION.role).toLowerCase()))
     ? 'Showing orders for ' + SESSION.unit + ' only'
     : 'Live order tracking across all units';
 
   const role = String(SESSION.role || '').trim().toLowerCase();
-  const stockUnits = document.getElementById('s-unit');
-  const stockFilterUnits = document.getElementById('sf-unit');
-  const roleLower = String(SESSION?.role||'').trim().toLowerCase();
-  const assignedUnit = String(SESSION?.unit||'').trim();
-  if (stockUnits) {
-    stockUnits.innerHTML = (roleLower==='owner' ? data.units : [assignedUnit]).filter(Boolean).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    if (assignedUnit && roleLower!=='owner') stockUnits.value=assignedUnit;
-  }
-  if (stockFilterUnits) {
-    stockFilterUnits.innerHTML = (roleLower==='owner' ? '<option value="">All Units</option>' : '') + (roleLower==='owner' ? data.units : [assignedUnit]).filter(Boolean).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    if (roleLower!=='owner' && assignedUnit) stockFilterUnits.value=assignedUnit;
-  }
   lockUnitFieldsForSession();
+  initStockFilters();
+  initDispatchHistoryFilters();
 
   // Apply immediately using role fallback, then load V2 permissions and apply
   // again. This prevents a race where Admin/Dispatch appear only after data loads.
@@ -1485,8 +1542,7 @@ async function loadData(silent=false) {
       logShipToIndex={};
       (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
       const count = Array.isArray(data.orders) ? data.orders.length : 0;
-      const scope = (SESSION && String(SESSION.role||'').toLowerCase() !== 'owner' && SESSION.unit) ? (' · ' + SESSION.unit) : '';
-      setConn('ok', 'Live — connected · ' + count + ' orders' + scope);
+      setConn('ok', 'Live — connected · ' + count + ' orders');
       populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
@@ -1520,7 +1576,7 @@ async function loadAux(mode){
 }
 
 function switchTab(name) {
-  ['multiple','sets','orders','new','stock','complaints','discussion','admin'].forEach(t => {
+  ['multiple','sets','orders','new','stock','dispatch-history','complaints','discussion','admin'].forEach(t => {
     const panel = document.getElementById('tab-' + t);
     const tab = document.querySelector(`.tab[data-tab="${t}"]`);
     if (panel) {
@@ -1530,11 +1586,12 @@ function switchTab(name) {
     if (tab) tab.classList.toggle('active', t === name);
   });
   if (name === 'multiple') {
-    if (String(SESSION?.role||'').toLowerCase() === 'dispatch') { renderBulkDispatchRows(); renderDispatchHistory(); }
+    if (String(SESSION?.role||'').toLowerCase() === 'dispatch') { renderBulkDispatchRows(); }
     else { renderPPCBulkRows(); }
   }
+  if (name === 'dispatch-history') { initDispatchHistoryFilters(); renderDispatchHistory(); }
   if (name === 'new') { populateDispatchOrderSelect(); }
-  if (name === 'stock') renderStockTable();
+  if (name === 'stock') { initStockFilters(); renderStockTable(); }
   if (name === 'complaints') { renderComplaints(); loadAux('complaints'); }
   if (name === 'discussion') { renderDiscussion(); loadAux('discussion'); }
   if (name === 'admin') loadV2();
@@ -1583,11 +1640,7 @@ function populateDropdowns() {
 }
 
 function renderStats() {
-  const role = String(SESSION?.role || '').trim().toLowerCase();
-  const assignedUnit = String(SESSION?.unit || '').trim();
-  const orders = (role === 'owner' || !assignedUnit)
-    ? data.orders
-    : data.orders.filter(o => String(o.Unit || '').trim() === assignedUnit);
+  const orders = data.orders;
   const pending = orders.filter(o => o.Status === 'Pending');
   const completed = orders.filter(o => o.Status === 'Completed');
   const totalOrderQty = orders.reduce((s,o) => s + Number(o.OrderQty||0), 0);
@@ -1612,22 +1665,22 @@ function getFiltered() {
   const u = document.getElementById('f-unit').value;
   const s = document.getElementById('f-status').value;
   const dept = document.getElementById('f-dept').value;
-  const date = document.getElementById('f-date').value;
+  const fromDate = document.getElementById('f-from-date').value;
+  const toDate = document.getElementById('f-to-date').value;
   const q = (document.getElementById('f-search').value || '').trim().toLowerCase();
 
-  const role = String(SESSION?.role || '').trim().toLowerCase();
-  const assignedUnit = String(SESSION?.unit || '').trim();
-  const scopedOrders = (role === 'owner' || !assignedUnit)
-    ? data.orders
-    : data.orders.filter(o => String(o.Unit || '').trim() === assignedUnit);
-
-  return scopedOrders
+  return data.orders
     .filter(o => !c || String(o.Customer||'') === c)
     .filter(o => !p || String(o.PartCode||'') === p)
     .filter(o => !u || String(o.Unit||'') === u)
     .filter(o => !s || String(o.Status||'') === s)
     .filter(o => !dept || String(o.PendingDepartment||'') === dept)
-    .filter(o => !date || fmtDate(o.ScheduledDate) === date)
+    .filter(o => {
+      const d = fmtDate(o.ScheduledDate);
+      if (fromDate && (d === '—' || d < fromDate)) return false;
+      if (toDate && (d === '—' || d > toDate)) return false;
+      return true;
+    })
     .filter(o => {
       if (!q) return true;
       const dispatchShipTo = (logShipToIndex[String(o.OrderID)] || []).join(' ');
@@ -1639,8 +1692,23 @@ function getFiltered() {
     .sort((a,b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
 }
 function clearFilters() {
-  ['f-search','f-customer','f-part','f-unit','f-status','f-dept','f-date'].forEach(id => document.getElementById(id).value = '');
+  ['f-search','f-customer','f-part','f-unit','f-status','f-dept','f-from-date','f-to-date'].forEach(id => document.getElementById(id).value = '');
   renderTable();
+}
+
+const fromDateEl = document.getElementById('f-from-date');
+const toDateEl = document.getElementById('f-to-date');
+if (fromDateEl && toDateEl) {
+  fromDateEl.addEventListener('change', function(){
+    toDateEl.min = this.value || '';
+    if (toDateEl.value && this.value && toDateEl.value < this.value) toDateEl.value = this.value;
+    renderTable();
+  });
+  toDateEl.addEventListener('change', function(){
+    fromDateEl.max = this.value || '';
+    if (fromDateEl.value && this.value && fromDateEl.value > this.value) fromDateEl.value = this.value;
+    renderTable();
+  });
 }
 
 let tableRenderTimer=null;
@@ -1698,62 +1766,124 @@ async function applyBulkStatus(){const status=document.getElementById('bulk-stat
 
 
 function getStockFor(partCode, unit) {
-  const targetUnit = unit || String(SESSION?.unit||'').trim();
-  const rows = (data.stock||[]).filter(s => String(s.PartCode||'') === String(partCode) && (!targetUnit || String(s.Unit||'') === targetUnit));
-  return rows.reduce((sum,r)=>sum+(Number(r.AvailableQty)||0),0);
+  const targetPart = String(partCode || '').trim();
+  const targetUnit = String(unit || SESSION?.unit || '').trim();
+  const matches = (data.stock || []).filter(s => String(s.PartCode || '').trim() === targetPart);
+  if (!matches.length) return 0;
+  if (targetUnit) {
+    const exact = matches.find(s => String(s.Unit || s.ProductionUnit || '').trim() === targetUnit);
+    if (exact) return Number(exact.AvailableQty) || 0;
+  }
+  // Owner/global fallback: sum rows for the same part when no unit is specified.
+  return matches.reduce((sum, s) => sum + (Number(s.AvailableQty) || 0), 0);
+}
+
+function showStock() {
+  const part = document.getElementById('n-part').value.trim();
+  const info = document.getElementById('n-stock-info');
+  if (!part) { info.textContent = 'Enter a Part Code to see current FG stock.'; return; }
+  const stock = getStockFor(part, document.getElementById('n-unit')?.value || SESSION?.unit || '');
+  if (stock > 0) {
+    info.innerHTML = `Available FG stock: <b>${stock}</b> — if this covers the order quantity it'll route straight to Dispatch, otherwise to PPC Planning.`;
+  } else {
+    info.textContent = 'No FG stock on record for this part code — order will route to PPC Planning.';
+  }
 }
 
 function showCurrentStock() {
-  const part=document.getElementById('s-part').value.trim();
-  const unit=document.getElementById('s-unit')?.value || String(SESSION?.unit||'').trim();
-  const el=document.getElementById('s-current');
-  if(!part){el.textContent='';return;}
-  el.textContent=`Current stock — ${unit}: ${getStockFor(part,unit).toLocaleString()}`;
+  const part = document.getElementById('s-part').value.trim();
+  const el = document.getElementById('s-current');
+  if (!part) { el.textContent = ''; return; }
+  el.textContent = `Current stock: ${getStockFor(part, SESSION?.unit || '')}`;
 }
 
 async function submitStock() {
-  const part=document.getElementById('s-part').value.trim();
-  const qty=document.getElementById('s-qty').value;
-  const mode=document.getElementById('s-mode').value;
-  const unit=document.getElementById('s-unit')?.value || String(SESSION?.unit||'').trim();
-  const statusEl=document.getElementById('stock-status');
-  if(!part || qty===''){statusEl.textContent='Part code and quantity are required.';statusEl.className='status-msg err';return;}
-  statusEl.textContent='Saving…';statusEl.className='status-msg';
-  try{
-    const res=await postAction({action:'setStock',partCode:part,qty,mode,unit});
-    if(res.error)throw new Error(res.error);
-    const existing=(data.stock||[]).find(r=>String(r.PartCode||'')===part && String(r.Unit||'')===String(res.unit||unit));
-    if(existing){existing.AvailableQty=res.newQty;existing.LastUpdated=new Date();}
-    else data.stock=[...(data.stock||[]),{PartCode:part,Unit:res.unit||unit,AvailableQty:res.newQty,LastUpdated:new Date()}];
-    statusEl.textContent=`Stock updated for ${res.unit||unit} — now ${Number(res.newQty).toLocaleString()}.`;statusEl.className='status-msg ok';
-    document.getElementById('s-qty').value='';
-    renderStockTable();showCurrentStock();
-    loadData(true);
-  }catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
+  const part = document.getElementById('s-part').value.trim();
+  const qty = document.getElementById('s-qty').value;
+  const mode = document.getElementById('s-mode').value;
+  const statusEl = document.getElementById('stock-status');
+  if (!part || qty === '') {
+    statusEl.textContent = 'Part code and quantity are required.'; statusEl.className = 'status-msg err';
+    return;
+  }
+  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
+  try {
+    const res = await postAction({ action: 'setStock', partCode: part, qty, mode });
+    if (res.error) throw new Error(res.error);
+    statusEl.textContent = `Stock updated — now ${res.newQty}.`; statusEl.className = 'status-msg ok';
+    document.getElementById('s-qty').value = '';
+    await loadData();
+    renderStockTable();
+    showCurrentStock();
+  } catch (e) {
+    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
+  }
 }
 
-function clearStockFilters(){
-  const q=document.getElementById('sf-search'); if(q)q.value='';
-  const st=document.getElementById('sf-status'); if(st)st.value='';
-  const u=document.getElementById('sf-unit');
-  if(u && String(SESSION?.role||'').toLowerCase()!=='owner') u.value=String(SESSION?.unit||''); else if(u)u.value='';
+function initStockFilters() {
+  const sel = document.getElementById('stock-unit-filter');
+  if (!sel) return;
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const assigned = String(SESSION?.unit || '').trim();
+  const units = ['Unit 1','Unit 2','Unit 5','Unit Delta'];
+
+  if (assigned && role !== 'owner') {
+    sel.innerHTML = `<option value="${esc(assigned)}">${esc(assigned)}</option>`;
+    sel.value = assigned;
+    sel.disabled = true;
+  } else {
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">All Units</option>' + units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  }
+}
+
+function clearStockFilters() {
+  const q = document.getElementById('stock-search');
+  const status = document.getElementById('stock-status-filter');
+  if (q) q.value = '';
+  if (status) status.value = 'all';
+  const unit = document.getElementById('stock-unit-filter');
+  if (unit && !unit.disabled) unit.value = '';
   renderStockTable();
 }
 
-function renderStockTable(){
-  const tbody=document.querySelector('#stock-table tbody'); if(!tbody)return;
-  const q=(document.getElementById('sf-search')?.value||'').trim().toLowerCase();
-  const unit=document.getElementById('sf-unit')?.value||'';
-  const status=document.getElementById('sf-status')?.value||'';
-  const role=String(SESSION?.role||'').toLowerCase(), assigned=String(SESSION?.unit||'').trim();
-  const rows=(data.stock||[]).filter(r=>role==='owner'||!assigned||String(r.Unit||'')===assigned)
-    .filter(r=>!unit||String(r.Unit||'')===unit)
-    .filter(r=>!q||String(r.PartCode||'').toLowerCase().includes(q))
-    .filter(r=>status!=='available'||Number(r.AvailableQty||0)>0)
-    .filter(r=>status!=='zero'||Number(r.AvailableQty||0)===0)
-    .sort((a,b)=>String(a.PartCode||'').localeCompare(String(b.PartCode||'')));
-  const count=document.getElementById('sf-count'); if(count)count.textContent=rows.length+' rows';
-  tbody.innerHTML=rows.map(r=>`<tr><td>${esc(r.PartCode)}</td><td>${esc(r.Unit||'Unassigned')}</td><td>${Number(r.AvailableQty||0).toLocaleString()}</td><td>${fmtDate(r.LastUpdated)}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">No stock matches the selected filters.</td></tr>';
+function renderStockTable() {
+  const tbody = document.querySelector('#stock-table tbody');
+  if (!tbody) return;
+  initStockFilters();
+
+  const query = String(document.getElementById('stock-search')?.value || '').trim().toLowerCase();
+  const unitFilter = String(document.getElementById('stock-unit-filter')?.value || '').trim();
+  const statusFilter = document.getElementById('stock-status-filter')?.value || 'all';
+
+  let rows = [...(data.stock || [])];
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const assigned = String(SESSION?.unit || '').trim();
+
+  // Security/UI guard: assigned-unit users only see their own stock.
+  if (assigned && role !== 'owner') {
+    rows = rows.filter(r => String(r.Unit || r.ProductionUnit || '').trim() === assigned);
+  } else if (unitFilter) {
+    rows = rows.filter(r => String(r.Unit || r.ProductionUnit || '').trim() === unitFilter);
+  }
+
+  if (query) rows = rows.filter(r => String(r.PartCode || '').toLowerCase().includes(query));
+  if (statusFilter === 'available') rows = rows.filter(r => Number(r.AvailableQty || 0) > 0);
+  if (statusFilter === 'zero') rows = rows.filter(r => Number(r.AvailableQty || 0) <= 0);
+
+  rows.sort((a,b) => String(a.PartCode||'').localeCompare(String(b.PartCode||'')) || String(a.Unit||a.ProductionUnit||'').localeCompare(String(b.Unit||b.ProductionUnit||'')));
+
+  const count = document.getElementById('stock-result-count');
+  if (count) count.textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${esc(r.PartCode)}</td>
+      <td>${esc(r.Unit || r.ProductionUnit || 'Unassigned')}</td>
+      <td>${Number(r.AvailableQty||0).toLocaleString()}</td>
+      <td>${fmtDate(r.LastUpdated)}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="empty">No stock matches the selected filters.</td></tr>';
 }
 
 let dispatchSearchIndex = [];
@@ -1957,11 +2087,11 @@ async function submitDispatch() {
     if(!setOrderId||!qty||!unit||!shipToParty||!date){statusEl.textContent='For Set dispatch, select the Set Order and enter quantity, unit, Ship To Party and date.';statusEl.className='status-msg err';return;}
     statusEl.textContent='Dispatching set…';statusEl.className='status-msg';try{const res=await postAction({action:'dispatchSet',setOrderId,setQty:qty,unit,shipToParty,shipToAddress,dispatchedDate:date,note:reason});if(res.error)throw new Error(res.error);
     (res.components||[]).forEach(u=>{const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));if(o){o.DispatchedQty=u.dispatched;o.PendingQty=u.pending;o.Status=u.status;o.LastUpdated=new Date().toISOString();if(u.status==='Completed'){o.PendingDepartment='';o.PendingReason='';}if(shipToAddress)o.ShipToAddress=shipToAddress;}});
-    renderStats();renderTable();populateDispatchOrderSelect();renderBulkDispatchRows();renderPPCPendingRows();renderDispatchHistory();
+    renderStats();renderTable();populateDispatchOrderSelect();renderBulkDispatchRows();renderPPCPendingRows();
     statusEl.textContent=res.message||'✓ Set dispatched successfully.';statusEl.className='status-msg ok';document.getElementById('d-qty').value='';document.getElementById('d-set-order').value='';document.getElementById('d-shipto-address').value='';toggleDispatchItemType();}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}return;
   }
   if(!orderId||!qty||!unit||!shipToParty||!date){statusEl.textContent='For a dispatch entry, Ship To Party, unit, quantity and date are required.';statusEl.className='status-msg err';return;}
-  statusEl.textContent='Saving…';statusEl.className='status-msg';try{const res=await postAction({action:'addDispatch',orderId,unit,dispatchedQty:qty,dispatchedDate:date,shipToParty,shipToAddress,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.DispatchedQty=res.dispatched;o.PendingQty=res.pending;o.Status=res.status;o.LastUpdated=new Date().toISOString();if(shipToAddress)o.ShipToAddress=shipToAddress;if(res.status==='Completed'){o.PendingDepartment='';o.PendingReason='';}}if(res.log)data.logs.push(res.log);renderStats();renderTable();populateDispatchOrderSelect();renderBulkDispatchRows();renderPPCPendingRows();renderDispatchHistory();statusEl.textContent=res.status==='Completed'?'✓ Logged — order is now Completed.':`✓ Logged — ${res.pending} still pending.`;statusEl.className='status-msg ok';document.getElementById('d-qty').value='';document.getElementById('d-reason').value='';}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
+  statusEl.textContent='Saving…';statusEl.className='status-msg';try{const res=await postAction({action:'addDispatch',orderId,unit,dispatchedQty:qty,dispatchedDate:date,shipToParty,shipToAddress,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.DispatchedQty=res.dispatched;o.PendingQty=res.pending;o.Status=res.status;o.LastUpdated=new Date().toISOString();if(shipToAddress)o.ShipToAddress=shipToAddress;if(res.status==='Completed'){o.PendingDepartment='';o.PendingReason='';}}if(res.log)data.logs.push(res.log);renderStats();renderTable();populateDispatchOrderSelect();renderBulkDispatchRows();renderPPCPendingRows();statusEl.textContent=res.status==='Completed'?'✓ Logged — order is now Completed.':`✓ Logged — ${res.pending} still pending.`;statusEl.className='status-msg ok';document.getElementById('d-qty').value='';document.getElementById('d-reason').value='';}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
 }
 
 function toggleDispatchMode() {
@@ -2041,25 +2171,125 @@ function isIsoDateText(v) {
   const s = String(v).trim();
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(s) || !isNaN(Date.parse(s)) && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s);
 }
+function initDispatchHistoryFilters() {
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const unit = String(SESSION?.unit || '').trim();
+  const unitEl = document.getElementById('dh-unit');
+  const uomEl = document.getElementById('dh-uom');
+  if (!unitEl || !uomEl) return;
+
+  const currentUnit = unitEl.value;
+  const currentUom = uomEl.value;
+
+  if (role === 'dispatch' && unit) {
+    unitEl.innerHTML = `<option value="${esc(unit)}">${esc(unit)}</option>`;
+    unitEl.value = unit;
+    unitEl.disabled = true;
+    unitEl.title = 'Locked to your assigned unit';
+  } else {
+    const units = [...new Set((data.units || ['Unit 1','Unit 2','Unit 5','Unit Delta']).filter(Boolean))];
+    unitEl.innerHTML = '<option value="">All Units</option>' + units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    unitEl.value = units.includes(currentUnit) ? currentUnit : '';
+    unitEl.disabled = false;
+    unitEl.title = '';
+  }
+
+  const uoms = [...new Set((data.uoms || []).filter(Boolean))];
+  uomEl.innerHTML = '<option value="">All UOM</option>' + uoms.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  if (uoms.includes(currentUom)) uomEl.value = currentUom;
+
+  const scope = document.getElementById('dispatch-history-scope');
+  if (scope) scope.textContent = unit ? `Unit ${esc(unit.replace(/^Unit\s*/i,''))} History` : 'All Units History';
+}
+
+function dispatchHistoryDateKey(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function renderDispatchHistory() {
-  const box = document.getElementById('dispatch-history');
-  if (!box) return;
-  const rows = [...(data.logs || [])].sort((a,b) => new Date(b.LoggedAt) - new Date(a.LoggedAt));
-  if (!rows.length) { box.innerHTML = '<div class="empty">No dispatch history yet.</div>'; return; }
-  const canEdit = SESSION && (SESSION.role === 'Owner' || SESSION.role === 'Editor');
-  const canDelete = SESSION && SESSION.role === 'Owner';
-  box.innerHTML = rows.map(l => {
-    const o = data.orders.find(x => String(x.OrderID) === String(l.OrderID));
-    const actions = canEdit ? `<div class="action-cell"><button class="btn-ghost btn-small" onclick="openEditDispatch('${esc(l.LogID)}')">Edit</button>${canDelete ? `<button class="btn-ghost btn-small" onclick="deleteDispatchEntry('${esc(l.LogID)}')">Delete</button>` : ''}</div>` : '';
-    return `<div class="history-row" style="grid-template-columns:1.1fr 1fr 1fr .8fr 1fr auto;">
-      <div><b>${esc(o ? o.PartCode : l.OrderID)}</b><div class="sub">${esc(o ? o.Customer : '')}</div></div>
-      <div>${esc(l.ShipToParty || '—')}<div class="sub">Ship To Party</div></div>
-      <div>${esc(l.Unit || '—')}<div class="sub">Dispatch Unit</div></div>
-      <div>${Number(l.DispatchedQty||0).toLocaleString()} ${esc(l.UOM||o?.UOM||'Nos')}<div class="sub">Qty</div></div>
-      <div>${esc(fmtDate(l.DispatchedDate))}<div class="sub">${esc(fmtDateTime(l.LoggedAt))}</div></div>
-      ${actions}
-    </div>`;
-  }).join('');
+  const table = document.getElementById('dispatch-history-table');
+  const tbody = table?.querySelector('tbody');
+  const empty = document.getElementById('dispatch-history-empty');
+  const count = document.getElementById('dispatch-history-result-count');
+  if (!tbody) return;
+
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const sessionUnit = String(SESSION?.unit || '').trim();
+  const q = String(document.getElementById('dh-search')?.value || '').trim().toLowerCase();
+  const from = document.getElementById('dh-from')?.value || '';
+  const to = document.getElementById('dh-to')?.value || '';
+  const selectedUnit = document.getElementById('dh-unit')?.value || '';
+  const selectedUom = document.getElementById('dh-uom')?.value || '';
+
+  // Build rows by joining each DispatchLog record to its order.
+  let rows = (data.logs || []).map(l => {
+    const o = data.orders.find(x => String(x.OrderID) === String(l.OrderID)) || {};
+    return {
+      log: l,
+      order: o,
+      orderId: l.OrderID || o.OrderID || '',
+      customer: o.Customer || '',
+      partCode: o.PartCode || '',
+      unit: l.Unit || o.Unit || '',
+      shipTo: l.ShipToParty || o.ShipToParty || '',
+      qty: Number(l.DispatchedQty || 0),
+      uom: l.UOM || o.UOM || 'Nos',
+      dispatchDate: l.DispatchedDate || '',
+      loggedAt: l.LoggedAt || ''
+    };
+  });
+
+  // Defense-in-depth: Dispatch users can only see their assigned unit.
+  if (role === 'dispatch' && sessionUnit) {
+    rows = rows.filter(r => String(r.unit).trim() === sessionUnit);
+  }
+
+  if (selectedUnit) rows = rows.filter(r => String(r.unit).trim() === selectedUnit);
+  if (selectedUom) rows = rows.filter(r => String(r.uom).trim() === selectedUom);
+  if (from) rows = rows.filter(r => dispatchHistoryDateKey(r.dispatchDate) >= from);
+  if (to) rows = rows.filter(r => dispatchHistoryDateKey(r.dispatchDate) <= to);
+
+  if (q) {
+    rows = rows.filter(r => [r.orderId,r.customer,r.partCode,r.unit,r.shipTo,r.qty,r.uom,r.log.Note || '',r.log.LogID || '']
+      .join(' ').toLowerCase().includes(q));
+  }
+
+  rows.sort((a,b) => new Date(b.dispatchDate || b.loggedAt || 0) - new Date(a.dispatchDate || a.loggedAt || 0));
+
+  tbody.innerHTML = rows.length ? rows.map(r => `<tr>
+    <td>${esc(fmtDate(r.dispatchDate))}</td>
+    <td><b>${esc(r.orderId)}</b></td>
+    <td>${esc(r.customer || '—')}</td>
+    <td>${esc(r.partCode || '—')}</td>
+    <td>${esc(r.unit || '—')}</td>
+    <td>${esc(r.shipTo || '—')}</td>
+    <td>${r.qty.toLocaleString()}</td>
+    <td>${esc(r.uom)}</td>
+    <td>${esc(r.log.Note || '—')}</td>
+    <td>${esc(fmtDateTime(r.loggedAt))}</td>
+  </tr>`).join('') : '';
+
+  if (empty) empty.style.display = rows.length ? 'none' : 'block';
+  if (count) count.textContent = `${rows.length.toLocaleString()} record${rows.length === 1 ? '' : 's'}`;
+}
+
+function clearDispatchHistoryFilters() {
+  ['dh-search','dh-from','dh-to'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const role = String(SESSION?.role || '').trim().toLowerCase();
+  const unit = String(SESSION?.unit || '').trim();
+  const unitEl = document.getElementById('dh-unit');
+  const uomEl = document.getElementById('dh-uom');
+  if (uomEl) uomEl.value = '';
+  if (unitEl) unitEl.value = role === 'dispatch' && unit ? unit : '';
+  renderDispatchHistory();
 }
 
 function openEditDispatch(logId) {
@@ -2315,7 +2545,7 @@ async function saveBulkDispatch(){
   try{const r=await postAction({action:'bulkDispatch',items,unit,dispatchedDate:date,note});if(r.error)throw new Error((r.validationErrors||[]).join('\n')||r.error);
     (r.orders||[]).forEach(u=>{const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));if(o){o.DispatchedQty=u.dispatched;o.PendingQty=u.pending;o.Status=u.status;o.LastUpdated=new Date().toISOString();if(o.Status==='Completed'){o.PendingDepartment='';o.PendingReason='';}}});
     (r.logs||[]).forEach(l=>data.logs.push(l));
-    populateDispatchOrderSelect();renderBulkDispatchRows();renderStats();renderTable();renderDispatchHistory();clearBulkDispatchSelection();
+    populateDispatchOrderSelect();renderBulkDispatchRows();renderStats();renderTable();clearBulkDispatchSelection();
     st.textContent='✓ '+r.count+' dispatches saved in one batch.';st.className='status-msg ok';
   }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
