@@ -1516,28 +1516,81 @@ function setConn(state, msg) {
 }
 
 let loadInFlight = null;
+
+// Incremented whenever the user successfully changes FG stock.
+// A core refresh that was already in flight before the stock change must not
+// overwrite the just-updated local stock with its older snapshot.
+let stockMutationEpoch = 0;
+
 async function loadData(silent=false) {
   if(loadInFlight) return loadInFlight;
+
+  const requestStockEpoch = stockMutationEpoch;
   const tbody = document.querySelector('#orders-table tbody');
-  if (tbody && !tbody.children.length) tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
+  if (tbody && !tbody.children.length) {
+    tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
+  }
   if (!silent) setConn('', 'Loading…');
+
   loadInFlight=(async()=>{
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN), {cache:'no-store'});
       const json = await res.json();
-      if (json.error && /session has expired|auth_required/i.test(json.error)) { stopAutoRefresh(); setConn('err','Session expired — please sign in again.'); return false; }
+
+      if (json.error && /session has expired|auth_required/i.test(json.error)) {
+        stopAutoRefresh();
+        setConn('err','Session expired — please sign in again.');
+        return false;
+      }
       if (json.error) { setConn('err', json.error); return false; }
-      data = {...data,...json};
+
+      // Orders/etc. can always be replaced by the newest response.
+      // Stock is special: if this request started BEFORE a successful stock
+      // update, keep the local stock mutation instead of flashing old data.
+      const freshStock = Array.isArray(json.stock) ? json.stock : null;
+      const preserveLocalStock = requestStockEpoch < stockMutationEpoch;
+
+      // Never spread json.stock into data before deciding whether it is safe
+      // to replace the browser's stock snapshot. Otherwise a stale in-flight
+      // request would overwrite the value we just displayed.
+      const { stock: ignoredServerStock, ...jsonWithoutStock } = json;
+      data = {...data, ...jsonWithoutStock};
+      if (!preserveLocalStock && freshStock) {
+        data.stock = freshStock;
+      }
+
       logShipToIndex={};
-      (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
+      (data.logs||[]).forEach(l=>{
+        const id=String(l.OrderID||'');
+        if(!id)return;
+        (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));
+      });
+
       const count = Array.isArray(data.orders) ? data.orders.length : 0;
       setConn('ok', 'Live — connected · ' + count + ' orders');
-      populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI();
+      populateDropdowns();
+      toggleOrderType();
+      toggleDispatchItemType();
+      populateStockControls();
+      renderStats();
+      renderTable();
+      renderStockTable();
+      populateDispatchOrderSelect();
+      renderBulkDispatchRows();
+      renderPPCPendingRows();
+      renderDispatchHistory();
+      applyRoleUI();
+
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
-    } catch (e) { setConn('err', 'Connection failed — data not lost.'); return false; }
-    finally { loadInFlight=null; }
+    } catch (e) {
+      setConn('err', 'Connection failed — data not lost.');
+      return false;
+    } finally {
+      loadInFlight=null;
+    }
   })();
+
   return loadInFlight;
 }
 let v2Loaded=false, v2InFlight=null;
@@ -1804,22 +1857,66 @@ async function submitStock() {
   const mode = document.getElementById('s-mode').value;
   const unit = getSelectedStockUnit();
   const statusEl = document.getElementById('stock-status');
+  const button = document.querySelector('#stock-admin-card button[onclick="submitStock()"]');
+
   if (!part || qty === '' || !unit) {
-    statusEl.textContent = 'Part code, unit and quantity are required.'; statusEl.className = 'status-msg err';
+    statusEl.textContent = 'Part code, unit and quantity are required.';
+    statusEl.className = 'status-msg err';
     return;
   }
-  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
+
+  statusEl.textContent = 'Saving…';
+  statusEl.className = 'status-msg';
+  if (button) { button.disabled = true; button.dataset.originalText = button.textContent; button.textContent = 'Updating…'; }
+
   try {
     const res = await postAction({ action: 'setStock', partCode: part, qty, mode, unit });
     if (res.error) throw new Error(res.error);
-    statusEl.textContent = `Stock updated for ${res.unit || unit} — now ${Number(res.newQty || 0).toLocaleString()}.`; statusEl.className = 'status-msg ok';
+
+    const savedUnit = String(res.unit || unit);
+    const newQty = Number(res.newQty || 0);
+
+    // IMPORTANT: update the browser's stock immediately after the backend
+    // confirms the write. Do not wait for the 5-second auto-refresh or an
+    // already-running loadData() request.
+    stockMutationEpoch++;
+    if (!Array.isArray(data.stock)) data.stock = [];
+
+    const existing = data.stock.find(r =>
+      String(r.PartCode || '').trim() === part &&
+      String(r.Unit || '').trim() === savedUnit
+    );
+
+    if (existing) {
+      existing.AvailableQty = newQty;
+      existing.LastUpdated = new Date().toISOString();
+    } else {
+      data.stock.push({
+        PartCode: part,
+        Unit: savedUnit,
+        AvailableQty: newQty,
+        LastUpdated: new Date().toISOString()
+      });
+    }
+
+    statusEl.textContent = `Stock updated for ${savedUnit} — now ${newQty.toLocaleString()}.`;
+    statusEl.className = 'status-msg ok';
     document.getElementById('s-qty').value = '';
-    await loadData();
+
+    // Paint the new row immediately.
     populateStockControls();
     renderStockTable();
     showCurrentStock();
+
+    // Do NOT await this. If another core request is already running, the
+    // epoch protection above prevents its stale stock snapshot from replacing
+    // the value we just displayed. A later refresh will reconcile with Sheets.
+    loadData(true);
   } catch (e) {
-    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
+    statusEl.textContent = 'Failed: ' + e.message;
+    statusEl.className = 'status-msg err';
+  } finally {
+    if (button) { button.disabled = false; button.textContent = button.dataset.originalText || 'Update Stock'; }
   }
 }
 
