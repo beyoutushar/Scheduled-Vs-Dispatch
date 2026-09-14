@@ -383,18 +383,16 @@
   .set-help { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 14px; }
   .set-help-item { border:1px solid var(--border-soft); background:var(--panel-2); border-radius:9px; padding:9px 10px; font-size:11px; color:var(--muted); }
   .set-help-item b { display:block; color:var(--text); margin-bottom:3px; font-size:11px; }
-  .set-component-table { width:100%; border-collapse:collapse; min-width:820px; }
+  .set-component-table { width:100%; border-collapse:collapse; min-width:720px; }
   .set-component-table th { text-align:left; font-size:10px; color:var(--muted); font-weight:600; padding:8px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .set-component-table td { padding:7px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
   .set-component-table input,.set-component-table select { width:100%; min-width:0; }
   .set-component-table .row-no { width:28px; color:var(--muted); text-align:center; font-size:11px; }
-  .set-component-table .qty-col { width:120px; }
   .set-component-table .size-col { width:180px; }
-  .set-component-table .uom-col { width:110px; }
   .set-component-table .unit-col { width:125px; }
   .set-builder-summary { margin-top:10px; padding:10px 12px; border:1px dashed var(--border); border-radius:9px; background:var(--panel-2); font-size:11px; color:var(--muted); }
   .set-builder-summary b { color:var(--text); }
-  @media(max-width:800px){.set-help{grid-template-columns:1fr;}.set-builder-head{flex-direction:column;}.set-component-table{min-width:760px;}}
+  @media(max-width:800px){.set-help{grid-template-columns:1fr;}.set-builder-head{flex-direction:column;}.set-component-table{min-width:620px;}}
   .admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .admin-panel {
     background: var(--panel-2); border:1px solid var(--border); border-radius:14px; padding:16px;
@@ -808,7 +806,7 @@ body {
       </div>
       <div class="set-help">
         <div class="set-help-item"><b>1. Set identity</b>Give the set a unique code and a clear name.</div>
-        <div class="set-help-item"><b>2. Add child articles</b>Select the Part Code, then enter Size/Variant and quantity needed for one set.</div>
+        <div class="set-help-item"><b>2. Add child articles</b>Select the Part Code, then enter Size/Variant and Production Unit. Each child starts at 1 piece per set.</div>
         <div class="set-help-item"><b>3. Save</b>The MIS expands every child requirement automatically when PPC orders the set.</div>
       </div>
       <div class="grid">
@@ -818,7 +816,7 @@ body {
       </div>
       <div class="table-scroll">
         <table class="set-component-table" id="set-component-table">
-          <thead><tr><th>#</th><th>Child Part Code *</th><th>Size / Variant</th><th>Qty / Set *</th><th>UOM</th><th>Production Unit</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Child Part Code *</th><th>Size / Variant</th><th>Production Unit</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -849,6 +847,17 @@ body {
         <div class="field"><label>Scheduled Date</label><input id="n-date" type="date"></div>
         <div class="field combo"><label>Ship To Party</label><input id="n-shipto" list="dl-shipto" placeholder="Select or type ship-to party"></div>
         <div class="field" style="grid-column:span 2"><label>Ship-to Address</label><input id="n-shipto-address" placeholder="Full delivery / ship-to address"></div>
+      </div>
+      <div id="set-order-components" class="card" style="display:none;margin:12px 0 0;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div><b>Set Components</b><div class="sub">Default is 1 piece per set. Change Qty / Set here for this order only.</div></div>
+        </div>
+        <div class="table-scroll" style="margin-top:10px;">
+          <table class="set-component-table" id="set-order-component-table">
+            <thead><tr><th>#</th><th>Child Part Code</th><th>Size / Variant</th><th>Qty / Set</th><th>Production Unit</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
       <div class="sub" id="n-stock-info" style="margin:-4px 0 12px;">Enter a Part Code to see current FG stock.</div>
       <button class="btn-primary btn-block" onclick="submitOrder()">Create Order</button>
@@ -1610,7 +1619,7 @@ function populateDropdowns() {
     else el.value = 'Nos';
   });
   const setSel=document.getElementById('n-set');
-  if(setSel) setSel.innerHTML='<option value="">— Select Set —</option>'+(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}">${esc(x.SetCode)} — ${esc(x.SetName||'')}</option>`).join('');
+  if(setSel) { setSel.innerHTML='<option value="">— Select Set —</option>'+(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}">${esc(x.SetCode)} — ${esc(x.SetName||'')}</option>`).join(''); if(!setSel.dataset.bound){setSel.addEventListener('change',loadSelectedSetComponents);setSel.dataset.bound='1';} }
   const setOrderSel=document.getElementById('d-set-order');
   if(setOrderSel) setOrderSel.innerHTML='<option value="">— Select pending set —</option>'+(data.setOrders||[]).filter(x=>x.status==='Pending').sort((a,b)=>new Date(b.scheduledDate)-new Date(a.scheduledDate)).map(x=>`<option value="${esc(x.setOrderId)}">${esc(x.setCode)} · ${esc(x.customer)} · ${x.pendingSets} sets pending · ${esc(x.unit)}</option>`).join('');
   const dept = document.getElementById('d-dept');
@@ -2050,12 +2059,36 @@ document.getElementById('d-order-search').addEventListener('keydown', function(e
   }
 });
 
+let setOrderComponents=[];
+function renderSetOrderComponents(){
+  const box=document.getElementById('set-order-components'), tb=document.querySelector('#set-order-component-table tbody');
+  if(!box||!tb)return;
+  const isSet=(document.getElementById('n-order-type')?.value||'STANDARD')==='SET';
+  box.style.display=isSet && setOrderComponents.length ? '' : 'none';
+  tb.innerHTML=setOrderComponents.map((c,i)=>`<tr>
+    <td class="row-no">${i+1}</td><td>${esc(c.partCode||'')}</td><td>${esc(c.size||'—')}</td>
+    <td style="width:130px"><input type="number" min="0.001" step="any" value="${esc(c.qty||1)}" data-soc-qty="${i}"></td>
+    <td>${esc(c.unit||'')}</td>
+  </tr>`).join('');
+  tb.querySelectorAll('[data-soc-qty]').forEach(el=>el.addEventListener('input',()=>{
+    const i=Number(el.dataset.socQty), v=Number(el.value); if(Number.isFinite(v)&&v>0)setOrderComponents[i].qty=v;
+  }));
+}
+function loadSelectedSetComponents(){
+  const code=document.getElementById('n-set')?.value||'';
+  const set=(data.sets||[]).find(x=>String(x.SetCode)===String(code));
+  setOrderComponents=(set?.components||[]).map(c=>({partCode:c.partCode,size:c.size||'',qty:Number(c.qty)||1,unit:c.unit||document.getElementById('n-unit')?.value||SESSION?.unit||'Unit 5'}));
+  renderSetOrderComponents();
+}
 function toggleOrderType(){
   const type=document.getElementById('n-order-type')?.value||'STANDARD';
   const isSet=type==='SET';
   const pf=document.getElementById('n-part-field'),sf=document.getElementById('n-set-field'),uf=document.getElementById('n-uom-field');
   if(pf)pf.style.display=isSet?'none':''; if(sf)sf.style.display=isSet?'':'none'; if(uf)uf.style.display=isSet?'none':'';
-  const info=document.getElementById('n-stock-info'); if(info&&isSet)info.textContent='Select an Customer Sets. The BOM will expand automatically into individual pending articles.';
+  const qty=document.getElementById('n-qty'); if(qty)qty.placeholder=isSet?'1000 sets':'1000';
+  const qlab=qty?.parentElement?.querySelector('label'); if(qlab)qlab.textContent=isSet?'Number of Sets':'Order Quantity';
+  const info=document.getElementById('n-stock-info'); if(info)info.textContent=isSet?'Select a Customer Set, then review Qty / Set for this order.':'Enter a Part Code to see current FG stock.';
+  if(isSet)loadSelectedSetComponents(); else {setOrderComponents=[];renderSetOrderComponents();}
 }
 function toggleDispatchItemType(){
   const isSet=(document.getElementById('d-dispatch-type')?.value||'STANDARD')==='SET';
@@ -2068,13 +2101,15 @@ async function submitOrder() {
   const type=document.getElementById('n-order-type')?.value||'STANDARD';
   const customer=document.getElementById('n-customer').value.trim(), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=document.getElementById('n-uom').value||'Nos', priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
   const statusEl=document.getElementById('new-status');
-  if(!customer||!unit||!qty||!date||(type==='SET'?!setCode:!part)){statusEl.textContent=type==='SET'?'Customer, Set, unit, quantity and scheduled date are required.':'Customer, part code, unit, quantity and scheduled date are required.';statusEl.className='status-msg err';return;}
+  if(type==='SET' && !setOrderComponents.length) loadSelectedSetComponents();
+  if(!customer||!unit||!qty||!date||(type==='SET'?!setCode:!part)){statusEl.textContent=type==='SET'?'Customer, Set, unit, number of sets and scheduled date are required.':'Customer, part code, unit, quantity and scheduled date are required.';statusEl.className='status-msg err';return;}
+  if(type==='SET' && setOrderComponents.some(c=>!Number.isFinite(Number(c.qty))||Number(c.qty)<=0)){statusEl.textContent='Every child article must have Qty / Set greater than 0.';statusEl.className='status-msg err';return;}
   statusEl.textContent='Saving…';statusEl.className='status-msg';
   try{const res=await postAction({action:'addOrder',orderType:type,setCode,customer,customerLocation:location,partCode:part,unit,uom,orderQty:qty,priority,scheduledDate:date,shipToParty,shipToAddress});if(res.error)throw new Error(res.error);
     (res.orders||[res.order]).filter(Boolean).forEach(o=>data.orders.unshift(o)); data.orders.sort((a,b)=>new Date(b.CreatedAt)-new Date(a.CreatedAt));
     const addLocal=(arr,v)=>{if(v&&!arr.includes(v))arr.push(v)}; (res.orders||[res.order]).filter(Boolean).forEach(o=>{addLocal(data.customers,o.Customer);addLocal(data.partCodes,o.PartCode);addLocal(data.locations,o.CustomerLocation);addLocal(data.shipToParties,o.ShipToParty)});
     statusEl.textContent=res.message||`✓ Order created.`;statusEl.className='status-msg ok';
-    document.getElementById('n-part').value='';document.getElementById('n-qty').value='';document.getElementById('n-location').value='';document.getElementById('n-shipto').value='';document.getElementById('n-shipto-address').value='';if(document.getElementById('n-set'))document.getElementById('n-set').value='';
+    document.getElementById('n-part').value='';document.getElementById('n-qty').value='';setOrderComponents=[];renderSetOrderComponents();document.getElementById('n-location').value='';document.getElementById('n-shipto').value='';document.getElementById('n-shipto-address').value='';if(document.getElementById('n-set'))document.getElementById('n-set').value='';
     if(!SESSION.unit)document.getElementById('n-unit').value=''; populateDropdowns();renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();
   }catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
 }
@@ -2630,7 +2665,7 @@ function closeAdditionalQty(){document.getElementById('additional-qty-modal').cl
 async function submitAdditionalQty(){const id=document.getElementById('aq-order-id').value,qty=document.getElementById('aq-qty').value,reason=document.getElementById('aq-reason').value,note=document.getElementById('aq-note').value.trim(),approved=document.getElementById('aq-approved-by').value.trim(),st=document.getElementById('aq-status');st.textContent='Saving…';try{const r=await postAction({action:'addAdditionalQty',orderId:id,qty,reason,reasonNote:note,approvedBy:approved});if(r.error)throw new Error(r.error);st.textContent='Additional quantity added successfully.';st.className='status-msg ok';await loadV2(true);setTimeout(closeAdditionalQty,300);}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}}
 let setBuilderRows = [];
 function defaultSetComponent(){
-  return {partCode:'',size:'',qty:'',uom:'Nos',unit:SESSION?.unit||'Unit 5'};
+  return {partCode:'',size:'',unit:SESSION?.unit||'Unit 5'};
 }
 function initSetBuilder(){
   if(!setBuilderRows.length) setBuilderRows=[defaultSetComponent()];
@@ -2654,14 +2689,11 @@ function clearSetBuilder(){
 function renderSetBuilder(){
   const tb=document.querySelector('#set-component-table tbody'); if(!tb)return;
   if(!setBuilderRows.length)setBuilderRows=[defaultSetComponent()];
-  const uoms=data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter'];
   const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
   tb.innerHTML=setBuilderRows.map((r,i)=>`<tr>
     <td class="row-no">${i+1}</td>
     <td><input data-sb="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Select / type part code" autocomplete="off"></td>
     <td class="size-col"><input data-sb="size" data-i="${i}" value="${esc(r.size)}" placeholder="e.g. 300 × 450 mm" autocomplete="off"></td>
-    <td class="qty-col"><input data-sb="qty" data-i="${i}" type="number" min="0.001" step="any" value="${esc(r.qty)}" placeholder="1"></td>
-    <td class="uom-col"><select data-sb="uom" data-i="${i}">${uoms.map(u=>`<option value="${esc(u)}" ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
     <td class="unit-col"><select data-sb="unit" data-i="${i}">${units.map(u=>`<option value="${esc(u)}" ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
     <td><button class="btn-ghost btn-small" onclick="removeSetBuilderRow(${i})" title="Remove">×</button></td>
   </tr>`).join('');
@@ -2674,7 +2706,7 @@ function renderSetBuilder(){
 }
 function updateSetBuilderSummary(){
   const el=document.getElementById('set-builder-summary');if(!el)return;
-  const valid=setBuilderRows.filter(r=>String(r.partCode||'').trim()&&Number(r.qty)>0);
+  const valid=setBuilderRows.filter(r=>String(r.partCode||'').trim());
   const duplicates={};
   valid.forEach(r=>{const k=(String(r.partCode).trim()+'|'+String(r.size||'').trim()).toLowerCase();duplicates[k]=(duplicates[k]||0)+1;});
   const dupCount=Object.values(duplicates).filter(n=>n>1).length;
@@ -2687,13 +2719,12 @@ async function savePPCSet(){
   const code=document.getElementById('set-builder-code').value.trim();
   const name=document.getElementById('set-builder-name').value.trim();
   const customer=document.getElementById('set-builder-customer').value.trim();
-  const valid=setBuilderRows.map(r=>({...r,partCode:String(r.partCode||'').trim(),size:String(r.size||'').trim(),qty:Number(r.qty)})).filter(r=>r.partCode||r.qty);
+  const valid=setBuilderRows.map(r=>({...r,partCode:String(r.partCode||'').trim(),size:String(r.size||'').trim()})).filter(r=>r.partCode);
   if(!code||!name){st.textContent='Set Code and Set Name are required.';st.className='status-msg err';return;}
   if(!valid.length){st.textContent='Add at least one child article.';st.className='status-msg err';return;}
   const errors=[];const seen=new Set();
   valid.forEach((r,i)=>{
     if(!r.partCode)errors.push('Row '+(i+1)+': Part Code is required');
-    if(!Number.isFinite(r.qty)||r.qty<=0)errors.push('Row '+(i+1)+': Qty / Set must be greater than 0');
     const key=(r.partCode+'|'+r.size).toLowerCase();
     if(seen.has(key))errors.push('Row '+(i+1)+': exact duplicate Part Code + Size / Variant');
     seen.add(key);
@@ -2701,10 +2732,10 @@ async function savePPCSet(){
   if(errors.length){st.textContent=errors.join(' • ');st.className='status-msg err';return;}
   st.textContent='Saving Set…';st.className='status-msg';
   try{
-    const r=await postAction({action:'saveSet',setCode:code,setName:name,customer,components:valid.map(x=>({partCode:x.partCode,size:x.size,qty:x.qty,uom:x.uom,unit:x.unit}))});
+    const r=await postAction({action:'saveSet',setCode:code,setName:name,customer,components:valid.map(x=>({partCode:x.partCode,size:x.size,unit:x.unit}))});
     if(r.error)throw new Error(r.error);
     data.sets=data.sets||[];
-    data.sets.push({SetCode:r.setCode||code,SetName:r.setName||name,Customer:customer,Active:true,components:r.components||valid});
+    data.sets.push({SetCode:r.setCode||code,SetName:r.setName||name,Customer:customer,Active:true,components:r.components||valid.map(x=>({...x,qty:1,uom:'Nos'}))});
     populateDropdowns();renderPPCBulkRows();
     st.textContent='✓ '+code+' saved with '+valid.length+' child article(s).';st.className='status-msg ok';
     setBuilderRows=[defaultSetComponent()];
