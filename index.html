@@ -1039,21 +1039,10 @@ body {
     <div class="card" id="stock-admin-card">
       <h2>Update FG Stock</h2>
       <div class="grid">
-        <div class="field combo">
-          <label>Part Code</label>
-          <input id="s-part" list="dl-parts" placeholder="Select or type" oninput="showCurrentStock()">
-        </div>
-        <div class="field">
-          <label>Production Quantity</label>
-          <input id="s-qty" type="number" min="0" placeholder="500">
-        </div>
-        <div class="field">
-          <label>Mode</label>
-          <select id="s-mode">
-            <option value="set">Set to this value</option>
-            <option value="add">Add to current stock</option>
-          </select>
-        </div>
+        <div class="field combo"><label>Part Code</label><input id="s-part" list="dl-parts" placeholder="Select or type" oninput="showCurrentStock()"></div>
+        <div class="field"><label>Production Unit</label><select id="s-unit"></select></div>
+        <div class="field"><label>Production Quantity</label><input id="s-qty" type="number" min="0" placeholder="500"></div>
+        <div class="field"><label>Mode</label><select id="s-mode"><option value="add">Add to current stock</option><option value="set">Set to this value</option></select></div>
       </div>
       <div class="sub" id="s-current" style="margin:-4px 0 12px;"></div>
       <button class="btn-primary btn-block" onclick="submitStock()">Update Stock</button>
@@ -1061,11 +1050,15 @@ body {
     </div>
     <div class="card">
       <h2>Current FG Stock</h2>
+      <div class="toolbar">
+        <div class="search-wrap"><input id="sf-search" type="search" placeholder="Search Part Code…" oninput="renderStockTable()"></div>
+        <select id="sf-unit" onchange="renderStockTable()"></select>
+        <select id="sf-status" onchange="renderStockTable()"><option value="">All Stock</option><option value="available">Available Only</option><option value="zero">Zero Stock</option></select>
+        <div class="spacer"></div><span class="sub" id="sf-count">0 rows</span>
+        <button class="btn-ghost btn-small" onclick="clearStockFilters()">Clear</button>
+      </div>
       <div class="table-scroll">
-        <table id="stock-table">
-          <thead><tr><th>Part Code</th><th>Available Qty</th><th>Last Updated</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <table id="stock-table"><thead><tr><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th></tr></thead><tbody></tbody></table>
       </div>
     </div>
   </div>
@@ -1391,7 +1384,7 @@ function lockUnitFieldsForSession(){
   const role=String(SESSION?.role||'').trim().toLowerCase();
   const unit=String(SESSION?.unit||'').trim();
   const restricted=['ppc','dispatch','viewonly'].includes(role);
-  ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit'].forEach(id=>{
+  ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit','s-unit','sf-unit'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     if(restricted && unit){
@@ -1413,11 +1406,23 @@ function showApp() {
   document.getElementById('main-app').style.display = 'block';
   document.getElementById('role-badge').textContent = SESSION.displayName + ' · ' + SESSION.role + (SESSION.unit ? ' (' + SESSION.unit + ')' : '');
   document.getElementById('csv-btn').style.display = String(SESSION.role).toLowerCase() === 'owner' ? 'inline-block' : 'none';
-  document.getElementById('scope-sub').textContent = (SESSION.unit && !['owner','viewonly','admin'].includes(String(SESSION.role).toLowerCase()))
+  document.getElementById('scope-sub').textContent = (SESSION.unit && String(SESSION.role || '').toLowerCase() !== 'owner')
     ? 'Showing orders for ' + SESSION.unit + ' only'
     : 'Live order tracking across all units';
 
   const role = String(SESSION.role || '').trim().toLowerCase();
+  const stockUnits = document.getElementById('s-unit');
+  const stockFilterUnits = document.getElementById('sf-unit');
+  const roleLower = String(SESSION?.role||'').trim().toLowerCase();
+  const assignedUnit = String(SESSION?.unit||'').trim();
+  if (stockUnits) {
+    stockUnits.innerHTML = (roleLower==='owner' ? data.units : [assignedUnit]).filter(Boolean).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    if (assignedUnit && roleLower!=='owner') stockUnits.value=assignedUnit;
+  }
+  if (stockFilterUnits) {
+    stockFilterUnits.innerHTML = (roleLower==='owner' ? '<option value="">All Units</option>' : '') + (roleLower==='owner' ? data.units : [assignedUnit]).filter(Boolean).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    if (roleLower!=='owner' && assignedUnit) stockFilterUnits.value=assignedUnit;
+  }
   lockUnitFieldsForSession();
 
   // Apply immediately using role fallback, then load V2 permissions and apply
@@ -1480,7 +1485,8 @@ async function loadData(silent=false) {
       logShipToIndex={};
       (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
       const count = Array.isArray(data.orders) ? data.orders.length : 0;
-      setConn('ok', 'Live — connected · ' + count + ' orders');
+      const scope = (SESSION && String(SESSION.role||'').toLowerCase() !== 'owner' && SESSION.unit) ? (' · ' + SESSION.unit) : '';
+      setConn('ok', 'Live — connected · ' + count + ' orders' + scope);
       populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
@@ -1691,64 +1697,63 @@ function clearSelection(){selectedOrders.clear();renderTable();}
 async function applyBulkStatus(){const status=document.getElementById('bulk-status').value;if(!status||!selectedOrders.size)return;try{const res=await postAction({action:'bulkChangeStatus',orderIds:[...selectedOrders],status});if(res.error)throw new Error(res.error);alert(`Completed: ${res.successCount}\nFailed: ${res.failCount}`);selectedOrders.clear();await loadData();}catch(e){alert(e.message);}}
 
 
-function getStockFor(partCode) {
-  const row = data.stock.find(s => String(s.PartCode) === String(partCode));
-  return row ? Number(row.AvailableQty) || 0 : 0;
-}
-
-function showStock() {
-  const part = document.getElementById('n-part').value.trim();
-  const info = document.getElementById('n-stock-info');
-  if (!part) { info.textContent = 'Enter a Part Code to see current FG stock.'; return; }
-  const stock = getStockFor(part);
-  if (stock > 0) {
-    info.innerHTML = `Available FG stock: <b>${stock}</b> — if this covers the order quantity it'll route straight to Dispatch, otherwise to PPC Planning.`;
-  } else {
-    info.textContent = 'No FG stock on record for this part code — order will route to PPC Planning.';
-  }
+function getStockFor(partCode, unit) {
+  const targetUnit = unit || String(SESSION?.unit||'').trim();
+  const rows = (data.stock||[]).filter(s => String(s.PartCode||'') === String(partCode) && (!targetUnit || String(s.Unit||'') === targetUnit));
+  return rows.reduce((sum,r)=>sum+(Number(r.AvailableQty)||0),0);
 }
 
 function showCurrentStock() {
-  const part = document.getElementById('s-part').value.trim();
-  const el = document.getElementById('s-current');
-  if (!part) { el.textContent = ''; return; }
-  el.textContent = `Current stock: ${getStockFor(part)}`;
+  const part=document.getElementById('s-part').value.trim();
+  const unit=document.getElementById('s-unit')?.value || String(SESSION?.unit||'').trim();
+  const el=document.getElementById('s-current');
+  if(!part){el.textContent='';return;}
+  el.textContent=`Current stock — ${unit}: ${getStockFor(part,unit).toLocaleString()}`;
 }
 
 async function submitStock() {
-  const part = document.getElementById('s-part').value.trim();
-  const qty = document.getElementById('s-qty').value;
-  const mode = document.getElementById('s-mode').value;
-  const statusEl = document.getElementById('stock-status');
-  if (!part || qty === '') {
-    statusEl.textContent = 'Part code and quantity are required.'; statusEl.className = 'status-msg err';
-    return;
-  }
-  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
-  try {
-    const res = await postAction({ action: 'setStock', partCode: part, qty, mode });
-    if (res.error) throw new Error(res.error);
-    statusEl.textContent = `Stock updated — now ${res.newQty}.`; statusEl.className = 'status-msg ok';
-    document.getElementById('s-qty').value = '';
-    await loadData();
-    renderStockTable();
-    showCurrentStock();
-  } catch (e) {
-    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
-  }
+  const part=document.getElementById('s-part').value.trim();
+  const qty=document.getElementById('s-qty').value;
+  const mode=document.getElementById('s-mode').value;
+  const unit=document.getElementById('s-unit')?.value || String(SESSION?.unit||'').trim();
+  const statusEl=document.getElementById('stock-status');
+  if(!part || qty===''){statusEl.textContent='Part code and quantity are required.';statusEl.className='status-msg err';return;}
+  statusEl.textContent='Saving…';statusEl.className='status-msg';
+  try{
+    const res=await postAction({action:'setStock',partCode:part,qty,mode,unit});
+    if(res.error)throw new Error(res.error);
+    const existing=(data.stock||[]).find(r=>String(r.PartCode||'')===part && String(r.Unit||'')===String(res.unit||unit));
+    if(existing){existing.AvailableQty=res.newQty;existing.LastUpdated=new Date();}
+    else data.stock=[...(data.stock||[]),{PartCode:part,Unit:res.unit||unit,AvailableQty:res.newQty,LastUpdated:new Date()}];
+    statusEl.textContent=`Stock updated for ${res.unit||unit} — now ${Number(res.newQty).toLocaleString()}.`;statusEl.className='status-msg ok';
+    document.getElementById('s-qty').value='';
+    renderStockTable();showCurrentStock();
+    loadData(true);
+  }catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
 }
 
-function renderStockTable() {
-  const tbody = document.querySelector('#stock-table tbody');
-  if (!tbody) return;
-  const rows = [...data.stock].sort((a,b) => String(a.PartCode||'').localeCompare(String(b.PartCode||'')));
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td>${esc(r.PartCode)}</td>
-      <td>${Number(r.AvailableQty||0).toLocaleString()}</td>
-      <td>${fmtDate(r.LastUpdated)}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="3" class="empty">No stock recorded yet.</td></tr>';
+function clearStockFilters(){
+  const q=document.getElementById('sf-search'); if(q)q.value='';
+  const st=document.getElementById('sf-status'); if(st)st.value='';
+  const u=document.getElementById('sf-unit');
+  if(u && String(SESSION?.role||'').toLowerCase()!=='owner') u.value=String(SESSION?.unit||''); else if(u)u.value='';
+  renderStockTable();
+}
+
+function renderStockTable(){
+  const tbody=document.querySelector('#stock-table tbody'); if(!tbody)return;
+  const q=(document.getElementById('sf-search')?.value||'').trim().toLowerCase();
+  const unit=document.getElementById('sf-unit')?.value||'';
+  const status=document.getElementById('sf-status')?.value||'';
+  const role=String(SESSION?.role||'').toLowerCase(), assigned=String(SESSION?.unit||'').trim();
+  const rows=(data.stock||[]).filter(r=>role==='owner'||!assigned||String(r.Unit||'')===assigned)
+    .filter(r=>!unit||String(r.Unit||'')===unit)
+    .filter(r=>!q||String(r.PartCode||'').toLowerCase().includes(q))
+    .filter(r=>status!=='available'||Number(r.AvailableQty||0)>0)
+    .filter(r=>status!=='zero'||Number(r.AvailableQty||0)===0)
+    .sort((a,b)=>String(a.PartCode||'').localeCompare(String(b.PartCode||'')));
+  const count=document.getElementById('sf-count'); if(count)count.textContent=rows.length+' rows';
+  tbody.innerHTML=rows.map(r=>`<tr><td>${esc(r.PartCode)}</td><td>${esc(r.Unit||'Unassigned')}</td><td>${Number(r.AvailableQty||0).toLocaleString()}</td><td>${fmtDate(r.LastUpdated)}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">No stock matches the selected filters.</td></tr>';
 }
 
 let dispatchSearchIndex = [];
