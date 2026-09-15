@@ -1486,17 +1486,14 @@ function lockUnitFieldsForSession(){
 }
 
 function lockCustomerFieldsForSession(){
-  const role=String(SESSION?.role||'').trim().toLowerCase();
-  const customer=String(SESSION?.assignedCustomer||'').trim();
-  const restricted=role==='ppc';
-  ['n-customer','e-customer','set-builder-customer'].forEach(id=>{
-    const el=document.getElementById(id); if(!el)return;
-    if(restricted && customer){ el.value=customer; el.disabled=true; el.title='Locked to your assigned customer'; }
-    else { el.disabled=false; el.title=''; }
+  // Customer is intentionally NOT locked. Customer/department mapping is still being finalized.
+  // AssignedCustomer may be used as an optional viewing scope, but it must never prevent data entry.
+  ['n-customer','e-customer','set-builder-customer','f-customer'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.disabled=false;
+    el.title='';
   });
-  const fc=document.getElementById('f-customer');
-  if(fc && restricted && customer){ fc.value=customer; fc.disabled=true; fc.title='Locked to your assigned customer'; }
-  else if(fc){fc.disabled=false;fc.title='';}
 }
 
 function showApp() {
@@ -2123,7 +2120,7 @@ function toggleDispatchItemType(){
 
 async function submitOrder() {
   const type=document.getElementById('n-order-type')?.value||'STANDARD';
-  const customer=(document.getElementById('n-customer').value.trim() || String(SESSION?.assignedCustomer||'').trim()), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=document.getElementById('n-uom').value||'Nos', priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
+  const customer=document.getElementById('n-customer').value.trim(), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=document.getElementById('n-uom').value||'Nos', priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
   const statusEl=document.getElementById('new-status');
   if(type==='SET' && !setOrderComponents.length) loadSelectedSetComponents();
   if(!customer||!unit||!qty||!date||(type==='SET'?!setCode:!part)){statusEl.textContent=type==='SET'?'Customer, Set, unit, number of sets and scheduled date are required.':'Customer, part code, unit, quantity and scheduled date are required.';statusEl.className='status-msg err';return;}
@@ -2240,7 +2237,7 @@ function initDispatchHistoryFilters() {
   const currentUnit = unitEl.value;
   const currentUom = uomEl.value;
 
-  if (role === 'dispatch' && unit) {
+  if (['dispatch','ppc','viewonly'].includes(role) && unit) {
     unitEl.innerHTML = `<option value="${esc(unit)}">${esc(unit)}</option>`;
     unitEl.value = unit;
     unitEl.disabled = true;
@@ -2347,7 +2344,7 @@ function clearDispatchHistoryFilters() {
   const unitEl = document.getElementById('dh-unit');
   const uomEl = document.getElementById('dh-uom');
   if (uomEl) uomEl.value = '';
-  if (unitEl) unitEl.value = role === 'dispatch' && unit ? unit : '';
+  if (unitEl) unitEl.value = ['dispatch','ppc','viewonly'].includes(role) && unit ? unit : '';
   renderDispatchHistory();
 }
 
@@ -2511,14 +2508,14 @@ let bulkDispatchShipTo = {};
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function addPPCBulkRow(seed={}){
-  ppcBulkRows.push({customer:String(SESSION?.assignedCustomer||''),customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
+  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
   renderPPCBulkRows();
 }
 function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
 function renderPPCBulkRows(){
  const tb=document.querySelector('#ppc-order-bulk-table tbody');if(!tb)return;if(!ppcBulkRows.length)addPPCBulkRow();
  tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr>
- <td><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc((String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer)?SESSION.assignedCustomer:r.customer)}" placeholder="Customer" autocomplete="off" ${String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer?'disabled':''}></td><td><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
+ <td><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"></td><td><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
  <td><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></td>
  <td>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets Configured —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
  <td>${String(SESSION?.role||'').toLowerCase()==='owner'?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td><td><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"></td><td>${r.orderType==='SET'?`<select data-p="uom" data-i="${i}" disabled><option value="Set" selected>Set</option></select>`:`<select data-p="uom" data-i="${i}">${(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter']).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}</td><td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td><td><input data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td><td><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"></td><td><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Ship-to Address" autocomplete="off"></td><td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})">×</button></td></tr>`).join('');
@@ -2718,7 +2715,7 @@ function renderSetBuilder(){
     <td class="row-no">${i+1}</td>
     <td><input data-sb="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Select / type part code" autocomplete="off"></td>
     <td class="size-col"><input data-sb="size" data-i="${i}" value="${esc(r.size)}" placeholder="e.g. 300 × 450 mm" autocomplete="off"></td>
-    <td class="unit-col"><select data-sb="unit" data-i="${i}">${units.map(u=>`<option value="${esc(u)}" ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
+    <td class="unit-col">${String(SESSION?.role||'').toLowerCase()==='owner' ? `<select data-sb="unit" data-i="${i}">${units.map(u=>`<option value="${esc(u)}" ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>` : `<select data-sb="unit" data-i="${i}" disabled title="Locked to your assigned unit"><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td>
     <td><button class="btn-ghost btn-small" onclick="removeSetBuilderRow(${i})" title="Remove">×</button></td>
   </tr>`).join('');
   tb.querySelectorAll('[data-sb]').forEach(el=>el.addEventListener('input',()=>{
@@ -2728,8 +2725,6 @@ function renderSetBuilder(){
   }));
   updateSetBuilderSummary();
   lockCustomerFieldsForSession();
-  const sbCustomer=document.getElementById('set-builder-customer');
-  if(sbCustomer && String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer) sbCustomer.value=SESSION.assignedCustomer;
 }
 function updateSetBuilderSummary(){
   const el=document.getElementById('set-builder-summary');if(!el)return;
@@ -2745,7 +2740,7 @@ async function savePPCSet(){
   const st=document.getElementById('set-builder-status');
   const code=document.getElementById('set-builder-code').value.trim();
   const name=document.getElementById('set-builder-name').value.trim();
-  const customer=(document.getElementById('set-builder-customer').value.trim() || String(SESSION?.assignedCustomer||'').trim());
+  const customer=document.getElementById('set-builder-customer').value.trim();
   const valid=setBuilderRows.map(r=>({...r,partCode:String(r.partCode||'').trim(),size:String(r.size||'').trim()})).filter(r=>r.partCode);
   if(!code||!name){st.textContent='Set Code and Set Name are required.';st.className='status-msg err';return;}
   if(!valid.length){st.textContent='Add at least one child article.';st.className='status-msg err';return;}
