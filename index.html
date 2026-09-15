@@ -2836,14 +2836,42 @@ function renderUsersList(){
  const box=document.getElementById('u-list');if(!box)return;if(!usersState.length){box.innerHTML='<div class="empty">No users yet.</div>';return;}
  box.innerHTML=usersState.map(u=>`<div class="config-row"><span><b>${esc(u.DisplayName||u.Username)}</b> · ${esc(u.Username)} · <span class="pill pill-role">${esc(u.Role)}</span> ${u.AssignedUnit?'· '+esc(u.AssignedUnit):''} ${u.AssignedCustomer?'· '+esc(u.AssignedCustomer):''}</span><span class="action-cell"><button class="btn-ghost btn-small" onclick="promptResetPassword('${esc(u.Username)}')">Reset PW</button><button class="btn-ghost btn-small" onclick="promptDeleteUser('${esc(u.Username)}')">Delete</button></span></div>`).join('');
 }
+function getAdminRoleOptions_(){
+  const seen=new Set(), out=[];
+  const add=(name)=>{const n=String(name||'').trim(); if(!n)return; const k=n.toLowerCase(); if(seen.has(k))return; seen.add(k); out.push(n);};
+  (data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false').forEach(r=>add(r.RoleName));
+  // Always keep the built-in roles available, even if an older deployment has not populated Roles yet.
+  ['Owner','Admin','Editor','ViewOnly','PPC','Dispatch','PPC + Dispatch'].forEach(add);
+  usersState.forEach(u=>add(u.Role));
+  return out;
+}
 function populateAdminUserDropdowns(){
- const userSel=document.getElementById('admin-user-name');if(userSel)userSel.innerHTML='<option value="">— Select user —</option>'+usersState.map(u=>`<option value="${esc(u.Username)}">${esc(u.DisplayName||u.Username)} · ${esc(u.Username)}</option>`).join('');
- if(userSel&&!userSel.dataset.scopeBound){userSel.addEventListener('change',()=>{const u=usersState.find(x=>String(x.Username)===String(userSel.value));const ue=document.getElementById('admin-user-unit'),ce=document.getElementById('admin-user-customer');if(ue)ue.value=u?.AssignedUnit||'';if(ce)ce.value=u?.AssignedCustomer||'';});userSel.dataset.scopeBound='1';}
- const roleSel=document.getElementById('admin-user-role');if(roleSel){const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');roleSel.innerHTML='<option value="">— Select role —</option>'+roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('');}
+ const userSel=document.getElementById('admin-user-name');
+ if(userSel)userSel.innerHTML='<option value="">— Select user —</option>'+usersState.map(u=>`<option value="${esc(u.Username)}">${esc(u.DisplayName||u.Username)} · ${esc(u.Username)}</option>`).join('');
+ if(userSel&&!userSel.dataset.scopeBound){
+   userSel.addEventListener('change',()=>{
+     const u=usersState.find(x=>String(x.Username)===String(userSel.value));
+     const ue=document.getElementById('admin-user-unit'),ce=document.getElementById('admin-user-customer'),re=document.getElementById('admin-user-role');
+     if(ue)ue.value=u?.AssignedUnit||'';
+     if(ce)ce.value=u?.AssignedCustomer||'';
+     if(re){ const role=u?.Role||''; if(role && ![...re.options].some(o=>o.value.toLowerCase()===role.toLowerCase())) re.insertAdjacentHTML('beforeend',`<option value="${esc(role)}">${esc(role)}</option>`); re.value=role; }
+   });
+   userSel.dataset.scopeBound='1';
+ }
+ const roleSel=document.getElementById('admin-user-role');
+ if(roleSel){
+   const current=roleSel.value;
+   roleSel.innerHTML='<option value="">— Select role —</option>'+getAdminRoleOptions_().map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+   if(current)roleSel.value=current;
+ }
 }
 function populateNewUserRoleDropdown(){
- const sel=document.getElementById('u-new-role');if(!sel)return;const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');sel.innerHTML=roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('')||'<option>Owner</option><option>PPC</option><option>Dispatch</option><option>Editor</option><option>ViewOnly</option>';
+ const sel=document.getElementById('u-new-role');if(!sel)return;
+ const current=sel.value;
+ sel.innerHTML=getAdminRoleOptions_().map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+ if(current)sel.value=current;
 }
+
 async function createNewUser(){
  const st=document.getElementById('u-new-status'),username=document.getElementById('u-new-username').value.trim(),displayName=document.getElementById('u-new-displayname').value.trim(),password=document.getElementById('u-new-password').value,role=document.getElementById('u-new-role').value,unit=document.getElementById('u-new-unit').value,assignedCustomer=document.getElementById('u-new-customer').value.trim();
  if(!username||!password||!role){st.textContent='Username, password and role are required.';st.className='status-msg err';return;}
