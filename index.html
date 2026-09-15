@@ -1406,68 +1406,38 @@ function doLogout() {
 
 function applyRoleUI() {
   const role = String(SESSION?.role || '').trim().toLowerCase();
+  const roles = role.split(/[+,|&\/]+/).map(x => x.trim()).filter(Boolean);
+  const hasRole = r => roles.includes(r);
+  const isOwner = hasRole('owner'), isPPC = hasRole('ppc'), isDispatch = hasRole('dispatch'), isAdmin = hasRole('admin');
   const perms = new Set((data?.v2 && data.v2.permissions) || []);
-  const can = p => role === 'owner' || perms.has(p);
-
-  // Navigation is role-specific and intentionally simple.
+  const can = p => isOwner || perms.has(p);
   const allowed = new Set(['orders','stock','complaints','discussion']);
-  if (role === 'owner' || role === 'dispatch' || can('view_dispatch')) allowed.add('dispatch-history');
-  if (role === 'owner' || role === 'ppc' || role === 'admin' || can('create_orders')) {
-    allowed.add('multiple');
-    allowed.add('new');
-  }
-  if (role === 'owner' || role === 'ppc') allowed.add('sets');
-  if (role === 'owner' || role === 'dispatch' || (can('view_dispatch') && can('mark_dispatched') && role !== 'ppc')) {
-    allowed.add('multiple');
-    allowed.add('new');
-  }
-  if (role === 'owner' || role === 'admin' || can('access_admin_panel')) allowed.add('admin');
-
-  document.querySelectorAll('.tab').forEach(t => {
-    t.style.display = allowed.has(t.dataset.tab) ? '' : 'none';
-  });
-
-  const multipleTab = document.getElementById('multiple-tab');
-  const newTab = document.getElementById('new-tab');
-  const setsTab = document.getElementById('sets-tab');
-  if (multipleTab) multipleTab.textContent = role === 'dispatch' ? 'Multiple Dispatch' : 'Multiple Orders';
-  if (newTab) newTab.textContent = role === 'dispatch' ? 'Single Dispatch' : 'New Order';
-  if (setsTab) setsTab.textContent = role === 'dispatch' ? 'Sets' : 'Sets';
-
-  const setBuilderCard = document.getElementById('set-builder-card');
-  if (setBuilderCard) setBuilderCard.style.display = role === 'ppc' || role === 'owner' ? '' : 'none';
-
-  const ppcCard = document.getElementById('ppc-multiple-card');
-  const dispatchMulti = document.getElementById('dispatch-multiple-card');
-  const singleOrderCard = document.getElementById('single-order-card');
-  const dispatchEntryCard = document.getElementById('dispatch-entry-card');
-  if (ppcCard) ppcCard.style.display = role === 'ppc' || role === 'owner' || role === 'admin' ? '' : 'none';
-  if (dispatchMulti) dispatchMulti.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
-  if (singleOrderCard) singleOrderCard.style.display = role === 'dispatch' ? 'none' : '';
-  if (dispatchEntryCard) dispatchEntryCard.style.display = role === 'dispatch' || role === 'owner' ? '' : 'none';
-  const singleTitle = document.getElementById('single-order-title');
-  if (singleTitle) singleTitle.textContent = role === 'dispatch' ? 'Single Dispatch' : 'New Order';
-
-  // PPC never receives actual dispatch controls. Backend also enforces this.
-  if (role === 'ppc') {
-    const modeEl = document.getElementById('d-mode');
-    if (modeEl) modeEl.value = 'pending';
-  }
-
-  const stockAdminCard = document.getElementById('stock-admin-card');
-  if (stockAdminCard) stockAdminCard.style.display = ['owner','dispatch','ppc'].includes(role) ? '' : 'none';
-
-  const adminBadge = document.getElementById('admin-role-badge');
-  if (adminBadge) adminBadge.textContent = (SESSION?.displayName || SESSION?.username || '') + ' · ' + (SESSION?.role || '');
-
-  const activeTab = document.querySelector('.tab.active');
-  if (activeTab && activeTab.style.display === 'none') switchTab('orders');
+  if (isOwner || isDispatch || can('view_dispatch')) allowed.add('dispatch-history');
+  if (isOwner || isPPC || isAdmin || can('create_orders')) { allowed.add('multiple'); allowed.add('new'); }
+  if (isOwner || isPPC) allowed.add('sets');
+  if (isOwner || isDispatch || can('mark_dispatched')) { allowed.add('multiple'); allowed.add('new'); }
+  if (isOwner || isAdmin || can('access_admin_panel')) allowed.add('admin');
+  document.querySelectorAll('.tab').forEach(t => { t.style.display = allowed.has(t.dataset.tab) ? '' : 'none'; });
+  const multipleTab=document.getElementById('multiple-tab'), newTab=document.getElementById('new-tab'), setsTab=document.getElementById('sets-tab');
+  if(multipleTab) multipleTab.textContent=isDispatch&&!isPPC?'Multiple Dispatch':'Multiple Orders';
+  if(newTab) newTab.textContent=isDispatch&&!isPPC?'Single Dispatch':'New Order';
+  if(setsTab) setsTab.textContent='Sets';
+  const setBuilderCard=document.getElementById('set-builder-card'); if(setBuilderCard) setBuilderCard.style.display=isPPC||isOwner?'':'none';
+  const ppcCard=document.getElementById('ppc-multiple-card'); if(ppcCard) ppcCard.style.display=isPPC||isOwner||isAdmin?'':'none';
+  const dispatchMulti=document.getElementById('dispatch-multiple-card'); if(dispatchMulti) dispatchMulti.style.display=isDispatch||isOwner?'':'none';
+  const singleOrderCard=document.getElementById('single-order-card'); if(singleOrderCard) singleOrderCard.style.display=isDispatch&&!isPPC?'none':'';
+  const dispatchEntryCard=document.getElementById('dispatch-entry-card'); if(dispatchEntryCard) dispatchEntryCard.style.display=isDispatch||isOwner?'':'none';
+  const singleTitle=document.getElementById('single-order-title'); if(singleTitle) singleTitle.textContent=isDispatch&&!isPPC?'Single Dispatch':'New Order';
+  if(isPPC&&!isDispatch){ const modeEl=document.getElementById('d-mode'); if(modeEl) modeEl.value='pending'; }
+  const stockAdminCard=document.getElementById('stock-admin-card'); if(stockAdminCard) stockAdminCard.style.display=isOwner||isDispatch||isPPC?'':'none';
+  const adminBadge=document.getElementById('admin-role-badge'); if(adminBadge) adminBadge.textContent=(SESSION?.displayName||SESSION?.username||'')+' · '+(SESSION?.role||'');
+  const activeTab=document.querySelector('.tab.active'); if(activeTab&&activeTab.style.display==='none') switchTab('orders');
 }
 
 function lockUnitFieldsForSession(){
   const role=String(SESSION?.role||'').trim().toLowerCase();
   const unit=String(SESSION?.unit||'').trim();
-  const restricted=['ppc','dispatch','viewonly'].includes(role);
+  const restricted=role.split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean).some(r=>['ppc','dispatch','viewonly'].includes(r));
   ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
