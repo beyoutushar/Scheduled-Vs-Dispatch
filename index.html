@@ -997,7 +997,7 @@ body {
       </div>
       <div class="table-scroll">
         <table id="dispatch-history-table">
-          <thead><tr><th>Date</th><th>Order ID</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Logged At</th></tr></thead>
+          <thead><tr><th>Date</th><th>Order ID</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Dispatched By</th><th>Logged At</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -2302,7 +2302,8 @@ function renderDispatchHistory() {
       qty: Number(l.DispatchedQty || 0),
       uom: l.UOM || o.UOM || 'Nos',
       dispatchDate: l.DispatchedDate || '',
-      loggedAt: l.LoggedAt || ''
+      loggedAt: l.LoggedAt || '',
+      dispatchedBy: l.DispatchedByName || l.DispatchedBy || '—'
     };
   });
 
@@ -2317,7 +2318,7 @@ function renderDispatchHistory() {
   if (to) rows = rows.filter(r => dispatchHistoryDateKey(r.dispatchDate) <= to);
 
   if (q) {
-    rows = rows.filter(r => [r.orderId,r.customer,r.partCode,r.unit,r.shipTo,r.qty,r.uom,r.log.Note || '',r.log.LogID || '']
+    rows = rows.filter(r => [r.orderId,r.customer,r.partCode,r.unit,r.shipTo,r.qty,r.uom,r.log.Note || '',r.dispatchedBy || '',r.log.LogID || '']
       .join(' ').toLowerCase().includes(q));
   }
 
