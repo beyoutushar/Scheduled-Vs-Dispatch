@@ -1477,8 +1477,8 @@ function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   document.getElementById('role-badge').textContent = SESSION.displayName + ' · ' + SESSION.role + (SESSION.unit ? ' (' + SESSION.unit + ')' : '') + (SESSION.assignedCustomer ? ' · ' + SESSION.assignedCustomer : '');
-  document.getElementById('csv-btn').style.display = String(SESSION.role).toLowerCase() === 'owner' ? 'inline-block' : 'none';
-  document.getElementById('scope-sub').textContent = (SESSION.unit && !['owner','admin'].includes(String(SESSION.role).toLowerCase()))
+  document.getElementById('csv-btn').style.display = isOwnerUI() ? 'inline-block' : 'none';
+  document.getElementById('scope-sub').textContent = (SESSION.unit && !(isOwnerUI() || hasRoleUI('admin')))
     ? 'Showing orders for ' + SESSION.unit + (SESSION.assignedCustomer ? ' · ' + SESSION.assignedCustomer : '') + ' only'
     : (SESSION.assignedCustomer ? 'Showing ' + SESSION.assignedCustomer + ' orders' : 'Live order tracking across all units');
 
@@ -1740,7 +1740,7 @@ function renderTable() {
   const rows = getFiltered();
   const tbl = document.getElementById('orders-table');
   const empty = document.getElementById('orders-empty');
-  const canBulk = SESSION && (SESSION.role === 'Owner' || (data.v2.permissions||[]).includes('edit_orders'));
+  const canBulk = SESSION && (isOwnerUI() || (data.v2.permissions||[]).includes('edit_orders'));
   tbl.querySelector('thead').innerHTML = `<tr>
     <th class="select-col"><input id="select-all-orders" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" ${rows.length && rows.every(o=>selectedOrders.has(String(o.OrderID)))?'checked':''}></th>
     <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>UOM</th><th>Priority</th><th>Order Qty</th>
@@ -1756,8 +1756,8 @@ function renderTable() {
     const pct=orderQty?Math.min(100,Math.round(dispatched/orderQty*100)):0;
     const statusPill=o.Status==='Completed'?'pill-completed':'pill-pending';
     const prioPill=o.Priority==='High'?'pill-high':o.Priority==='Low'?'pill-low':'pill-medium';
-    const canEdit=SESSION && (SESSION.role==='Owner'||(data.v2.permissions||[]).includes('edit_orders'));
-    const canAdd=SESSION && (SESSION.role==='Owner'||(data.v2.permissions||[]).includes('add_additional_qty')) && plan && String(plan.Status).toLowerCase()==='finalized';
+    const canEdit=SESSION && (isOwnerUI()||(data.v2.permissions||[]).includes('edit_orders'));
+    const canAdd=SESSION && (isOwnerUI()||(data.v2.permissions||[]).includes('add_additional_qty')) && plan && String(plan.Status).toLowerCase()==='finalized';
     const action=(canEdit?`<button class="btn-ghost btn-small" onclick="openEditOrder('${esc(o.OrderID)}')">Edit</button>`:'') + (canAdd?` <button class="btn-primary btn-small" onclick="openAdditionalQty('${esc(o.OrderID)}')">+ Qty</button>`:'');
     return `<tr>
       <td class="select-col">${canBulk?`<input class="row-check" type="checkbox" data-order-id="${esc(o.OrderID)}" onchange="toggleOrderSelection('${esc(o.OrderID)}',this.checked)" ${selectedOrders.has(String(o.OrderID))?'checked':''}>`:''}</td>
@@ -1777,7 +1777,7 @@ function renderTable() {
 
 function updateBulkBar(){
   const bar=document.getElementById('bulkbar'); if(!bar)return;
-  const canBulk=SESSION&&(SESSION.role==='Owner'||(data.v2.permissions||[]).includes('edit_orders'));
+  const canBulk=SESSION&&(isOwnerUI()||(data.v2.permissions||[]).includes('edit_orders'));
   bar.classList.toggle('show',canBulk&&selectedOrders.size>0);
   document.getElementById('bulk-count').textContent=selectedOrders.size+' selected';
 }
@@ -2144,7 +2144,7 @@ async function submitOrder() {
 async function submitDispatch() {
   const mode=document.getElementById('d-mode').value, type=document.getElementById('d-dispatch-type')?.value||'STANDARD', setOrderId=document.getElementById('d-set-order')?.value||'', orderId=document.getElementById('d-order').value, qty=document.getElementById('d-qty').value, unit=document.getElementById('d-unit').value, shipToParty=document.getElementById('d-shipto').value.trim(), shipToAddress=document.getElementById('d-shipto-address')?.value.trim()||'', date=document.getElementById('d-date').value, dept=document.getElementById('d-dept').value, reason=document.getElementById('d-reason').value.trim(), statusEl=document.getElementById('dispatch-status');
   if(mode==='pending'){if(!orderId){statusEl.textContent='Select an order.';statusEl.className='status-msg err';return;}if(!dept||!reason){statusEl.textContent='For Still Pending, select the department and enter the reason.';statusEl.className='status-msg err';return;}try{const res=await postAction({action:'updatePending',orderId,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.PendingQty=res.pending;o.PendingDepartment=dept;o.PendingReason=reason;o.Status='Pending';}statusEl.textContent=`✓ Still pending — ${res.pending} quantity pending.`;statusEl.className='status-msg ok';renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}return;}
-  if(SESSION.role==='PPC'){statusEl.textContent='PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';statusEl.className='status-msg err';return;}
+  if(isPPCUI()){statusEl.textContent='PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';statusEl.className='status-msg err';return;}
   if(type==='SET'){
     if(!setOrderId||!qty||!unit||!shipToParty||!date){statusEl.textContent='For Set dispatch, select the Set Order and enter quantity, unit, Ship To Party and date.';statusEl.className='status-msg err';return;}
     statusEl.textContent='Dispatching set…';statusEl.className='status-msg';try{const res=await postAction({action:'dispatchSet',setOrderId,setQty:qty,unit,shipToParty,shipToAddress,dispatchedDate:date,note:reason});if(res.error)throw new Error(res.error);
@@ -2243,7 +2243,7 @@ function initDispatchHistoryFilters() {
   const currentUnit = unitEl.value;
   const currentUom = uomEl.value;
 
-  if (['dispatch','ppc','viewonly'].includes(role) && unit) {
+  if ((isDispatchUI()||isPPCUI()||isViewOnlyUI()) && unit) {
     unitEl.innerHTML = `<option value="${esc(unit)}">${esc(unit)}</option>`;
     unitEl.value = unit;
     unitEl.disabled = true;
@@ -2307,7 +2307,7 @@ function renderDispatchHistory() {
   });
 
   // Defense-in-depth: Dispatch users can only see their assigned unit.
-  if (role === 'dispatch' && sessionUnit) {
+  if (isDispatchUI() && sessionUnit) {
     rows = rows.filter(r => String(r.unit).trim() === sessionUnit);
   }
 
@@ -2351,7 +2351,7 @@ function clearDispatchHistoryFilters() {
   const unitEl = document.getElementById('dh-unit');
   const uomEl = document.getElementById('dh-uom');
   if (uomEl) uomEl.value = '';
-  if (unitEl) unitEl.value = ['dispatch','ppc','viewonly'].includes(role) && unit ? unit : '';
+  if (unitEl) unitEl.value = (isDispatchUI()||isPPCUI()||isViewOnlyUI()) && unit ? unit : '';
   renderDispatchHistory();
 }
 
@@ -2493,7 +2493,7 @@ function renderComplaints(){
     const comments=(data.complaintComments||[]).filter(x=>String(x.ComplaintID)===String(c.ComplaintID));
     const statusClass=c.Status==='Closed'?'pill-completed':c.Status==='Working'?'pill-medium':'pill-pending';
     const priorityClass=c.Priority==='High'?'pill-high':c.Priority==='Low'?'pill-low':'pill-medium';
-    const closeBtn=SESSION.role==='Owner'&&c.Status!=='Closed'?`<button class="btn-primary btn-small" onclick="closeComplaint('${esc(c.ComplaintID)}')">Close</button>`:'';
+    const closeBtn=isOwnerUI()&&c.Status!=='Closed'?`<button class="btn-primary btn-small" onclick="closeComplaint('${esc(c.ComplaintID)}')">Close</button>`:'';
     return `<div class="complaint-card"><div class="complaint-head"><div><b>${esc(c.Title || c.Subject)}</b><div class="sub">${esc(c.ComplaintID)} · ${esc(c.RaisedByName)} · ${esc(c.Unit||'All Units')} · ${fmtDateTime(c.CreatedAt || c.RaisedAt)}</div></div><div><span class="pill ${priorityClass}">${esc(c.Priority)}</span> <span class="pill ${statusClass}">${esc(c.Status)}</span> ${closeBtn}</div></div><p style="white-space:pre-wrap;">${esc(c.Description)}</p><div>${comments.map(m=>`<div class="comment"><div class="chat-meta"><b>${esc(m.DisplayName)}</b> · ${esc(m.Role)} ${m.Unit?'· '+esc(m.Unit):''} · ${fmtDateTime(m.CreatedAt)}</div><div class="chat-text">${esc(m.Comment)}</div></div>`).join('')}</div>${c.Status!=='Closed'?`<div style="margin-top:10px;display:flex;gap:8px;"><input id="comment-${esc(c.ComplaintID)}" placeholder="Add a comment..."><button class="btn-ghost btn-small" onclick="addComplaintComment('${esc(c.ComplaintID)}')">Comment</button></div>`:''}${c.Resolution?`<div class="sub" style="margin-top:10px;"><b>Resolution:</b> ${esc(c.Resolution)} · Closed by ${esc(c.ClosedBy||'')}</div>`:''}</div>`;
   }).join('');
 }
@@ -2528,7 +2528,7 @@ function renderPPCBulkRows(){
  <td>${String(SESSION?.role||'').toLowerCase()==='owner'?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td><td><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"></td><td>${r.orderType==='SET'?`<select data-p="uom" data-i="${i}" disabled><option value="Set" selected>Set</option></select>`:`<select data-p="uom" data-i="${i}">${(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter']).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}</td><td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td><td><input data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td><td><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"></td><td><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Ship-to Address" autocomplete="off"></td><td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})">×</button></td></tr>`).join('');
  tb.querySelectorAll('[data-p]').forEach(el=>el.addEventListener('input',()=>{
    const i=Number(el.dataset.i), field=el.dataset.p;
-   if(field==='unit' && ['ppc','dispatch'].includes(String(SESSION?.role||'').toLowerCase()) && SESSION?.unit){
+   if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){
      ppcBulkRows[i].unit=SESSION.unit;
      el.value=SESSION.unit;
    } else {
@@ -2613,6 +2613,15 @@ async function saveBulkDispatch(){
   }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
 
+function hasRoleUI(name){
+  const raw=String(SESSION?.role||'').toLowerCase();
+  return raw.split(/[+,|&\/]+/).map(x=>x.trim()).includes(String(name).toLowerCase());
+}
+function isOwnerUI(){return hasRoleUI('owner');}
+function isPPCUI(){return hasRoleUI('ppc');}
+function isDispatchUI(){return hasRoleUI('dispatch');}
+function isViewOnlyUI(){return hasRoleUI('viewonly');}
+
 const PERMISSION_LABELS = {
   view_orders:'View orders', edit_orders:'Edit orders', create_orders:'Create new orders', delete_orders:'Delete orders',
   view_dispatch:'View dispatch history', edit_dispatch:'Correct dispatch entries', mark_dispatched:'Log a dispatch',
@@ -2629,7 +2638,7 @@ function renderAdminPermissionChecklist(){
 function renderV2(){
   const v=data.v2||{};
   const admin=document.querySelector('.tab[data-tab="admin"]');
-  if(admin) admin.style.display=(SESSION.role==='Owner'||(v.permissions||[]).includes('access_admin_panel'))?'':'none';
+  if(admin) admin.style.display=(isOwnerUI()||(v.permissions||[]).includes('access_admin_panel'))?'':'none';
   renderAdminPermissionChecklist();
   const rl=document.getElementById('admin-role-list');
   if(rl) rl.innerHTML=(v.roles||[]).map(r=>`<div class="config-row"><b>${esc(r.RoleName)}</b><span>${String(r.Active).toLowerCase()!=='false'?'Active':'Inactive'}</span></div>`).join('')||'<div class="empty">No roles.</div>';
@@ -2643,7 +2652,7 @@ function renderV2(){
 }
 function renderPPCSummary(){const box=document.getElementById('ppc-summary');if(!box)return;const plans=data.v2?.plans||{}, adds=data.v2?.additional||{};const rows=data.orders.filter(o=>plans[o.OrderID]);box.innerHTML=rows.length?rows.slice(0,200).map(o=>{const p=plans[o.OrderID],a=Number(adds[o.OrderID]||0),q=Number(p.PlannedQty||0);return `<div class="config-row"><span><b>${esc(o.OrderID)}</b> · ${esc(o.Customer)} · ${esc(o.PartCode)}</span><span>${q.toLocaleString()} + ${a.toLocaleString()} = ${(q+a).toLocaleString()} · ${esc(p.Status)} · ${esc(p.FinalizedByName||p.FinalizedBy||p.UpdatedByName||'—')}</span></div>`}).join(''):'<div class="empty">No PPC plans created yet.</div>';}
 function filterPPCOrders(){const q=(document.getElementById('ppc-order-search').value||'').toLowerCase().trim(),box=document.getElementById('ppc-order-results');ppcSearchIndex=data.orders;const rows=q?ppcSearchIndex.filter(o=>[o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate].join(' ').toLowerCase().includes(q)):ppcSearchIndex;box.innerHTML=rows.slice(0,100).map(o=>`<button type="button" class="order-result" onclick="selectPPCOrder('${esc(o.OrderID)}')"><div class="order-result-main">${esc(o.Customer)} · ${esc(o.PartCode)} · ${esc(o.Unit)}</div><div class="order-result-meta">${esc(o.OrderID)} · ${Number(o.OrderQty||0).toLocaleString()} ordered</div></button>`).join('')||'<div class="order-no-results">No orders found.</div>';box.classList.add('open');}
-function selectPPCOrder(id){const o=data.orders.find(x=>String(x.OrderID)===String(id));if(!o)return;document.getElementById('ppc-order').value=o.OrderID;document.getElementById('ppc-order-search').value=`${o.Customer} — ${o.PartCode} [${o.Unit}]`;document.getElementById('ppc-order-results').classList.remove('open');const p=(data.v2.plans||{})[o.OrderID];document.getElementById('ppc-planned-qty').value=p?.PlannedQty||o.OrderQty||'';document.getElementById('ppc-plan-status').value=p?.Status||'Draft';document.getElementById('ppc-order-info').textContent=`Order quantity: ${Number(o.OrderQty||0).toLocaleString()} ${esc(o.UOM||'Nos')} · Current dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}`;document.getElementById('ppc-unlock-btn').style.display=(SESSION.role==='Owner'&&p?.Status==='Finalized')?'inline-block':'none';}
+function selectPPCOrder(id){const o=data.orders.find(x=>String(x.OrderID)===String(id));if(!o)return;document.getElementById('ppc-order').value=o.OrderID;document.getElementById('ppc-order-search').value=`${o.Customer} — ${o.PartCode} [${o.Unit}]`;document.getElementById('ppc-order-results').classList.remove('open');const p=(data.v2.plans||{})[o.OrderID];document.getElementById('ppc-planned-qty').value=p?.PlannedQty||o.OrderQty||'';document.getElementById('ppc-plan-status').value=p?.Status||'Draft';document.getElementById('ppc-order-info').textContent=`Order quantity: ${Number(o.OrderQty||0).toLocaleString()} ${esc(o.UOM||'Nos')} · Current dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}`;document.getElementById('ppc-unlock-btn').style.display=(isOwnerUI()&&p?.Status==='Finalized')?'inline-block':'none';}
 async function savePPCPlan(){
   const id=document.getElementById('ppc-order').value, qty=Number(document.getElementById('ppc-planned-qty').value);
   const st=document.getElementById('ppc-status');
@@ -2848,7 +2857,7 @@ async function promptDeleteUser(username){if(!confirm('Delete user "'+username+'
 function fmtDateTime(v){if(!v)return '—';const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleString();}
 
 function exportCSV() {
-  if (SESSION.role !== 'Owner') return;
+  if (!isOwnerUI()) return;
   const rows = getFiltered();
   const headers = ['Order ID','Customer','Location','Part Code','Unit','Priority','Order Qty','Dispatched Qty','Pending Qty',
     'Scheduled Date','Ship To Party','Ship-to Address','Pending Department','Pending Reason','Status'];
