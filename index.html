@@ -1031,19 +1031,26 @@ body {
         <div class="field"><label>New Role</label><select id="admin-user-role"><option value="">— Select role —</option></select></div>
         <button class="btn-primary btn-block" onclick="assignAdminUserRole()">Save Role</button>
         <div class="status-msg" id="admin-user-status"></div>
+        <div class="grid" style="margin-top:10px;">
+          <div class="field"><label>Assigned Unit</label><select id="admin-user-unit"><option value="">— Global / No specific unit —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+          <div class="field"><label>Assigned Customer / Department</label><input id="admin-user-customer" placeholder="BAJAJ / WHIRLPOOL / IKEA"></div>
+        </div>
+        <button class="btn-ghost btn-block" onclick="assignAdminUserScope()">Save Work Scope</button>
+        <div class="status-msg" id="admin-user-scope-status"></div>
       </div>
 
       <div class="admin-panel" style="grid-column:span 2;">
         <div class="admin-panel-head"><div class="admin-panel-icon">👤</div><h2>Employees & Login Accounts</h2></div>
-        <div class="admin-help">Create the login that an employee will use to enter the MIS. Choose their role and, for PPC/Dispatch users, the unit they belong to.</div>
+        <div class="admin-help">Create the login that an employee will use to enter the MIS. Choose their role, work unit and optional customer/department scope.</div>
         <div class="grid">
           <div class="field"><label>Username</label><input id="u-new-username" placeholder="Example: ppc_unit1"></div>
           <div class="field"><label>Employee Name</label><input id="u-new-displayname" placeholder="Example: Rahul Kumar"></div>
           <div class="field"><label>Temporary Password</label><input id="u-new-password" type="password" placeholder="Minimum 4 characters"></div>
           <div class="field"><label>Job Role</label><select id="u-new-role"></select></div>
           <div class="field"><label>Work Unit</label><select id="u-new-unit"><option value="">— Global / No specific unit —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+          <div class="field"><label>Assigned Customer / Department</label><input id="u-new-customer" placeholder="e.g. BAJAJ / WHIRLPOOL / IKEA"></div>
         </div>
-        <div class="admin-tip"><b>Example:</b> PPC + Unit 1 means this person works only with Unit 1. They will not be allowed to switch to another unit.</div>
+        <div class="admin-tip"><b>Example:</b> PPC + Unit 1 + BAJAJ means this person sees and works only with BAJAJ orders in Unit 1. Leave customer blank if they should handle all customers in their assigned unit.</div>
         <button class="btn-primary btn-block" onclick="createNewUser()">Create Employee Login</button>
         <div class="status-msg" id="u-new-status"></div>
         <div class="config-list" id="u-list" style="margin-top:14px;"></div>
@@ -1363,6 +1370,7 @@ async function doLogin() {
       username: result.username,
       role: result.role,
       unit: result.unit,
+      assignedCustomer: result.assignedCustomer || '',
       displayName: result.displayName
     };
 
@@ -1477,14 +1485,28 @@ function lockUnitFieldsForSession(){
   // the row-level Unit lock separately.
 }
 
+function lockCustomerFieldsForSession(){
+  const role=String(SESSION?.role||'').trim().toLowerCase();
+  const customer=String(SESSION?.assignedCustomer||'').trim();
+  const restricted=role==='ppc';
+  ['n-customer','e-customer','set-builder-customer'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    if(restricted && customer){ el.value=customer; el.disabled=true; el.title='Locked to your assigned customer'; }
+    else { el.disabled=false; el.title=''; }
+  });
+  const fc=document.getElementById('f-customer');
+  if(fc && restricted && customer){ fc.value=customer; fc.disabled=true; fc.title='Locked to your assigned customer'; }
+  else if(fc){fc.disabled=false;fc.title='';}
+}
+
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
-  document.getElementById('role-badge').textContent = SESSION.displayName + ' · ' + SESSION.role + (SESSION.unit ? ' (' + SESSION.unit + ')' : '');
+  document.getElementById('role-badge').textContent = SESSION.displayName + ' · ' + SESSION.role + (SESSION.unit ? ' (' + SESSION.unit + ')' : '') + (SESSION.assignedCustomer ? ' · ' + SESSION.assignedCustomer : '');
   document.getElementById('csv-btn').style.display = String(SESSION.role).toLowerCase() === 'owner' ? 'inline-block' : 'none';
   document.getElementById('scope-sub').textContent = (SESSION.unit && !['owner','admin'].includes(String(SESSION.role).toLowerCase()))
-    ? 'Showing orders for ' + SESSION.unit + ' only'
-    : 'Live order tracking across all units';
+    ? 'Showing orders for ' + SESSION.unit + (SESSION.assignedCustomer ? ' · ' + SESSION.assignedCustomer : '') + ' only'
+    : (SESSION.assignedCustomer ? 'Showing ' + SESSION.assignedCustomer + ' orders' : 'Live order tracking across all units');
 
   const role = String(SESSION.role || '').trim().toLowerCase();
   lockUnitFieldsForSession();
@@ -1639,9 +1661,11 @@ function populateDropdowns() {
   if (bl) bl.innerHTML = bulkLocations.map(v=>`<option value="${esc(v)}">`).join('');
   if (ba) ba.innerHTML = bulkAddresses.map(v=>`<option value="${esc(v)}">`).join('');
   lockUnitFieldsForSession();
+  lockCustomerFieldsForSession();
 
   const fc = document.getElementById('f-customer');
   fc.innerHTML = '<option value="">All customers</option>' + data.customers.map(c => `<option>${esc(c)}</option>`).join('');
+  if (String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer) fc.value=SESSION.assignedCustomer;
   const fp = document.getElementById('f-part');
   fp.innerHTML = '<option value="">All part codes</option>' + data.partCodes.map(p => `<option>${esc(p)}</option>`).join('');
   const fd = document.getElementById('f-dept');
@@ -2099,7 +2123,7 @@ function toggleDispatchItemType(){
 
 async function submitOrder() {
   const type=document.getElementById('n-order-type')?.value||'STANDARD';
-  const customer=document.getElementById('n-customer').value.trim(), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=document.getElementById('n-uom').value||'Nos', priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
+  const customer=(document.getElementById('n-customer').value.trim() || String(SESSION?.assignedCustomer||'').trim()), location=document.getElementById('n-location').value.trim(), part=document.getElementById('n-part').value.trim(), setCode=document.getElementById('n-set')?.value||'', unit=document.getElementById('n-unit').value, qty=document.getElementById('n-qty').value, uom=document.getElementById('n-uom').value||'Nos', priority=document.getElementById('n-priority').value, date=document.getElementById('n-date').value, shipToParty=document.getElementById('n-shipto')?.value.trim()||'', shipToAddress=document.getElementById('n-shipto-address')?.value.trim()||'';
   const statusEl=document.getElementById('new-status');
   if(type==='SET' && !setOrderComponents.length) loadSelectedSetComponents();
   if(!customer||!unit||!qty||!date||(type==='SET'?!setCode:!part)){statusEl.textContent=type==='SET'?'Customer, Set, unit, number of sets and scheduled date are required.':'Customer, part code, unit, quantity and scheduled date are required.';statusEl.className='status-msg err';return;}
@@ -2487,14 +2511,14 @@ let bulkDispatchShipTo = {};
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function addPPCBulkRow(seed={}){
-  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
+  ppcBulkRows.push({customer:String(SESSION?.assignedCustomer||''),customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
   renderPPCBulkRows();
 }
 function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
 function renderPPCBulkRows(){
  const tb=document.querySelector('#ppc-order-bulk-table tbody');if(!tb)return;if(!ppcBulkRows.length)addPPCBulkRow();
  tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr>
- <td><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"></td><td><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
+ <td><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc((String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer)?SESSION.assignedCustomer:r.customer)}" placeholder="Customer" autocomplete="off" ${String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer?'disabled':''}></td><td><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
  <td><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></td>
  <td>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets Configured —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
  <td>${String(SESSION?.role||'').toLowerCase()==='owner'?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td><td><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"></td><td>${r.orderType==='SET'?`<select data-p="uom" data-i="${i}" disabled><option value="Set" selected>Set</option></select>`:`<select data-p="uom" data-i="${i}">${(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter']).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}</td><td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td><td><input data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td><td><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"></td><td><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Ship-to Address" autocomplete="off"></td><td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})">×</button></td></tr>`).join('');
@@ -2703,6 +2727,9 @@ function renderSetBuilder(){
     updateSetBuilderSummary();
   }));
   updateSetBuilderSummary();
+  lockCustomerFieldsForSession();
+  const sbCustomer=document.getElementById('set-builder-customer');
+  if(sbCustomer && String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer) sbCustomer.value=SESSION.assignedCustomer;
 }
 function updateSetBuilderSummary(){
   const el=document.getElementById('set-builder-summary');if(!el)return;
@@ -2718,7 +2745,7 @@ async function savePPCSet(){
   const st=document.getElementById('set-builder-status');
   const code=document.getElementById('set-builder-code').value.trim();
   const name=document.getElementById('set-builder-name').value.trim();
-  const customer=document.getElementById('set-builder-customer').value.trim();
+  const customer=(document.getElementById('set-builder-customer').value.trim() || String(SESSION?.assignedCustomer||'').trim());
   const valid=setBuilderRows.map(r=>({...r,partCode:String(r.partCode||'').trim(),size:String(r.size||'').trim()})).filter(r=>r.partCode);
   if(!code||!name){st.textContent='Set Code and Set Name are required.';st.className='status-msg err';return;}
   if(!valid.length){st.textContent='Add at least one child article.';st.className='status-msg err';return;}
@@ -2755,6 +2782,13 @@ async function assignAdminUserRole(){
  catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
 
+async function assignAdminUserScope(){
+ const st=document.getElementById('admin-user-scope-status'),username=document.getElementById('admin-user-name').value,unit=document.getElementById('admin-user-unit').value,assignedCustomer=document.getElementById('admin-user-customer').value.trim();
+ if(!username){st.textContent='Pick a user first.';st.className='status-msg err';return;}
+ st.textContent='Saving…';st.className='status-msg';
+ try{const r=await postAction({action:'assignUserScope',username,unit,assignedCustomer});if(r.error)throw new Error(r.error);st.textContent=username+' scope updated: '+(unit||'All Units')+(assignedCustomer?' · '+assignedCustomer:' · All Customers');st.className='status-msg ok';await loadUsers(true);}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+
 let usersLoaded=false;
 let usersState=[];
 async function loadUsers(force=false){
@@ -2789,20 +2823,21 @@ async function loadUsers(force=false){
 }
 function renderUsersList(){
  const box=document.getElementById('u-list');if(!box)return;if(!usersState.length){box.innerHTML='<div class="empty">No users yet.</div>';return;}
- box.innerHTML=usersState.map(u=>`<div class="config-row"><span><b>${esc(u.DisplayName||u.Username)}</b> · ${esc(u.Username)} · <span class="pill pill-role">${esc(u.Role)}</span> ${u.AssignedUnit?'· '+esc(u.AssignedUnit):''}</span><span class="action-cell"><button class="btn-ghost btn-small" onclick="promptResetPassword('${esc(u.Username)}')">Reset PW</button><button class="btn-ghost btn-small" onclick="promptDeleteUser('${esc(u.Username)}')">Delete</button></span></div>`).join('');
+ box.innerHTML=usersState.map(u=>`<div class="config-row"><span><b>${esc(u.DisplayName||u.Username)}</b> · ${esc(u.Username)} · <span class="pill pill-role">${esc(u.Role)}</span> ${u.AssignedUnit?'· '+esc(u.AssignedUnit):''} ${u.AssignedCustomer?'· '+esc(u.AssignedCustomer):''}</span><span class="action-cell"><button class="btn-ghost btn-small" onclick="promptResetPassword('${esc(u.Username)}')">Reset PW</button><button class="btn-ghost btn-small" onclick="promptDeleteUser('${esc(u.Username)}')">Delete</button></span></div>`).join('');
 }
 function populateAdminUserDropdowns(){
  const userSel=document.getElementById('admin-user-name');if(userSel)userSel.innerHTML='<option value="">— Select user —</option>'+usersState.map(u=>`<option value="${esc(u.Username)}">${esc(u.DisplayName||u.Username)} · ${esc(u.Username)}</option>`).join('');
+ if(userSel&&!userSel.dataset.scopeBound){userSel.addEventListener('change',()=>{const u=usersState.find(x=>String(x.Username)===String(userSel.value));const ue=document.getElementById('admin-user-unit'),ce=document.getElementById('admin-user-customer');if(ue)ue.value=u?.AssignedUnit||'';if(ce)ce.value=u?.AssignedCustomer||'';});userSel.dataset.scopeBound='1';}
  const roleSel=document.getElementById('admin-user-role');if(roleSel){const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');roleSel.innerHTML='<option value="">— Select role —</option>'+roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('');}
 }
 function populateNewUserRoleDropdown(){
  const sel=document.getElementById('u-new-role');if(!sel)return;const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');sel.innerHTML=roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('')||'<option>Owner</option><option>PPC</option><option>Dispatch</option><option>Editor</option><option>ViewOnly</option>';
 }
 async function createNewUser(){
- const st=document.getElementById('u-new-status'),username=document.getElementById('u-new-username').value.trim(),displayName=document.getElementById('u-new-displayname').value.trim(),password=document.getElementById('u-new-password').value,role=document.getElementById('u-new-role').value,unit=document.getElementById('u-new-unit').value;
+ const st=document.getElementById('u-new-status'),username=document.getElementById('u-new-username').value.trim(),displayName=document.getElementById('u-new-displayname').value.trim(),password=document.getElementById('u-new-password').value,role=document.getElementById('u-new-role').value,unit=document.getElementById('u-new-unit').value,assignedCustomer=document.getElementById('u-new-customer').value.trim();
  if(!username||!password||!role){st.textContent='Username, password and role are required.';st.className='status-msg err';return;}
  st.textContent='Creating…';st.className='status-msg';
- try{const r=await postAction({action:'createUser',username,password,role,unit,displayName});if(r.error)throw new Error(r.error);st.textContent='User "'+username+'" created.';st.className='status-msg ok';['u-new-username','u-new-displayname','u-new-password'].forEach(id=>document.getElementById(id).value='');await loadUsers(true);}
+ try{const r=await postAction({action:'createUser',username,password,role,unit,assignedCustomer,displayName});if(r.error)throw new Error(r.error);st.textContent='User "'+username+'" created.';st.className='status-msg ok';['u-new-username','u-new-displayname','u-new-password','u-new-customer'].forEach(id=>document.getElementById(id).value='');await loadUsers(true);}
  catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
 async function promptResetPassword(username){const p=prompt('New password for '+username+' (min 4 characters):');if(!p)return;try{const r=await postAction({action:'resetPassword',username,newPassword:p});if(r.error)throw new Error(r.error);alert('Password reset for '+username+'.');}catch(e){alert('Failed: '+e.message);}}
