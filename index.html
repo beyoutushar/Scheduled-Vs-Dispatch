@@ -997,7 +997,7 @@ body {
       </div>
       <div class="table-scroll">
         <table id="dispatch-history-table">
-          <thead><tr><th>Date</th><th>Order ID</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Dispatched By</th><th>Logged At</th></tr></thead>
+          <thead><tr><th>Date</th><th>Order ID</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Logged At</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -1591,7 +1591,7 @@ function switchTab(name) {
     if (tab) tab.classList.toggle('active', t === name);
   });
   if (name === 'multiple') {
-    if (isDispatchUI()) { renderBulkDispatchRows(); }
+    if (String(SESSION?.role||'').toLowerCase() === 'dispatch') { renderBulkDispatchRows(); }
     else { renderPPCBulkRows(); }
   }
   if (name === 'dispatch-history') { initDispatchHistoryFilters(); renderDispatchHistory(); }
@@ -1753,6 +1753,9 @@ function renderTable() {
   tbl.querySelector('tbody').innerHTML = rows.map(o => {
     const orderQty=Number(o.OrderQty||0), dispatched=Number(o.DispatchedQty||0);
     const plan=plans[o.OrderID], planned=plan?Number(plan.PlannedQty||0):0, additional=Number(adds[o.OrderID]||0), total=planned+additional;
+    const finalizedPpcActor=(plan && String(plan.Status||'').toLowerCase()==='finalized') ? (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName || '') : '';
+    const creatorIsPpc=/\bppc\b/i.test(String(o.CreatedByRole||''));
+    const ppcActor=finalizedPpcActor || (creatorIsPpc ? (o.CreatedByName || o.CreatedBy || '') : '');
     const pct=orderQty?Math.min(100,Math.round(dispatched/orderQty*100)):0;
     const statusPill=o.Status==='Completed'?'pill-completed':'pill-pending';
     const prioPill=o.Priority==='High'?'pill-high':o.Priority==='Low'?'pill-low':'pill-medium';
@@ -1768,7 +1771,7 @@ function renderTable() {
       <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td><td>${fmtDate(o.ScheduledDate)}</td>
       <td>${o.FGStatus==='In Stock'?'<span class="pill pill-completed">In Stock</span>':o.FGStatus?'<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>':'—'}</td>
       <td>${esc(o.PendingDepartment||'—')}</td><td>${esc(o.PendingReason||'—')}</td>
-      <td title="${esc(o.CreatedByName || o.CreatedBy || '—')}">${esc(actorShortName(o.CreatedByName || o.CreatedBy || ''))}</td><td title="${esc((plan && (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName)) || '—')}">${esc(actorShortName((plan && (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName)) || ''))}</td><td title="${esc(getLastDispatchActor(o.OrderID) || '—')}">${esc(actorShortName(getLastDispatchActor(o.OrderID) || ''))}</td>
+      <td title="${esc(o.CreatedByName || o.CreatedBy || '—')}">${esc(actorShortName(o.CreatedByName || o.CreatedBy || ''))}</td><td title="${esc(ppcActor || '—')}">${esc(actorShortName(ppcActor || ''))}</td><td title="${esc(getLastDispatchActor(o.OrderID) || '—')}">${esc(actorShortName(getLastDispatchActor(o.OrderID) || ''))}</td>
       <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td><td class="action-cell">${action||'—'}</td>
     </tr>`;
   }).join('');
@@ -2144,7 +2147,7 @@ async function submitOrder() {
 async function submitDispatch() {
   const mode=document.getElementById('d-mode').value, type=document.getElementById('d-dispatch-type')?.value||'STANDARD', setOrderId=document.getElementById('d-set-order')?.value||'', orderId=document.getElementById('d-order').value, qty=document.getElementById('d-qty').value, unit=document.getElementById('d-unit').value, shipToParty=document.getElementById('d-shipto').value.trim(), shipToAddress=document.getElementById('d-shipto-address')?.value.trim()||'', date=document.getElementById('d-date').value, dept=document.getElementById('d-dept').value, reason=document.getElementById('d-reason').value.trim(), statusEl=document.getElementById('dispatch-status');
   if(mode==='pending'){if(!orderId){statusEl.textContent='Select an order.';statusEl.className='status-msg err';return;}if(!dept||!reason){statusEl.textContent='For Still Pending, select the department and enter the reason.';statusEl.className='status-msg err';return;}try{const res=await postAction({action:'updatePending',orderId,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.PendingQty=res.pending;o.PendingDepartment=dept;o.PendingReason=reason;o.Status='Pending';}statusEl.textContent=`✓ Still pending — ${res.pending} quantity pending.`;statusEl.className='status-msg ok';renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}return;}
-  if(isPPCUI() && !isDispatchUI()){statusEl.textContent='PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';statusEl.className='status-msg err';return;}
+  if(isPPCUI()){statusEl.textContent='PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';statusEl.className='status-msg err';return;}
   if(type==='SET'){
     if(!setOrderId||!qty||!unit||!shipToParty||!date){statusEl.textContent='For Set dispatch, select the Set Order and enter quantity, unit, Ship To Party and date.';statusEl.className='status-msg err';return;}
     statusEl.textContent='Dispatching set…';statusEl.className='status-msg';try{const res=await postAction({action:'dispatchSet',setOrderId,setQty:qty,unit,shipToParty,shipToAddress,dispatchedDate:date,note:reason});if(res.error)throw new Error(res.error);
@@ -2302,8 +2305,7 @@ function renderDispatchHistory() {
       qty: Number(l.DispatchedQty || 0),
       uom: l.UOM || o.UOM || 'Nos',
       dispatchDate: l.DispatchedDate || '',
-      loggedAt: l.LoggedAt || '',
-      dispatchedBy: l.DispatchedByName || l.DispatchedBy || '—'
+      loggedAt: l.LoggedAt || ''
     };
   });
 
@@ -2318,7 +2320,7 @@ function renderDispatchHistory() {
   if (to) rows = rows.filter(r => dispatchHistoryDateKey(r.dispatchDate) <= to);
 
   if (q) {
-    rows = rows.filter(r => [r.orderId,r.customer,r.partCode,r.unit,r.shipTo,r.qty,r.uom,r.log.Note || '',r.dispatchedBy || '',r.log.LogID || '']
+    rows = rows.filter(r => [r.orderId,r.customer,r.partCode,r.unit,r.shipTo,r.qty,r.uom,r.log.Note || '',r.log.LogID || '']
       .join(' ').toLowerCase().includes(q));
   }
 
@@ -2837,42 +2839,14 @@ function renderUsersList(){
  const box=document.getElementById('u-list');if(!box)return;if(!usersState.length){box.innerHTML='<div class="empty">No users yet.</div>';return;}
  box.innerHTML=usersState.map(u=>`<div class="config-row"><span><b>${esc(u.DisplayName||u.Username)}</b> · ${esc(u.Username)} · <span class="pill pill-role">${esc(u.Role)}</span> ${u.AssignedUnit?'· '+esc(u.AssignedUnit):''} ${u.AssignedCustomer?'· '+esc(u.AssignedCustomer):''}</span><span class="action-cell"><button class="btn-ghost btn-small" onclick="promptResetPassword('${esc(u.Username)}')">Reset PW</button><button class="btn-ghost btn-small" onclick="promptDeleteUser('${esc(u.Username)}')">Delete</button></span></div>`).join('');
 }
-function getAdminRoleOptions_(){
-  const seen=new Set(), out=[];
-  const add=(name)=>{const n=String(name||'').trim(); if(!n)return; const k=n.toLowerCase(); if(seen.has(k))return; seen.add(k); out.push(n);};
-  (data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false').forEach(r=>add(r.RoleName));
-  // Always keep the built-in roles available, even if an older deployment has not populated Roles yet.
-  ['Owner','Admin','Editor','ViewOnly','PPC','Dispatch','PPC + Dispatch'].forEach(add);
-  usersState.forEach(u=>add(u.Role));
-  return out;
-}
 function populateAdminUserDropdowns(){
- const userSel=document.getElementById('admin-user-name');
- if(userSel)userSel.innerHTML='<option value="">— Select user —</option>'+usersState.map(u=>`<option value="${esc(u.Username)}">${esc(u.DisplayName||u.Username)} · ${esc(u.Username)}</option>`).join('');
- if(userSel&&!userSel.dataset.scopeBound){
-   userSel.addEventListener('change',()=>{
-     const u=usersState.find(x=>String(x.Username)===String(userSel.value));
-     const ue=document.getElementById('admin-user-unit'),ce=document.getElementById('admin-user-customer'),re=document.getElementById('admin-user-role');
-     if(ue)ue.value=u?.AssignedUnit||'';
-     if(ce)ce.value=u?.AssignedCustomer||'';
-     if(re){ const role=u?.Role||''; if(role && ![...re.options].some(o=>o.value.toLowerCase()===role.toLowerCase())) re.insertAdjacentHTML('beforeend',`<option value="${esc(role)}">${esc(role)}</option>`); re.value=role; }
-   });
-   userSel.dataset.scopeBound='1';
- }
- const roleSel=document.getElementById('admin-user-role');
- if(roleSel){
-   const current=roleSel.value;
-   roleSel.innerHTML='<option value="">— Select role —</option>'+getAdminRoleOptions_().map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
-   if(current)roleSel.value=current;
- }
+ const userSel=document.getElementById('admin-user-name');if(userSel)userSel.innerHTML='<option value="">— Select user —</option>'+usersState.map(u=>`<option value="${esc(u.Username)}">${esc(u.DisplayName||u.Username)} · ${esc(u.Username)}</option>`).join('');
+ if(userSel&&!userSel.dataset.scopeBound){userSel.addEventListener('change',()=>{const u=usersState.find(x=>String(x.Username)===String(userSel.value));const ue=document.getElementById('admin-user-unit'),ce=document.getElementById('admin-user-customer');if(ue)ue.value=u?.AssignedUnit||'';if(ce)ce.value=u?.AssignedCustomer||'';});userSel.dataset.scopeBound='1';}
+ const roleSel=document.getElementById('admin-user-role');if(roleSel){const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');roleSel.innerHTML='<option value="">— Select role —</option>'+roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('');}
 }
 function populateNewUserRoleDropdown(){
- const sel=document.getElementById('u-new-role');if(!sel)return;
- const current=sel.value;
- sel.innerHTML=getAdminRoleOptions_().map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
- if(current)sel.value=current;
+ const sel=document.getElementById('u-new-role');if(!sel)return;const roles=(data.v2?.roles||[]).filter(r=>String(r.Active).toLowerCase()!=='false');sel.innerHTML=roles.map(r=>`<option value="${esc(r.RoleName)}">${esc(r.RoleName)}</option>`).join('')||'<option>Owner</option><option>PPC</option><option>Dispatch</option><option>Editor</option><option>ViewOnly</option>';
 }
-
 async function createNewUser(){
  const st=document.getElementById('u-new-status'),username=document.getElementById('u-new-username').value.trim(),displayName=document.getElementById('u-new-displayname').value.trim(),password=document.getElementById('u-new-password').value,role=document.getElementById('u-new-role').value,unit=document.getElementById('u-new-unit').value,assignedCustomer=document.getElementById('u-new-customer').value.trim();
  if(!username||!password||!role){st.textContent='Username, password and role are required.';st.className='status-msg err';return;}
