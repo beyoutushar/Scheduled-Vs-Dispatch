@@ -1140,11 +1140,18 @@ body {
       <div class="sub" id="stock-result-count" style="margin:-2px 0 8px;text-align:right;"></div>
       <div class="table-scroll">
         <table id="stock-table">
-          <thead><tr><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th></tr></thead>
+          <thead><tr><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th><th>Last Updated By</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </div>
+      <div class="card" style="margin-top:16px;">
+        <h2>FG Stock Movement History</h2>
+        <div class="sub" style="margin-bottom:10px;">Quality-check trail: every FG addition, adjustment and dispatch shows who performed it.</div>
+        <div class="table-scroll">
+          <table id="stock-movement-table"><thead><tr><th>Date / Time</th><th>Part Code</th><th>Unit</th><th>Movement</th><th>Qty</th><th>Reference</th><th>Done By</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
   </div>
 
   <!-- COMPLAINTS TAB -->
@@ -1257,7 +1264,7 @@ let APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
 localStorage.setItem('svd_url', APPS_SCRIPT_URL);
 let TOKEN = sessionStorage.getItem('svd_token') || '';
 let SESSION = JSON.parse(sessionStorage.getItem('svd_session') || 'null');
-let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], sets: [], setOrders: [], departments: [], stock: [], uoms: ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'], discussion: [], complaints: [], complaintComments: [], v2: {permissions:[],roles:[],fields:[],dropdowns:[],plans:{},additional:{}} };
+let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], sets: [], setOrders: [], departments: [], stock: [], stockMovements: [], uoms: ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'], discussion: [], complaints: [], complaintComments: [], v2: {permissions:[],roles:[],fields:[],dropdowns:[],plans:{},additional:{}} };
 let selectedOrders = new Set();
 let ppcSearchIndex = [];
 
@@ -1589,7 +1596,7 @@ function switchTab(name) {
   }
   if (name === 'dispatch-history') { initDispatchHistoryFilters(); renderDispatchHistory(); }
   if (name === 'new') { populateDispatchOrderSelect(); }
-  if (name === 'stock') { initStockFilters(); renderStockTable(); }
+  if (name === 'stock') { initStockFilters(); renderStockTable(); renderStockMovementTable(); }
   if (name === 'complaints') { renderComplaints(); loadAux('complaints'); }
   if (name === 'discussion') { renderDiscussion(); loadAux('discussion'); }
   if (name === 'admin') loadV2();
@@ -1714,6 +1721,21 @@ if (fromDateEl && toDateEl) {
 let tableRenderTimer=null;
 function debouncedRenderTable(){clearTimeout(tableRenderTimer);tableRenderTimer=setTimeout(renderTable,120);}
 
+function actorShortName(name){
+  const s=String(name||'').trim();
+  if(!s)return '—';
+  const parts=s.split(/\s+/).filter(Boolean);
+  if(parts.length<=2)return s;
+  return parts[0]+' '+parts[parts.length-1].charAt(0).toUpperCase()+'.';
+}
+
+function getLastDispatchActor(orderId){
+  const rows=(data.logs||[]).filter(l=>String(l.OrderID)===String(orderId));
+  if(!rows.length)return '';
+  rows.sort((a,b)=>new Date(b.LoggedAt||0)-new Date(a.LoggedAt||0));
+  return rows[0].DispatchedByName || rows[0].DispatchedBy || '';
+}
+
 function renderTable() {
   const rows = getFiltered();
   const tbl = document.getElementById('orders-table');
@@ -1723,7 +1745,7 @@ function renderTable() {
     <th class="select-col"><input id="select-all-orders" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" ${rows.length && rows.every(o=>selectedOrders.has(String(o.OrderID)))?'checked':''}></th>
     <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>UOM</th><th>Priority</th><th>Order Qty</th>
     <th>Planned</th><th>Additional</th><th>Total Dispatch</th><th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
-    <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Status</th><th>Action</th>
+    <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Created By</th><th>PPC By</th><th>Dispatch By</th><th>Status</th><th>Action</th>
   </tr>`;
   if (rows.length === 0) { tbl.querySelector('tbody').innerHTML=''; empty.style.display='block'; updateBulkBar(); return; }
   empty.style.display='none';
@@ -1746,6 +1768,7 @@ function renderTable() {
       <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td><td>${fmtDate(o.ScheduledDate)}</td>
       <td>${o.FGStatus==='In Stock'?'<span class="pill pill-completed">In Stock</span>':o.FGStatus?'<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>':'—'}</td>
       <td>${esc(o.PendingDepartment||'—')}</td><td>${esc(o.PendingReason||'—')}</td>
+      <td title="${esc(o.CreatedByName || o.CreatedBy || '—')}">${esc(actorShortName(o.CreatedByName || o.CreatedBy || ''))}</td><td title="${esc((plan && (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName)) || '—')}">${esc(actorShortName((plan && (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName)) || ''))}</td><td title="${esc(getLastDispatchActor(o.OrderID) || '—')}">${esc(actorShortName(getLastDispatchActor(o.OrderID) || ''))}</td>
       <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td><td class="action-cell">${action||'—'}</td>
     </tr>`;
   }).join('');
@@ -1814,6 +1837,7 @@ async function submitStock() {
     document.getElementById('s-qty').value = '';
     await loadData();
     renderStockTable();
+    renderStockMovementTable();
     showCurrentStock();
   } catch (e) {
     statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
@@ -1847,6 +1871,15 @@ function clearStockFilters() {
   renderStockTable();
 }
 
+function renderStockMovementTable(){
+  const tb=document.querySelector('#stock-movement-table tbody'); if(!tb)return;
+  let rows=[...(data.stockMovements||[])].slice().sort((a,b)=>new Date(b.DateTime||0)-new Date(a.DateTime||0));
+  const assigned=String(SESSION?.unit||'').trim();
+  const role=String(SESSION?.role||'').toLowerCase();
+  if(assigned && role!=='owner') rows=rows.filter(r=>String(r.Unit||'').trim()===assigned);
+  tb.innerHTML=rows.slice(0,200).map(r=>`<tr><td>${esc(fmtDateTime(r.DateTime))}</td><td>${esc(r.PartCode||'—')}</td><td>${esc(r.Unit||'—')}</td><td>${esc(r.TransactionType||'—')}</td><td>${Number(r.Qty||0).toLocaleString()}</td><td>${esc(r.Reference||'—')}</td><td title="${esc(r.UserName||r.User||'—')}"><b>${esc(actorShortName(r.UserName||r.User||''))}</b></td></tr>`).join('') || '<tr><td colspan="7" class="empty">No FG movement history found.</td></tr>';
+}
+
 function renderStockTable() {
   const tbody = document.querySelector('#stock-table tbody');
   if (!tbody) return;
@@ -1874,6 +1907,8 @@ function renderStockTable() {
   rows.sort((a,b) => String(a.PartCode||'').localeCompare(String(b.PartCode||'')) || String(a.Unit||a.ProductionUnit||'').localeCompare(String(b.Unit||b.ProductionUnit||'')));
 
   const count = document.getElementById('stock-result-count');
+  const actorMap={};
+  (data.stockMovements||[]).forEach(m=>{const k=String(m.PartCode||'')+'|'+String(m.Unit||''); const t=new Date(m.DateTime||0).getTime(); if(!actorMap[k]||t>actorMap[k].t) actorMap[k]={t,name:m.UserName||m.User||''};});
   if (count) count.textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
 
   tbody.innerHTML = rows.map(r => `
@@ -1882,8 +1917,9 @@ function renderStockTable() {
       <td>${esc(r.Unit || r.ProductionUnit || 'Unassigned')}</td>
       <td>${Number(r.AvailableQty||0).toLocaleString()}</td>
       <td>${fmtDate(r.LastUpdated)}</td>
+      <td title="${esc(actorMap[String(r.PartCode||'')+'|'+String(r.Unit||r.ProductionUnit||'') ]?.name || r.LastUpdatedByName || '—')}">${esc(actorShortName(actorMap[String(r.PartCode||'')+'|'+String(r.Unit||r.ProductionUnit||'') ]?.name || r.LastUpdatedByName || ''))}</td>
     </tr>
-  `).join('') || '<tr><td colspan="4" class="empty">No stock matches the selected filters.</td></tr>';
+  `).join('') || '<tr><td colspan="5" class="empty">No stock matches the selected filters.</td></tr>';
 }
 
 let dispatchSearchIndex = [];
@@ -2297,6 +2333,7 @@ function renderDispatchHistory() {
     <td>${r.qty.toLocaleString()}</td>
     <td>${esc(r.uom)}</td>
     <td>${esc(r.log.Note || '—')}</td>
+    <td title="${esc(r.log.DispatchedByName || r.log.DispatchedBy || '—')}">${esc(actorShortName(r.log.DispatchedByName || r.log.DispatchedBy || ''))}</td>
     <td>${esc(fmtDateTime(r.loggedAt))}</td>
   </tr>`).join('') : '';
 
@@ -2604,7 +2641,7 @@ function renderV2(){
   populateNewUserRoleDropdown();
   renderPPCBulkRows(); renderPPCPendingRows(); renderBulkDispatchRows();
 }
-function renderPPCSummary(){const box=document.getElementById('ppc-summary');if(!box)return;const plans=data.v2?.plans||{}, adds=data.v2?.additional||{};const rows=data.orders.filter(o=>plans[o.OrderID]);box.innerHTML=rows.length?rows.slice(0,200).map(o=>{const p=plans[o.OrderID],a=Number(adds[o.OrderID]||0),q=Number(p.PlannedQty||0);return `<div class="config-row"><span><b>${esc(o.OrderID)}</b> · ${esc(o.Customer)} · ${esc(o.PartCode)}</span><span>${q.toLocaleString()} + ${a.toLocaleString()} = ${(q+a).toLocaleString()} · ${esc(p.Status)}</span></div>`}).join(''):'<div class="empty">No PPC plans created yet.</div>';}
+function renderPPCSummary(){const box=document.getElementById('ppc-summary');if(!box)return;const plans=data.v2?.plans||{}, adds=data.v2?.additional||{};const rows=data.orders.filter(o=>plans[o.OrderID]);box.innerHTML=rows.length?rows.slice(0,200).map(o=>{const p=plans[o.OrderID],a=Number(adds[o.OrderID]||0),q=Number(p.PlannedQty||0);return `<div class="config-row"><span><b>${esc(o.OrderID)}</b> · ${esc(o.Customer)} · ${esc(o.PartCode)}</span><span>${q.toLocaleString()} + ${a.toLocaleString()} = ${(q+a).toLocaleString()} · ${esc(p.Status)} · ${esc(p.FinalizedByName||p.FinalizedBy||p.UpdatedByName||'—')}</span></div>`}).join(''):'<div class="empty">No PPC plans created yet.</div>';}
 function filterPPCOrders(){const q=(document.getElementById('ppc-order-search').value||'').toLowerCase().trim(),box=document.getElementById('ppc-order-results');ppcSearchIndex=data.orders;const rows=q?ppcSearchIndex.filter(o=>[o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate].join(' ').toLowerCase().includes(q)):ppcSearchIndex;box.innerHTML=rows.slice(0,100).map(o=>`<button type="button" class="order-result" onclick="selectPPCOrder('${esc(o.OrderID)}')"><div class="order-result-main">${esc(o.Customer)} · ${esc(o.PartCode)} · ${esc(o.Unit)}</div><div class="order-result-meta">${esc(o.OrderID)} · ${Number(o.OrderQty||0).toLocaleString()} ordered</div></button>`).join('')||'<div class="order-no-results">No orders found.</div>';box.classList.add('open');}
 function selectPPCOrder(id){const o=data.orders.find(x=>String(x.OrderID)===String(id));if(!o)return;document.getElementById('ppc-order').value=o.OrderID;document.getElementById('ppc-order-search').value=`${o.Customer} — ${o.PartCode} [${o.Unit}]`;document.getElementById('ppc-order-results').classList.remove('open');const p=(data.v2.plans||{})[o.OrderID];document.getElementById('ppc-planned-qty').value=p?.PlannedQty||o.OrderQty||'';document.getElementById('ppc-plan-status').value=p?.Status||'Draft';document.getElementById('ppc-order-info').textContent=`Order quantity: ${Number(o.OrderQty||0).toLocaleString()} ${esc(o.UOM||'Nos')} · Current dispatched: ${Number(o.DispatchedQty||0).toLocaleString()}`;document.getElementById('ppc-unlock-btn').style.display=(SESSION.role==='Owner'&&p?.Status==='Finalized')?'inline-block':'none';}
 async function savePPCPlan(){
