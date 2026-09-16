@@ -770,7 +770,16 @@ body {
 .ppc-date-input{min-width:128px}.ppc-ship-cell{min-width:210px}.ppc-ship-cell input{display:block;margin-bottom:5px}.ppc-ship-cell input:last-child{margin-bottom:0}
 .bulk-dispatch-list table{min-width:1040px}
 .bulk-order-cell{min-width:205px}.bulk-scheduled-cell{font-weight:700;color:#c4b5fd;white-space:nowrap}.bulk-ship-cell{min-width:175px}
-#stock-table{min-width:820px}.stock-customer-cell{min-width:170px;max-width:240px;white-space:normal;line-height:1.25}
+#stock-table{min-width:820px}
+/* ===== BULK FG STOCK ===== */
+#bulk-stock-table{min-width:760px}
+#bulk-stock-table th,#bulk-stock-table td{padding:7px 8px;vertical-align:middle}
+.bulk-stock-part{min-width:230px}.bulk-stock-qty{width:130px}.bulk-stock-unit{width:140px}.bulk-stock-mode{width:180px}
+.bulk-stock-current{font-weight:700;color:var(--accent-2);white-space:nowrap}
+.bulk-stock-remove{width:42px;text-align:center}
+.bulk-stock-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.bulk-stock-summary{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--panel-2);margin-bottom:10px}
+.stock-customer-cell{min-width:170px;max-width:240px;white-space:normal;line-height:1.25}
 #tab-stock .table-scroll{max-height:420px;overflow:auto}#tab-stock #stock-table th{position:sticky;top:0;z-index:4}
 /* ===== ALL ORDERS: keep the table header visible while scrolling ===== */
 #tab-orders .table-scroll{max-height:calc(100vh - 330px);min-height:320px;overflow:auto;position:relative;border:1px solid var(--border);border-radius:10px}
@@ -1247,34 +1256,38 @@ body {
   <!-- STOCK TAB -->
   <div id="tab-stock" style="display:none;">
     <div class="card" id="stock-admin-card">
-      <h2>Update FG Stock</h2>
-      <div class="grid">
-        <div class="field combo">
-          <label>Part Code</label>
-          <input id="s-part" list="dl-parts" placeholder="Select or type" oninput="showCurrentStock()">
+      <h2>Bulk FG Stock Update</h2>
+      <div class="sub" style="margin-bottom:12px;">Update multiple finished-goods stock items in one save. For normal production entries, use <b>Add to current stock</b>.</div>
+
+      <div class="bulk-stock-toolbar">
+        <div>
+          <button type="button" class="btn-ghost btn-small" onclick="addBulkStockRows(1)">+ Add Row</button>
+          <button type="button" class="btn-ghost btn-small" onclick="addBulkStockRows(5)">+ Add 5 Rows</button>
+          <button type="button" class="btn-ghost btn-small" onclick="clearBulkStockRows()">Clear</button>
         </div>
-        <div class="field">
-          <label>Production Quantity</label>
-          <input id="s-qty" type="number" min="0" placeholder="500">
-        </div>
-        <div class="field">
-          <label>Production Unit</label>
-          <select id="s-unit">
-            <option value="">— Select —</option>
-            <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Mode</label>
-          <select id="s-mode">
-            <option value="set">Set to this value</option>
-            <option value="add">Add to current stock</option>
-          </select>
-        </div>
+        <div class="sub">Tip: one row = one Part Code + Unit stock update.</div>
       </div>
-      <div class="sub" id="s-current" style="margin:-4px 0 12px;"></div>
-      <button class="btn-primary btn-block" onclick="submitStock()">Update Stock</button>
-      <div class="status-msg" id="stock-status"></div>
+
+      <div class="bulk-stock-summary">
+        <b id="bulk-stock-count">0</b> rows &nbsp;•&nbsp;
+        <b id="bulk-stock-total-qty">0</b> quantity entered
+      </div>
+
+      <div class="table-scroll">
+        <table id="bulk-stock-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Part Code</th><th>Quantity</th><th>Production Unit</th><th>Mode</th><th>Current Stock</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">
+        <div class="status-msg" id="stock-status" style="flex:1;min-width:220px;"></div>
+        <button class="btn-primary" type="button" onclick="submitBulkStock()">✓ Save All FG Stock</button>
+      </div>
     </div>
     <div class="card">
       <h2>Current FG Stock</h2>
@@ -1739,14 +1752,13 @@ async function refreshData(){
   const old=btns.map(b=>b.textContent);
   btns.forEach(b=>{b.disabled=true;b.textContent='Refreshing…';});
   try{
-    if(loadInFlight){ try { await loadInFlight; } catch(e) {} }
-    return await loadData(false);
+    return await loadData(false,true);
   }finally{
     btns.forEach((b,i)=>{b.disabled=false;b.textContent=old[i]||'Refresh';});
   }
 }
-async function loadData(silent=false) {
-  if(loadInFlight) return loadInFlight;
+async function loadData(silent=false,force=false) {
+  if(loadInFlight && !force) return loadInFlight;
   const tbody = document.querySelector('#orders-table tbody');
   if (tbody && !tbody.children.length) tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
   if (!silent) setConn('', 'Loading…');
@@ -2087,33 +2099,144 @@ function showCurrentStock() {
   el.textContent = `Current stock: ${getStockFor(part, unit)}`;
 }
 
-async function submitStock() {
-  const part = document.getElementById('s-part').value.trim();
-  const qty = document.getElementById('s-qty').value;
-  const mode = document.getElementById('s-mode').value;
-  const unit = document.getElementById('s-unit')?.value || SESSION?.unit || '';
-  const statusEl = document.getElementById('stock-status');
-  if (!part || qty === '' || !unit) {
-    statusEl.textContent = 'Part code, quantity and production unit are required.'; statusEl.className = 'status-msg err';
+function renderBulkStockRows(){
+  const tb=document.querySelector('#bulk-stock-table tbody');
+  if(!tb)return;
+  const rows=window.bulkStockRows||[];
+  const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const assigned=String(SESSION?.unit||'').trim();
+  const isOwner=roleTokens.includes('owner');
+
+  tb.innerHTML=rows.map((r,i)=>{
+    const unitOptions=isOwner
+      ? '<option value="">— Select —</option>'+units.map(u=>`<option value="${esc(u)}" ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')
+      : `<option value="${esc(assigned)}" selected>${esc(assigned)}</option>`;
+    const current=getStockFor(r.partCode,r.unit);
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="bulk-stock-part"><input value="${esc(r.partCode)}" list="dl-parts" placeholder="Part Code" oninput="updateBulkStockRow(${i},'partCode',this.value)"></td>
+      <td class="bulk-stock-qty"><input type="number" min="0" value="${r.qty!==''?esc(r.qty):''}" placeholder="500" oninput="updateBulkStockRow(${i},'qty',this.value)"></td>
+      <td class="bulk-stock-unit"><select ${!isOwner?'disabled':''} onchange="updateBulkStockRow(${i},'unit',this.value)">${unitOptions}</select></td>
+      <td class="bulk-stock-mode"><select onchange="updateBulkStockRow(${i},'mode',this.value)">
+        <option value="add" ${r.mode==='add'?'selected':''}>Add to current stock</option>
+        <option value="set" ${r.mode==='set'?'selected':''}>Set to this value</option>
+      </select></td>
+      <td class="bulk-stock-current">${Number(current||0).toLocaleString()}</td>
+      <td class="bulk-stock-remove"><button type="button" class="btn-ghost btn-small" onclick="removeBulkStockRow(${i})">×</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="empty">Click + Add Row to start.</td></tr>';
+
+  const count=document.getElementById('bulk-stock-count');
+  const total=document.getElementById('bulk-stock-total-qty');
+  if(count)count.textContent=rows.length;
+  if(total)total.textContent=rows.reduce((s,r)=>s+(Number(r.qty)||0),0).toLocaleString();
+}
+
+function initBulkStockRows(){
+  if(!window.bulkStockRows) window.bulkStockRows=[];
+  if(!window.bulkStockRows.length) addBulkStockRows(3);
+  else renderBulkStockRows();
+}
+
+function addBulkStockRows(count=1){
+  if(!window.bulkStockRows)window.bulkStockRows=[];
+  const assigned=String(SESSION?.unit||'').trim();
+  const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const defaultUnit=roleTokens.includes('owner')?'':assigned;
+  for(let i=0;i<count;i++)window.bulkStockRows.push({partCode:'',qty:'',unit:defaultUnit,mode:'add'});
+  renderBulkStockRows();
+}
+
+function updateBulkStockRow(index,key,value){
+  if(!window.bulkStockRows?.[index])return;
+  window.bulkStockRows[index][key]=value;
+  if(key==='partCode'||key==='unit')renderBulkStockRows();
+}
+
+function removeBulkStockRow(index){
+  if(!window.bulkStockRows)return;
+  window.bulkStockRows.splice(index,1);
+  renderBulkStockRows();
+}
+
+function clearBulkStockRows(){
+  window.bulkStockRows=[];
+  addBulkStockRows(3);
+}
+
+async function submitBulkStock(){
+  const st=document.getElementById('stock-status');
+  const rows=(window.bulkStockRows||[]).filter(r=>String(r.partCode||'').trim() || r.qty!=='');
+  if(!rows.length){
+    st.textContent='Add at least one FG stock row.';
+    st.className='status-msg err';
     return;
   }
-  statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
-  try {
-    const res = await postAction({ action: 'setStock', partCode: part, qty, mode, unit });
-    if (res.error) throw new Error(res.error);
-    statusEl.textContent = `Stock updated — now ${res.newQty}.`; statusEl.className = 'status-msg ok';
-    document.getElementById('s-qty').value = '';
+
+  const invalid=rows.map((r,i)=>{
+    const errors=[];
+    if(!String(r.partCode||'').trim())errors.push('Part code');
+    if(r.qty==='' || !Number.isFinite(Number(r.qty)) || Number(r.qty)<0)errors.push('quantity');
+    if(!String(r.unit||'').trim())errors.push('production unit');
+    return errors.length ? `Row ${i+1}: ${errors.join(', ')} required` : '';
+  }).filter(Boolean);
+
+  if(invalid.length){
+    st.innerHTML=esc(invalid.join(' • '));
+    st.className='status-msg err';
+    return;
+  }
+
+  st.textContent='Saving FG stock…';
+  st.className='status-msg';
+
+  try{
+    const res=await postAction({
+      action:'bulkSetStock',
+      items:rows.map(r=>({
+        partCode:String(r.partCode||'').trim(),
+        qty:Number(r.qty),
+        unit:String(r.unit||'').trim(),
+        mode:r.mode||'add'
+      }))
+    });
+    if(res.error)throw new Error((res.validationErrors||[]).join('\n')||res.error);
+
+    st.textContent=`✓ ${res.count||rows.length} FG stock rows updated successfully.`;
+    st.className='status-msg ok';
+
+    // Apply the returned values immediately so All Orders never waits for
+    // the next polling cycle to show the new stock.
+    (res.results||[]).forEach(x=>{
+      const key=String(x.partCode||'').trim().toLowerCase()+'|'+String(x.unit||'').trim().toLowerCase();
+      const idx=(data.stock||[]).findIndex(s=>
+        String(s.PartCode||'').trim().toLowerCase()+'|'+String(s.Unit||s.ProductionUnit||'').trim().toLowerCase()===key
+      );
+      const row={
+        PartCode:x.partCode,Unit:x.unit,AvailableQty:x.newQty,
+        LastUpdated:new Date().toISOString(),LastUpdatedBy:SESSION?.username||'',LastUpdatedByName:SESSION?.displayName||''
+      };
+      if(idx>=0)data.stock[idx]={...data.stock[idx],...row};
+      else data.stock.push(row);
+    });
+
+    window.bulkStockRows=[];
+    addBulkStockRows(3);
     renderStockTable();
-    showCurrentStock();
-    await loadData(true);
-    renderStockTable();
-    renderStockMovementTable();
-    showCurrentStock();
+    renderTable();
     showStock();
-  } catch (e) {
-    statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
+    showCurrentStock();
+    renderStockMovementTable();
+
+    // Force a fresh server read. This is not dependent on the 5-second poll.
+    await loadData(false);
+  }catch(e){
+    st.textContent='Failed: '+e.message;
+    st.className='status-msg err';
   }
 }
+
 
 function initStockEntryUnit(){
   const el=document.getElementById('s-unit'); if(!el)return;
@@ -2172,6 +2295,7 @@ function renderStockMovementTable(){
 function renderStockTable() {
   const tbody = document.querySelector('#stock-table tbody');
   if (!tbody) return;
+  initBulkStockRows();
   initStockEntryUnit();
   initStockFilters();
 
