@@ -434,6 +434,14 @@
   height: 54px !important;
 }
   
+
+.set-dispatch-preview{margin-top:10px;padding:12px 14px;border:1px solid rgba(139,92,246,.45);border-radius:12px;background:rgba(139,92,246,.08);}
+.set-dispatch-title{display:flex;justify-content:space-between;gap:10px;font-weight:700;color:#c4b5fd;}
+.set-dispatch-title span{font-size:12px;font-weight:600;color:#a7f3d0;}
+.set-dispatch-meta{margin-top:5px;font-size:12px;opacity:.8;}
+.set-dispatch-components{display:grid;gap:5px;margin-top:9px;}
+.set-dispatch-components>div{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:6px 8px;border-radius:7px;background:rgba(0,0,0,.16);font-size:12px;}
+.set-dispatch-components em{font-style:normal;opacity:.7;}
 </style>
 <style>.admin-plain-label{font-size:12px;color:var(--muted);margin-top:-8px;margin-bottom:10px}
 
@@ -780,7 +788,7 @@ body {
         <div class="spacer"></div>
         <button class="btn-ghost btn-small" onclick="clearFilters()">Clear filters</button>
         <button class="btn-primary btn-small" id="csv-btn" onclick="exportCSV()" style="display:none;">Export CSV</button>
-        <button class="btn-ghost btn-small" onclick="loadData()">Refresh</button>
+        <button class="btn-ghost btn-small" onclick="refreshData()">Refresh</button>
       </div>
       <div class="search-hint">Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.</div>
       <div id="bulkbar" class="bulkbar">
@@ -873,8 +881,9 @@ body {
       </div>
       <div class="field" id="d-set-order-field" style="display:none">
         <label>Find Set Order</label>
-        <select id="d-set-order"><option value="">— Select pending set —</option></select>
-        <div class="mini-note">Selecting a set dispatches every BOM component automatically.</div>
+        <select id="d-set-order" onchange="renderSetDispatchPreview()"><option value="">— Select pending set —</option></select>
+        <div class="mini-note">Set Dispatch is one transaction. Enter the number of complete sets; all child articles are dispatched automatically.</div>
+        <div id="set-dispatch-preview" class="set-dispatch-preview" style="display:none"></div>
       </div>
       <div class="field">
         <label>Entry Type</label>
@@ -1532,6 +1541,10 @@ function setConn(state, msg) {
 }
 
 let loadInFlight = null;
+async function refreshData(){
+  if(loadInFlight){ try { await loadInFlight; } catch(e) {} }
+  return loadData(false);
+}
 async function loadData(silent=false) {
   if(loadInFlight) return loadInFlight;
   const tbody = document.querySelector('#orders-table tbody');
@@ -1539,7 +1552,7 @@ async function loadData(silent=false) {
   if (!silent) setConn('', 'Loading…');
   loadInFlight=(async()=>{
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN), {cache:'no-store'});
+      const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN) + '&_=' + Date.now(), {cache:'no-store'});
       const json = await res.json();
       if (json.error && /session has expired|auth_required/i.test(json.error)) { stopAutoRefresh(); setConn('err','Session expired — please sign in again.'); return false; }
       if (json.error) { setConn('err', json.error); return false; }
@@ -1725,8 +1738,9 @@ function actorShortName(name){
   const s=String(name||'').trim();
   if(!s)return '—';
   const parts=s.split(/\s+/).filter(Boolean);
-  if(parts.length<=2)return s;
-  return parts[0]+' '+parts[parts.length-1].charAt(0).toUpperCase()+'.';
+  if(parts.length===1)return parts[0];
+  // Display names may include role/company text. Use the person's first + surname initial.
+  return parts[0]+' '+parts[1].charAt(0).toUpperCase()+'.';
 }
 
 function getLastDispatchActor(orderId){
@@ -1754,8 +1768,9 @@ function renderTable() {
     const orderQty=Number(o.OrderQty||0), dispatched=Number(o.DispatchedQty||0);
     const plan=plans[o.OrderID], planned=plan?Number(plan.PlannedQty||0):0, additional=Number(adds[o.OrderID]||0), total=planned+additional;
     const finalizedPpcActor=(plan && String(plan.Status||'').toLowerCase()==='finalized') ? (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName || '') : '';
+    const draftPpcActor=(plan && String(plan.Status||'').toLowerCase()!=='finalized') ? (plan.UpdatedByName || plan.UpdatedBy || '') : '';
     const creatorIsPpc=/\bppc\b/i.test(String(o.CreatedByRole||''));
-    const ppcActor=finalizedPpcActor || (creatorIsPpc ? (o.CreatedByName || o.CreatedBy || '') : '');
+    const ppcActor=finalizedPpcActor || draftPpcActor || (creatorIsPpc ? (o.CreatedByName || o.CreatedBy || '') : '');
     const pct=orderQty?Math.min(100,Math.round(dispatched/orderQty*100)):0;
     const statusPill=o.Status==='Completed'?'pill-completed':'pill-pending';
     const prioPill=o.Priority==='High'?'pill-high':o.Priority==='Low'?'pill-low':'pill-medium';
@@ -2125,6 +2140,8 @@ function toggleDispatchItemType(){
   const sf=document.getElementById('d-set-order-field'); if(sf)sf.style.display=isSet?'':'none';
   const search=document.querySelector('.searchable-order-field'); if(search)search.style.display=isSet?'none':'';
   const info=document.getElementById('d-order-info'); if(info&&isSet)info.textContent='Select a pending set. One dispatch quantity will be applied to every BOM component.';
+  const btn=document.getElementById('dispatch-submit-btn'); if(btn)btn.textContent=isSet?'Dispatch Complete Set':'Log Dispatch';
+  if(isSet)renderSetDispatchPreview();
 }
 
 async function submitOrder() {
@@ -2144,10 +2161,22 @@ async function submitOrder() {
   }catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}
 }
 
+function renderSetDispatchPreview(){
+  const box=document.getElementById('set-dispatch-preview');
+  const id=document.getElementById('d-set-order')?.value||'';
+  if(!box)return;
+  if(!id){box.style.display='none';box.innerHTML='';return;}
+  const rows=(data.orders||[]).filter(o=>String(o.SetOrderID||'')===String(id));
+  if(!rows.length){box.style.display='none';box.innerHTML='';return;}
+  const first=rows[0];
+  const pendingSets=Math.min(...rows.map(o=>{const cq=Number(o.SetComponentQty)||1;return Math.floor(Number(o.PendingQty||0)/cq);}));
+  box.style.display='block';
+  box.innerHTML=`<div class="set-dispatch-title">SET DISPATCH · ${esc(first.SetCode||'Set')} <span>${pendingSets.toLocaleString()} complete set(s) pending</span></div><div class="set-dispatch-meta">${esc(first.Customer||'—')} · ${esc(first.Unit||'—')} · ${esc(first.ShipToParty||'—')}</div><div class="set-dispatch-components">${rows.map(o=>`<div><span>${esc(o.PartCode||'—')}</span><b>${Number(o.SetComponentQty||1).toLocaleString()} / set</b><em>${Number(o.PendingQty||0).toLocaleString()} pending</em></div>`).join('')}</div>`;
+}
 async function submitDispatch() {
   const mode=document.getElementById('d-mode').value, type=document.getElementById('d-dispatch-type')?.value||'STANDARD', setOrderId=document.getElementById('d-set-order')?.value||'', orderId=document.getElementById('d-order').value, qty=document.getElementById('d-qty').value, unit=document.getElementById('d-unit').value, shipToParty=document.getElementById('d-shipto').value.trim(), shipToAddress=document.getElementById('d-shipto-address')?.value.trim()||'', date=document.getElementById('d-date').value, dept=document.getElementById('d-dept').value, reason=document.getElementById('d-reason').value.trim(), statusEl=document.getElementById('dispatch-status');
   if(mode==='pending'){if(!orderId){statusEl.textContent='Select an order.';statusEl.className='status-msg err';return;}if(!dept||!reason){statusEl.textContent='For Still Pending, select the department and enter the reason.';statusEl.className='status-msg err';return;}try{const res=await postAction({action:'updatePending',orderId,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.PendingQty=res.pending;o.PendingDepartment=dept;o.PendingReason=reason;o.Status='Pending';}statusEl.textContent=`✓ Still pending — ${res.pending} quantity pending.`;statusEl.className='status-msg ok';renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}return;}
-  if(isPPCUI()){statusEl.textContent='PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';statusEl.className='status-msg err';return;}
+  if(isPPCUI() && !isDispatchUI()){statusEl.textContent='PPC can record Still Pending only. Actual dispatch must be logged by Dispatch.';statusEl.className='status-msg err';return;}
   if(type==='SET'){
     if(!setOrderId||!qty||!unit||!shipToParty||!date){statusEl.textContent='For Set dispatch, select the Set Order and enter quantity, unit, Ship To Party and date.';statusEl.className='status-msg err';return;}
     statusEl.textContent='Dispatching set…';statusEl.className='status-msg';try{const res=await postAction({action:'dispatchSet',setOrderId,setQty:qty,unit,shipToParty,shipToAddress,dispatchedDate:date,note:reason});if(res.error)throw new Error(res.error);
