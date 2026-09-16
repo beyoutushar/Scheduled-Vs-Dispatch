@@ -698,6 +698,67 @@ body {
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 0 L56 16 L56 50 L28 66 L0 50 L0 16 Z' fill='none' stroke='rgba(196,181,253,0.07)' stroke-width='1'/%3E%3Cpath d='M28 66 L56 82 L56 100 L28 100 L0 100 L0 82 Z' fill='none' stroke='rgba(196,181,253,0.07)' stroke-width='1'/%3E%3C/svg%3E");
   background-size: 56px 100px;
 }
+
+/* ===== EASY MULTI-DISPATCH UI ===== */
+.dispatch-bulk-card{padding:16px 16px 0;overflow:hidden}
+.bulk-dispatch-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.bulk-title-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.bulk-title-row h2{margin:0}
+.bulk-live-pill{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:rgba(139,92,246,.13);border:1px solid rgba(139,92,246,.3);color:#c4b5fd;font-size:11px;font-weight:700}
+.bulk-dispatch-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+.bulk-search-box{position:relative;flex:1;min-width:220px}
+.bulk-search-box>span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:17px;pointer-events:none}
+.bulk-search-box input{padding-left:32px;padding-right:32px}
+.bulk-search-clear{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:26px;height:26px;padding:0;background:transparent;color:var(--muted);font-size:18px}
+.bulk-search-clear:hover{background:var(--border);color:var(--text)}
+.bulk-dispatch-summary{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 10px;margin-bottom:8px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}
+.bulk-dispatch-summary b{color:var(--text)}
+.bulk-hint{margin-left:auto}
+.bulk-dispatch-list{max-height:calc(100vh - 410px);min-height:240px;overflow:auto;border:1px solid var(--border);border-radius:11px;background:rgba(8,7,13,.28)}
+.bulk-dispatch-list table{min-width:900px}
+.bulk-dispatch-list th{position:sticky;top:0;z-index:5;background:#15121d;padding:8px 9px}
+.bulk-dispatch-list td{padding:7px 9px;vertical-align:middle}
+.bulk-check-col{width:38px;text-align:center!important}
+.bulk-check-col input{width:16px;height:16px}
+.bulk-order-cell{min-width:245px;white-space:normal}
+.bulk-order-cell b{display:block;font-size:12px}
+.bulk-order-cell span{display:block;font-size:10px;color:#b8b0cc;margin-top:2px}
+.bulk-order-cell small{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.bulk-unit-pill{display:inline-block;padding:4px 8px;border-radius:7px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);font-size:10px;white-space:nowrap}
+.bulk-pending-cell b{display:block;font-size:13px}
+.bulk-pending-cell small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.bulk-qty-cell{min-width:150px}
+.bulk-qty-wrap{display:flex;gap:5px;align-items:center}
+.bulk-qty-wrap input{width:88px;padding:7px 8px}
+.bulk-full-btn{padding:7px 9px;font-size:10px;color:#c4b5fd;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.28)}
+.bulk-full-btn:hover{background:rgba(139,92,246,.18);border-color:rgba(139,92,246,.45)}
+.bulk-ship-cell{min-width:190px}
+.bulk-ship-cell input{padding:7px 8px}
+.bulk-row-selected td{background:rgba(139,92,246,.065)!important}
+.bulk-row-selected td:first-child{box-shadow:inset 2px 0 0 #8b5cf6}
+.bulk-dispatch-actionbar{position:sticky;bottom:0;margin:10px -16px 0;padding:10px 16px;background:rgba(18,16,24,.96);backdrop-filter:blur(16px);border-top:1px solid rgba(139,92,246,.2);box-shadow:0 -10px 30px rgba(0,0,0,.25);z-index:10}
+.bulk-action-fields{display:grid;grid-template-columns:180px 170px 1fr;gap:9px;align-items:end}
+.bulk-action-field label{margin-bottom:4px}
+.bulk-action-field input,.bulk-action-field select{height:36px}
+.bulk-submit-area{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:8px}
+.bulk-submit-area .status-msg{margin:0;flex:1}
+.bulk-submit-btn{min-width:190px;height:38px}
+@media(max-width:800px){
+  .bulk-dispatch-toolbar{align-items:stretch;flex-direction:column}
+  .bulk-search-box{min-width:0}
+  .bulk-dispatch-list{max-height:55vh}
+  .bulk-hint{width:100%;margin-left:0}
+  .bulk-action-fields{grid-template-columns:1fr 1fr}
+  .bulk-note-field{grid-column:1/-1}
+  .bulk-submit-area{align-items:stretch;flex-direction:column}
+  .bulk-submit-btn{width:100%}
+}
+@media(max-width:520px){
+  .dispatch-bulk-card{padding-left:10px;padding-right:10px}
+  .bulk-dispatch-actionbar{margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}
+  .bulk-action-fields{grid-template-columns:1fr}
+  .bulk-note-field{grid-column:auto}
+}
 </style>
 
 </head>
@@ -972,18 +1033,73 @@ body {
       <div class="status-msg" id="ppc-bulk-status"></div>
     </div>
 
-    <div class="card" id="dispatch-multiple-card" style="display:none;">
-      <h2>Dispatch — Multiple Orders</h2>
-      <div class="sub" style="margin-bottom:10px;">Select multiple pending orders. Their PPC Ship To Party is pre-filled automatically; Dispatch may change it only when necessary.</div>
-      <div class="toolbar"><input id="bulk-dispatch-search" type="search" placeholder="Search customer, part, Order ID, date…" oninput="renderBulkDispatchRows()"><button class="btn-ghost btn-small" onclick="selectAllBulkDispatch()">Select all visible</button></div>
-      <div class="table-scroll"><table id="bulk-dispatch-table"><thead><tr><th>Select</th><th>Order</th><th>Customer</th><th>Part</th><th>Pending</th><th>UOM</th><th>Dispatch Qty</th><th>Ship To Party</th></tr></thead><tbody></tbody></table></div>
-      <div class="grid" style="margin-top:10px;">
-        <div class="field"><label>Dispatching Unit</label><select id="bulk-d-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
-        <div class="field"><label>Dispatch Date</label><input id="bulk-d-date" type="date"></div>
-        <div class="field"><label>Common Note</label><input id="bulk-d-note" placeholder="Optional"></div>
+    <div class="card dispatch-bulk-card" id="dispatch-multiple-card" style="display:none;">
+      <div class="bulk-dispatch-head">
+        <div>
+          <div class="bulk-title-row">
+            <h2>Dispatch — Multiple Orders</h2>
+            <span class="bulk-live-pill" id="bulk-dispatch-count">0 selected</span>
+          </div>
+          <div class="sub">Select the orders, enter quantity, and dispatch. <b>Full</b> fills the complete pending quantity automatically.</div>
+        </div>
       </div>
-      <div class="modal-actions"><button class="btn-primary" onclick="saveBulkDispatch()">Dispatch Selected</button><button class="btn-ghost" onclick="clearBulkDispatchSelection()">Clear Selection</button></div>
-      <div class="status-msg" id="bulk-dispatch-status"></div>
+
+      <div class="bulk-dispatch-toolbar">
+        <div class="bulk-search-box">
+          <span>⌕</span>
+          <input id="bulk-dispatch-search" type="search"
+                 placeholder="Search customer, part, Order ID, unit, location…"
+                 oninput="renderBulkDispatchRows()">
+          <button type="button" class="bulk-search-clear" onclick="document.getElementById('bulk-dispatch-search').value='';renderBulkDispatchRows();">×</button>
+        </div>
+        <button class="btn-primary btn-small" type="button" onclick="selectAllBulkDispatch()">✓ Select all visible</button>
+        <button class="btn-ghost btn-small" type="button" onclick="clearBulkDispatchSelection()">Clear</button>
+      </div>
+
+      <div class="bulk-dispatch-summary" id="bulk-dispatch-summary">
+        <span><b id="bulk-visible-count">0</b> pending orders</span>
+        <span>•</span>
+        <span><b id="bulk-selected-qty">0</b> qty selected</span>
+        <span class="bulk-hint">Tip: click <b>Full</b> to dispatch the entire pending quantity.</span>
+      </div>
+
+      <div class="bulk-dispatch-list" id="bulk-dispatch-list">
+        <table id="bulk-dispatch-table">
+          <thead>
+            <tr>
+              <th class="bulk-check-col"><input type="checkbox" id="bulk-select-all-check" onclick="toggleAllBulkDispatch(this.checked)" title="Select all visible"></th>
+              <th>Order / Customer</th>
+              <th>Part</th>
+              <th>Unit</th>
+              <th>Pending</th>
+              <th>Dispatch Qty</th>
+              <th>Ship To Party</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="bulk-dispatch-actionbar">
+        <div class="bulk-action-fields">
+          <div class="bulk-action-field">
+            <label>Dispatching Unit</label>
+            <select id="bulk-d-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select>
+          </div>
+          <div class="bulk-action-field">
+            <label>Dispatch Date</label>
+            <input id="bulk-d-date" type="date">
+          </div>
+          <div class="bulk-action-field bulk-note-field">
+            <label>Common Note</label>
+            <input id="bulk-d-note" placeholder="Optional">
+          </div>
+        </div>
+        <div class="bulk-submit-area">
+          <div class="status-msg" id="bulk-dispatch-status"></div>
+          <button class="btn-primary bulk-submit-btn" type="button" onclick="saveBulkDispatch()">Dispatch Selected <span id="bulk-submit-count">(0)</span></button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -2740,34 +2856,213 @@ async function savePPCPendingBatch(){
   st.textContent='Saving '+items.length+' pending updates…';st.className='status-msg';
   try{const r=await postAction({action:'bulkUpdatePending',items});if(r.error)throw new Error((r.validationErrors||[]).join('\n')||r.error);(r.orders||[]).forEach(u=>{const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));if(o){o.PendingQty=u.pending;o.PendingDepartment=u.pendingDepartment;o.PendingReason=u.pendingReason;o.Status='Pending';o.LastUpdated=new Date().toISOString();}});ppcPendingSelected.clear();renderStats();renderTable();renderPPCPendingRows();st.textContent='✓ '+r.count+' pending updates saved.';st.className='status-msg ok';}catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
-function renderBulkDispatchRows(){
-  const tb=document.querySelector('#bulk-dispatch-table tbody');if(!tb)return;
+function getBulkDispatchRows_(){
   const q=(document.getElementById('bulk-dispatch-search')?.value||'').toLowerCase().trim();
-  const rows=(data.orders||[]).filter(o=>String(o.Status||'').toLowerCase()==='pending'&&(!q||[o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate,o.CustomerLocation,o.ShipToParty].join(' ').toLowerCase().includes(q)));
-  tb.innerHTML=rows.slice(0,150).map(o=>`<tr>
-    <td><input type="checkbox" class="bulk-dispatch-check" data-id="${esc(o.OrderID)}" ${bulkDispatchSelected.has(String(o.OrderID))?'checked':''}></td>
-    <td>${esc(o.OrderID)}</td><td>${esc(o.Customer)}</td><td>${esc(o.PartCode)}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td><td>${esc(o.UOM||'Nos')}</td>
-    <td><input type="number" min="1" max="${Number(o.PendingQty||0)}" data-bqty="${esc(o.OrderID)}" value="${esc(bulkDispatchQty[o.OrderID]||'')}" placeholder="Qty"></td>
-    <td><input list="dl-shipto" data-bship="${esc(o.OrderID)}" value="${esc(bulkDispatchShipTo[o.OrderID]||o.ShipToParty||'')}" placeholder="Ship To"></td>
-  </tr>`).join('')||'<tr><td colspan="8" class="empty">No pending orders found.</td></tr>';
-  tb.querySelectorAll('.bulk-dispatch-check').forEach(el=>el.onchange=()=>{if(el.checked)bulkDispatchSelected.add(el.dataset.id);else bulkDispatchSelected.delete(el.dataset.id);});
-  tb.querySelectorAll('[data-bqty]').forEach(el=>el.oninput=()=>bulkDispatchQty[el.dataset.bqty]=el.value);
-  tb.querySelectorAll('[data-bship]').forEach(el=>el.oninput=()=>bulkDispatchShipTo[el.dataset.bship]=el.value);
+  return (data.orders||[]).filter(o=>{
+    if(String(o.Status||'').toLowerCase()!=='pending') return false;
+    if(!q) return true;
+    return [o.OrderID,o.Customer,o.PartCode,o.Unit,o.ScheduledDate,o.CustomerLocation,o.ShipToParty,o.ShipToAddress,o.UOM]
+      .join(' ').toLowerCase().includes(q);
+  });
 }
-function selectAllBulkDispatch(){document.querySelectorAll('.bulk-dispatch-check').forEach(el=>{el.checked=true;bulkDispatchSelected.add(el.dataset.id);});}
-function clearBulkDispatchSelection(){bulkDispatchSelected.clear();bulkDispatchQty={};bulkDispatchShipTo={};renderBulkDispatchRows();}
+
+function updateBulkDispatchUI_(){
+  const selected=[...bulkDispatchSelected];
+  let total=0;
+  selected.forEach(id=>{
+    const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id));
+    if(o) total+=Number(bulkDispatchQty[id]||0);
+  });
+  const countEl=document.getElementById('bulk-dispatch-count');
+  const submitCount=document.getElementById('bulk-submit-count');
+  const qtyEl=document.getElementById('bulk-selected-qty');
+  if(countEl) countEl.textContent=selected.length+' selected';
+  if(submitCount) submitCount.textContent='('+selected.length+')';
+  if(qtyEl) qtyEl.textContent=total.toLocaleString();
+}
+
+function renderBulkDispatchRows(){
+  const tb=document.querySelector('#bulk-dispatch-table tbody'); if(!tb)return;
+  const rows=getBulkDispatchRows_();
+  const visible=rows.slice(0,200);
+
+  const visibleIds=new Set(visible.map(o=>String(o.OrderID)));
+  const allVisibleSelected=visible.length>0 && visible.every(o=>bulkDispatchSelected.has(String(o.OrderID)));
+  const master=document.getElementById('bulk-select-all-check');
+  if(master){
+    master.checked=allVisibleSelected;
+    master.indeterminate=!allVisibleSelected && visible.some(o=>bulkDispatchSelected.has(String(o.OrderID)));
+  }
+
+  const vc=document.getElementById('bulk-visible-count');
+  if(vc) vc.textContent=rows.length.toLocaleString();
+
+  if(!visible.length){
+    tb.innerHTML='<tr><td colspan="7" class="empty">No pending orders found.</td></tr>';
+    updateBulkDispatchUI_();
+    return;
+  }
+
+  tb.innerHTML=visible.map(o=>{
+    const id=String(o.OrderID);
+    const pending=Number(o.PendingQty||0);
+    const qty=bulkDispatchQty[id]||'';
+    const ship=bulkDispatchShipTo[id] ?? o.ShipToParty ?? '';
+    const checked=bulkDispatchSelected.has(id);
+    return `<tr class="${checked?'bulk-row-selected':''}">
+      <td class="bulk-check-col"><input type="checkbox" class="bulk-dispatch-check" data-id="${esc(id)}" ${checked?'checked':''}></td>
+      <td class="bulk-order-cell">
+        <b>${esc(o.Customer||'—')}</b>
+        <span>${esc(id)}</span>
+        <small>${esc(o.CustomerLocation||'')}${o.ScheduledDate?' · '+esc(fmtDate(o.ScheduledDate)):''}</small>
+      </td>
+      <td><b>${esc(o.PartCode||'—')}</b></td>
+      <td><span class="bulk-unit-pill">${esc(o.Unit||'—')}</span></td>
+      <td class="bulk-pending-cell"><b>${pending.toLocaleString()}</b><small>${esc(o.UOM||'Nos')}</small></td>
+      <td class="bulk-qty-cell">
+        <div class="bulk-qty-wrap">
+          <input type="number" min="1" max="${pending}" data-bqty="${esc(id)}" value="${esc(qty)}" placeholder="0">
+          <button type="button" class="bulk-full-btn" data-full="${esc(id)}">Full</button>
+        </div>
+      </td>
+      <td class="bulk-ship-cell"><input list="dl-shipto" data-bship="${esc(id)}" value="${esc(ship)}" placeholder="PPC ship-to"></td>
+    </tr>`;
+  }).join('');
+
+  tb.querySelectorAll('.bulk-dispatch-check').forEach(el=>{
+    el.onchange=()=>{
+      const id=el.dataset.id;
+      if(el.checked) bulkDispatchSelected.add(id);
+      else bulkDispatchSelected.delete(id);
+      const tr=el.closest('tr');
+      if(tr) tr.classList.toggle('bulk-row-selected',el.checked);
+      updateBulkDispatchUI_();
+      syncBulkMasterCheck_();
+    };
+  });
+
+  tb.querySelectorAll('[data-bqty]').forEach(el=>{
+    el.oninput=()=>{
+      const id=el.dataset.bqty;
+      const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id));
+      let v=Number(el.value||0);
+      if(o) v=Math.min(Math.max(v,0),Number(o.PendingQty||0));
+      if(v) el.value=v||'';
+      bulkDispatchQty[id]=el.value;
+      if(v>0) bulkDispatchSelected.add(id);
+      updateBulkDispatchUI_();
+      syncBulkMasterCheck_();
+    };
+  });
+
+  tb.querySelectorAll('[data-full]').forEach(el=>{
+    el.onclick=()=>{
+      const id=el.dataset.full;
+      const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id));
+      if(!o)return;
+      bulkDispatchQty[id]=String(Number(o.PendingQty||0));
+      bulkDispatchSelected.add(id);
+      renderBulkDispatchRows();
+      const input=tb.querySelector(`[data-bqty="${CSS.escape(id)}"]`);
+      if(input){input.focus();input.select();}
+    };
+  });
+
+  tb.querySelectorAll('[data-bship]').forEach(el=>{
+    el.oninput=()=>bulkDispatchShipTo[el.dataset.bship]=el.value;
+  });
+
+  updateBulkDispatchUI_();
+}
+
+function syncBulkMasterCheck_(){
+  const rows=getBulkDispatchRows_().slice(0,200);
+  const master=document.getElementById('bulk-select-all-check');
+  if(!master)return;
+  const selected=rows.filter(o=>bulkDispatchSelected.has(String(o.OrderID))).length;
+  master.checked=rows.length>0 && selected===rows.length;
+  master.indeterminate=selected>0 && selected<rows.length;
+}
+
+function toggleAllBulkDispatch(checked){
+  const rows=getBulkDispatchRows_().slice(0,200);
+  rows.forEach(o=>{
+    const id=String(o.OrderID);
+    if(checked) bulkDispatchSelected.add(id);
+    else bulkDispatchSelected.delete(id);
+  });
+  renderBulkDispatchRows();
+}
+
+function selectAllBulkDispatch(){
+  toggleAllBulkDispatch(true);
+}
+
+function clearBulkDispatchSelection(){
+  bulkDispatchSelected.clear();
+  bulkDispatchQty={};
+  bulkDispatchShipTo={};
+  const master=document.getElementById('bulk-select-all-check');
+  if(master){master.checked=false;master.indeterminate=false;}
+  renderBulkDispatchRows();
+}
+
 async function saveBulkDispatch(){
-  const st=document.getElementById('bulk-dispatch-status'),unit=document.getElementById('bulk-d-unit').value,date=document.getElementById('bulk-d-date').value||todayISO(),note=document.getElementById('bulk-d-note').value.trim();
+  const st=document.getElementById('bulk-dispatch-status');
+  const unit=document.getElementById('bulk-d-unit').value;
+  const date=document.getElementById('bulk-d-date').value||todayISO();
+  const note=document.getElementById('bulk-d-note').value.trim();
+
   if(!unit){st.textContent='Select dispatching unit.';st.className='status-msg err';return;}
-  const items=[...bulkDispatchSelected].map(id=>({orderId:id,uom:data.orders.find(o=>String(o.OrderID)===id)?.UOM||'Nos',dispatchedQty:bulkDispatchQty[id],shipToParty:bulkDispatchShipTo[id]||data.orders.find(o=>String(o.OrderID)===id)?.ShipToParty||'',shipToAddress:data.orders.find(o=>String(o.OrderID)===id)?.ShipToAddress||''}));
+
+  const items=[...bulkDispatchSelected].map(id=>{
+    const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id));
+    return {orderId:id,uom:o?.UOM||'Nos',dispatchedQty:bulkDispatchQty[id],shipToParty:bulkDispatchShipTo[id]||o?.ShipToParty||'',shipToAddress:o?.ShipToAddress||''};
+  });
+
   if(!items.length){st.textContent='Select at least one order.';st.className='status-msg err';return;}
-  st.textContent='Dispatching '+items.length+' orders…';st.className='status-msg';
-  try{const r=await postAction({action:'bulkDispatch',items,unit,dispatchedDate:date,note});if(r.error)throw new Error((r.validationErrors||[]).join('\n')||r.error);
-    (r.orders||[]).forEach(u=>{const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));if(o){o.DispatchedQty=u.dispatched;o.PendingQty=u.pending;o.Status=u.status;o.LastUpdated=new Date().toISOString();if(o.Status==='Completed'){o.PendingDepartment='';o.PendingReason='';}}});
+
+  const invalid=items.filter(x=>!Number(x.dispatchedQty)||Number(x.dispatchedQty)<=0);
+  if(invalid.length){
+    st.textContent='Enter a dispatch quantity for every selected order, or click Full.';
+    st.className='status-msg err';
+    return;
+  }
+
+  st.textContent='Dispatching '+items.length+' orders…';
+  st.className='status-msg';
+
+  try{
+    const r=await postAction({action:'bulkDispatch',items,unit,dispatchedDate:date,note});
+    if(r.error)throw new Error((r.validationErrors||[]).join('\n')||r.error);
+
+    (r.orders||[]).forEach(u=>{
+      const o=data.orders.find(x=>String(x.OrderID)===String(u.orderId));
+      if(o){
+        o.DispatchedQty=u.dispatched;
+        o.PendingQty=u.pending;
+        o.Status=u.status;
+        o.LastUpdated=new Date().toISOString();
+        if(o.Status==='Completed'){o.PendingDepartment='';o.PendingReason='';}
+      }
+    });
     (r.logs||[]).forEach(l=>data.logs.push(l));
-    populateDispatchOrderSelect();renderBulkDispatchRows();renderStats();renderTable();clearBulkDispatchSelection();
-    st.textContent='✓ '+r.count+' dispatches saved in one batch.';st.className='status-msg ok';
-  }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+
+    const savedCount=r.count||items.length;
+    bulkDispatchSelected.clear();
+    bulkDispatchQty={};
+    bulkDispatchShipTo={};
+    populateDispatchOrderSelect();
+    renderBulkDispatchRows();
+    renderStats();
+    renderTable();
+
+    st.textContent='✓ '+savedCount+' dispatches saved in one batch.';
+    st.className='status-msg ok';
+  }catch(e){
+    st.textContent='Failed: '+e.message;
+    st.className='status-msg err';
+  }
 }
 
 function hasRoleUI(name){
