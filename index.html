@@ -327,6 +327,12 @@
   .history-card { border:1px solid var(--border); background:var(--panel-2); border-radius:10px; padding:12px; margin-top:12px; }
   .history-row { display:grid; grid-template-columns:1.1fr 1fr 1fr .8fr 1fr; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-soft); font-size:12px; }
   .history-row:last-child { border-bottom:0; }
+.stock-live-info {
+  margin:-4px 0 12px; padding:8px 10px; border:1px solid var(--border);
+  border-radius:9px; background:var(--panel-2); color:var(--muted); font-size:12px;
+}
+.stock-live-info b { color:var(--accent-2); }
+
   .searchable-order-field { position:relative; }
   .order-search-wrap { position:relative; }
   .order-search-wrap input { padding-right:36px; }
@@ -848,8 +854,8 @@ body {
         <div class="field"><label>Order Type</label><select id="n-order-type" onchange="toggleOrderType()"><option value="STANDARD">Standard Article</option><option value="SET">Customer Set</option></select></div>
         <div class="field combo" id="n-part-field"><label>Part Code</label><input id="n-part" list="dl-parts" placeholder="Select or type new" oninput="showStock()"><datalist id="dl-parts"></datalist></div>
         <div class="field combo" id="n-set-field" style="display:none"><label>Set Code</label><select id="n-set"><option value="">— Select Set —</option></select></div>
-        <div class="field"><label>Unit</label><select id="n-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
-        <div class="field"><label>Order Quantity</label><input id="n-qty" type="number" min="1" placeholder="1000"></div>
+        <div class="field"><label>Unit</label><select id="n-unit" onchange="showStock()"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+        <div class="field"><label>Order Quantity</label><input id="n-qty" type="number" min="1" placeholder="1000" oninput="showStock()"></div>
         <div class="field" id="n-uom-field"><label>UOM</label><select id="n-uom"></select></div>
         <div class="field"><label>Priority Level</label><select id="n-priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
         <div class="field"><label>Scheduled Date</label><input id="n-date" type="date"></div>
@@ -867,7 +873,7 @@ body {
           </table>
         </div>
       </div>
-      <div class="sub" id="n-stock-info" style="margin:-4px 0 12px;">Enter a Part Code to see current FG stock.</div>
+      <div class="sub" id="n-stock-info" class="stock-live-info">Enter a Part Code to see current FG stock.</div>
       <button class="btn-primary btn-block" onclick="submitOrder()">Create Order</button>
       <div class="status-msg" id="new-status"></div>
     </div>
@@ -993,7 +999,7 @@ body {
         <span class="badge" id="dispatch-history-scope">Dispatch History</span>
       </div>
       <div class="toolbar" style="margin-top:14px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;">
-        <div class="field" style="margin:0;"><label>Search</label><input id="dh-search" type="search" placeholder="Order ID, customer, part code, ship to…" oninput="renderDispatchHistory()"></div>
+        <div class="field" style="margin:0;"><label>Search</label><input id="dh-search" type="search" placeholder="Customer, part code, ship to…" oninput="renderDispatchHistory()"></div>
         <div class="field" style="margin:0;"><label>From Date</label><input id="dh-from" type="date" onchange="renderDispatchHistory()"></div>
         <div class="field" style="margin:0;"><label>To Date</label><input id="dh-to" type="date" onchange="renderDispatchHistory()"></div>
         <div class="field" style="margin:0;"><label>Unit</label><select id="dh-unit" onchange="renderDispatchHistory()"><option value="">All Units</option></select></div>
@@ -1006,7 +1012,7 @@ body {
       </div>
       <div class="table-scroll">
         <table id="dispatch-history-table">
-          <thead><tr><th>Date</th><th>Order ID</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Logged At</th></tr></thead>
+          <thead><tr><th>Dispatch Date</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Dispatched By</th><th>Dispatched On</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -1134,10 +1140,14 @@ body {
     </div>
     <div class="card">
       <h2>Current FG Stock</h2>
-      <div class="grid" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end;gap:10px;margin-bottom:12px;">
+      <div class="grid" style="grid-template-columns:2fr 2fr 1fr 1fr auto;align-items:end;gap:10px;margin-bottom:12px;">
         <div class="field">
           <label>Search Part Code</label>
           <input id="stock-search" type="search" placeholder="Search Part Code..." oninput="renderStockTable()">
+        </div>
+        <div class="field">
+          <label>Search Customer</label>
+          <input id="stock-customer-search" type="search" placeholder="Customer name..." oninput="renderStockTable()">
         </div>
         <div class="field">
           <label>Production Unit</label>
@@ -1613,7 +1623,7 @@ async function loadData(silent=false) {
       (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
       const count = Array.isArray(data.orders) ? data.orders.length : 0;
       setConn('ok', 'Live — connected · ' + count + ' orders');
-      populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI();
+      populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI(); showStock();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
     } catch (e) { setConn('err', 'Connection failed — data not lost.'); return false; }
@@ -1679,6 +1689,7 @@ function populateDropdowns() {
     if (current && uoms.includes(current)) el.value = current;
     else el.value = 'Nos';
   });
+  showStock();
   const setSel=document.getElementById('n-set');
   if(setSel) { setSel.innerHTML='<option value="">— Select Set —</option>'+(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}">${esc(x.SetCode)} — ${esc(x.SetName||'')}</option>`).join(''); if(!setSel.dataset.bound){setSel.addEventListener('change',loadSelectedSetComponents);setSel.dataset.bound='1';} }
   const setOrderSel=document.getElementById('d-set-order');
@@ -1813,7 +1824,7 @@ function renderTable() {
     <th class="select-col"><input id="select-all-orders" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" ${rows.length && rows.every(o=>selectedOrders.has(String(o.OrderID)))?'checked':''}></th>
     <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>UOM</th><th>Priority</th><th>Order Qty</th>
     <th>Planned</th><th>Additional</th><th>Total Dispatch</th><th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
-    <th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Created By</th><th>PPC By</th><th>Dispatch By</th><th>Status</th><th>Action</th>
+    <th>FG Stock</th><th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Created By</th><th>PPC By</th><th>Dispatch By</th><th>Status</th><th>Action</th>
   </tr>`;
   if (rows.length === 0) { tbl.querySelector('tbody').innerHTML=''; empty.style.display='block'; updateBulkBar(); return; }
   empty.style.display='none';
@@ -1838,6 +1849,7 @@ function renderTable() {
       <td>${planned?planned.toLocaleString():'—'}</td><td>${additional?additional.toLocaleString():'—'}</td><td>${total?total.toLocaleString():'—'}</td>
       <td>${dispatched.toLocaleString()}</td><td>${Number(o.PendingQty||0).toLocaleString()}</td>
       <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td><td>${fmtDate(o.ScheduledDate)}</td>
+      <td><b>${Number(o.CurrentFGStock || 0).toLocaleString()}</b></td>
       <td>${o.FGStatus==='In Stock'?'<span class="pill pill-completed">In Stock</span>':o.FGStatus?'<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>':'—'}</td>
       <td>${esc(o.PendingDepartment||'—')}</td><td>${esc(o.PendingReason||'—')}</td>
       <td title="${esc(o.CreatedByName || o.CreatedBy || '—')}">${esc(actorShortName(o.CreatedByName || o.CreatedBy || ''))}</td><td title="${esc(ppcActor || '—')}">${esc(actorShortName(ppcActor || ''))}</td><td title="${esc(getLastDispatchActor(o.OrderID) || '—')}">${esc(actorShortName(getLastDispatchActor(o.OrderID) || ''))}</td>
@@ -1861,29 +1873,58 @@ async function applyBulkStatus(){const status=document.getElementById('bulk-stat
 
 
 function getStockFor(partCode, unit) {
-  const targetPart = String(partCode || '').trim();
-  const targetUnit = String(unit || SESSION?.unit || '').trim();
-  const matches = (data.stock || []).filter(s => String(s.PartCode || '').trim() === targetPart);
+  const targetPart = String(partCode || '').trim().toLowerCase();
+  const targetUnit = String(unit || SESSION?.unit || '').trim().toLowerCase();
+  if (!targetPart) return 0;
+
+  const matches = (data.stock || []).filter(s =>
+    String(s.PartCode || s.Code || '').trim().toLowerCase() === targetPart
+  );
   if (!matches.length) return 0;
+
   if (targetUnit) {
-    const exact = matches.find(s => String(s.Unit || s.ProductionUnit || '').trim() === targetUnit);
-    if (exact) return Number(exact.AvailableQty) || 0;
+    const exact = matches.find(s =>
+      String(s.Unit || s.ProductionUnit || '').trim().toLowerCase() === targetUnit
+    );
+    return exact ? (Number(exact.AvailableQty) || 0) : 0;
   }
-  // Owner/global fallback: sum rows for the same part when no unit is specified.
+
   return matches.reduce((sum, s) => sum + (Number(s.AvailableQty) || 0), 0);
 }
 
 function showStock() {
-  const part = document.getElementById('n-part').value.trim();
+  const partEl = document.getElementById('n-part');
+  const unitEl = document.getElementById('n-unit');
   const info = document.getElementById('n-stock-info');
-  if (!part) { info.textContent = 'Enter a Part Code to see current FG stock.'; return; }
-  const stock = getStockFor(part, document.getElementById('n-unit')?.value || SESSION?.unit || '');
+  if (!partEl || !info) return;
+
+  const part = String(partEl.value || '').trim();
+  const unit = String(unitEl?.value || SESSION?.unit || '').trim();
+
+  if (!part) {
+    info.textContent = 'Enter a Part Code to see current FG stock.';
+    return;
+  }
+  if (!unit) {
+    info.textContent = 'Select a Production Unit to see current FG stock.';
+    return;
+  }
+
+  const stock = getStockFor(part, unit);
+  const orderQty = Number(document.getElementById('n-qty')?.value || 0);
+
   if (stock > 0) {
-    info.innerHTML = `Available FG stock: <b>${stock}</b> — if this covers the order quantity it'll route straight to Dispatch, otherwise to PPC Planning.`;
+    const coverage = orderQty > 0 && stock >= orderQty
+      ? 'Stock covers this order — it can route straight to Dispatch.'
+      : orderQty > 0
+        ? `Stock is below the order quantity by ${Math.max(orderQty - stock, 0)} — it will require PPC Planning.`
+        : 'Enter the order quantity to check stock coverage.';
+    info.innerHTML = `Available FG stock (${esc(unit)}): <b>${stock.toLocaleString()}</b> &nbsp;·&nbsp; ${esc(coverage)}`;
   } else {
-    info.textContent = 'No FG stock on record for this part code — order will route to PPC Planning.';
+    info.innerHTML = `Available FG stock (${esc(unit)}): <b>0</b> &nbsp;·&nbsp; No FG stock on record — order will route to PPC Planning.`;
   }
 }
+
 
 function showCurrentStock() {
   const part = document.getElementById('s-part').value.trim();
@@ -1911,10 +1952,11 @@ async function submitStock() {
     document.getElementById('s-qty').value = '';
     renderStockTable();
     showCurrentStock();
-    loadData(true);
+    await loadData(true);
     renderStockTable();
     renderStockMovementTable();
     showCurrentStock();
+    showStock();
   } catch (e) {
     statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
   }
@@ -1955,8 +1997,10 @@ function initStockFilters() {
 
 function clearStockFilters() {
   const q = document.getElementById('stock-search');
+  const customer = document.getElementById('stock-customer-search');
   const status = document.getElementById('stock-status-filter');
   if (q) q.value = '';
+  if (customer) customer.value = '';
   if (status) status.value = 'all';
   const unit = document.getElementById('stock-unit-filter');
   if (unit && !unit.disabled) unit.value = '';
@@ -1979,6 +2023,7 @@ function renderStockTable() {
   initStockFilters();
 
   const query = String(document.getElementById('stock-search')?.value || '').trim().toLowerCase();
+  const customerQuery = String(document.getElementById('stock-customer-search')?.value || '').trim().toLowerCase();
   const unitFilter = String(document.getElementById('stock-unit-filter')?.value || '').trim();
   const statusFilter = document.getElementById('stock-status-filter')?.value || 'all';
 
@@ -1994,6 +2039,12 @@ function renderStockTable() {
   }
 
   if (query) rows = rows.filter(r => String(r.PartCode || '').toLowerCase().includes(query));
+  if (customerQuery) {
+    const customerPartUnits = new Set((data.orders || [])
+      .filter(o => String(o.Customer || '').toLowerCase().includes(customerQuery))
+      .map(o => String(o.PartCode || '').trim().toLowerCase() + '|' + String(o.Unit || '').trim().toLowerCase()));
+    rows = rows.filter(r => customerPartUnits.has(String(r.PartCode || '').trim().toLowerCase() + '|' + String(r.Unit || r.ProductionUnit || '').trim().toLowerCase()));
+  }
   if (statusFilter === 'available') rows = rows.filter(r => Number(r.AvailableQty || 0) > 0);
   if (statusFilter === 'zero') rows = rows.filter(r => Number(r.AvailableQty || 0) <= 0);
 
@@ -2424,7 +2475,7 @@ function renderDispatchHistory() {
   if (to) rows = rows.filter(r => dispatchHistoryDateKey(r.dispatchDate) <= to);
 
   if (q) {
-    rows = rows.filter(r => [r.orderId,r.customer,r.partCode,r.unit,r.shipTo,r.qty,r.uom,r.log.Note || '',r.log.LogID || '']
+    rows = rows.filter(r => [r.customer,r.partCode,r.unit,r.shipTo,r.qty,r.uom,r.log.Note || '']
       .join(' ').toLowerCase().includes(q));
   }
 
@@ -2432,7 +2483,6 @@ function renderDispatchHistory() {
 
   tbody.innerHTML = rows.length ? rows.map(r => `<tr>
     <td>${esc(fmtDate(r.dispatchDate))}</td>
-    <td><b>${esc(r.orderId)}</b></td>
     <td>${esc(r.customer || '—')}</td>
     <td>${esc(r.partCode || '—')}</td>
     <td>${esc(r.unit || '—')}</td>
