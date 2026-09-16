@@ -1450,6 +1450,42 @@ function applyRoleUI() {
   const activeTab=document.querySelector('.tab.active'); if(activeTab&&activeTab.style.display==='none') switchTab('orders');
 }
 
+function initAllOrdersUnitFilter(){
+  const el = document.getElementById('f-unit');
+  if (!el) return;
+  const units = ['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const roleTokens = String(SESSION?.role || '').trim().toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const isOwner = roleTokens.includes('owner');
+  const assigned = String(SESSION?.unit || '').trim();
+  const current = el.value;
+
+  // Owner is always global: never lock the All Orders unit filter to SESSION.unit.
+  if (isOwner) {
+    el.disabled = false;
+    el.innerHTML = '<option value="">All units</option>' +
+      units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    el.value = units.includes(current) ? current : '';
+    el.title = 'Owner: choose any unit';
+    return;
+  }
+
+  // Unit-bound users are restricted to their assigned unit.
+  if (assigned) {
+    el.innerHTML = `<option value="${esc(assigned)}">${esc(assigned)}</option>`;
+    el.value = assigned;
+    el.disabled = true;
+    el.title = 'Locked to your assigned unit';
+    return;
+  }
+
+  // Unassigned non-owner users can use all units unless backend scope restricts them.
+  el.disabled = false;
+  el.innerHTML = '<option value="">All units</option>' +
+    units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  el.value = units.includes(current) ? current : '';
+  el.title = '';
+}
+
 function lockUnitFieldsForSession(){
   const role=String(SESSION?.role||'').trim().toLowerCase();
   const unit=String(SESSION?.unit||'').trim();
@@ -1493,6 +1529,7 @@ function showApp() {
 
   const role = String(SESSION.role || '').trim().toLowerCase();
   lockUnitFieldsForSession();
+  initAllOrdersUnitFilter();
   initStockFilters();
   initDispatchHistoryFilters();
 
@@ -1680,6 +1717,7 @@ function renderStats() {
 }
 
 function getFiltered() {
+  initAllOrdersUnitFilter();
   const c = document.getElementById('f-customer').value;
   const p = document.getElementById('f-part').value;
   const u = document.getElementById('f-unit').value;
