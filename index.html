@@ -772,6 +772,13 @@ body {
 .bulk-order-cell{min-width:205px}.bulk-scheduled-cell{font-weight:700;color:#c4b5fd;white-space:nowrap}.bulk-ship-cell{min-width:175px}
 #stock-table{min-width:820px}.stock-customer-cell{min-width:170px;max-width:240px;white-space:normal;line-height:1.25}
 #tab-stock .table-scroll{max-height:420px;overflow:auto}#tab-stock #stock-table th{position:sticky;top:0;z-index:4}
+/* ===== ALL ORDERS: keep the table header visible while scrolling ===== */
+#tab-orders .table-scroll{max-height:calc(100vh - 330px);min-height:320px;overflow:auto;position:relative;border:1px solid var(--border);border-radius:10px}
+#tab-orders #orders-table{min-width:1780px}
+#tab-orders #orders-table thead th{position:sticky;top:0;z-index:20;background:#15121d;box-shadow:0 1px 0 var(--border),0 3px 8px rgba(0,0,0,.18)}
+#tab-orders #orders-table thead th:first-child{left:0;z-index:22}
+#tab-orders #orders-table td:first-child{position:sticky;left:0;z-index:4;background:var(--panel)}
+#tab-orders #orders-table tr:hover td:first-child{background:var(--panel-2)}
 @media(max-width:800px){#ppc-order-bulk-table{min-width:980px}.bulk-dispatch-list table{min-width:980px}}
 </style>
 
@@ -1946,6 +1953,20 @@ function getLastDispatchActor(orderId){
   return rows[0].DispatchedByName || rows[0].DispatchedBy || '';
 }
 
+// FG By = the latest user recorded against the current FG stock row for this Part Code + Unit.
+// We deliberately keep this separate from PPC By and Dispatch By so the audit trail is clear.
+function getFGStockActor(partCode, unit){
+  const p=String(partCode||'').trim().toLowerCase();
+  const u=String(unit||'').trim().toLowerCase();
+  if(!p)return '';
+  const row=(data.stock||[]).find(s=>
+    String(s.PartCode||s.Code||'').trim().toLowerCase()===p &&
+    String(s.Unit||s.ProductionUnit||'').trim().toLowerCase()===u
+  );
+  if(!row)return '';
+  return row.LastUpdatedByName || row.LastUpdatedBy || row.UpdatedByName || row.UpdatedBy || row.UserName || row.User || '';
+}
+
 function renderTable() {
   const rows = getFiltered();
   const tbl = document.getElementById('orders-table');
@@ -1955,7 +1976,7 @@ function renderTable() {
     <th class="select-col"><input id="select-all-orders" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" ${rows.length && rows.every(o=>selectedOrders.has(String(o.OrderID)))?'checked':''}></th>
     <th>Customer</th><th>Location</th><th>Part Code</th><th>Unit</th><th>UOM</th><th>Priority</th><th>Order Qty</th>
     <th>Planned</th><th>Additional</th><th>Total Dispatch</th><th>Dispatched</th><th>Pending</th><th>Progress</th><th>Scheduled</th>
-    <th>FG Stock</th><th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>Created By</th><th>PPC By</th><th>Dispatch By</th><th>Status</th><th>Action</th>
+    <th>FG Stock</th><th>FG Status</th><th>Pending Dept</th><th>Pending Reason</th><th>FG By</th><th>PPC By</th><th>Dispatch By</th><th>Status</th><th>Action</th>
   </tr>`;
   if (rows.length === 0) { tbl.querySelector('tbody').innerHTML=''; empty.style.display='block'; updateBulkBar(); return; }
   empty.style.display='none';
@@ -1967,6 +1988,7 @@ function renderTable() {
     const draftPpcActor=(plan && String(plan.Status||'').toLowerCase()!=='finalized') ? (plan.UpdatedByName || plan.UpdatedBy || '') : '';
     const creatorIsPpc=/\bppc\b/i.test(String(o.CreatedByRole||''));
     const ppcActor=finalizedPpcActor || draftPpcActor || (creatorIsPpc ? (o.CreatedByName || o.CreatedBy || '') : '');
+    const fgActor=getFGStockActor(o.PartCode,o.Unit);
     const pct=orderQty?Math.min(100,Math.round(dispatched/orderQty*100)):0;
     const statusPill=o.Status==='Completed'?'pill-completed':'pill-pending';
     const prioPill=o.Priority==='High'?'pill-high':o.Priority==='Low'?'pill-low':'pill-medium';
@@ -1983,7 +2005,7 @@ function renderTable() {
       <td><b>${Number(o.CurrentFGStock || 0).toLocaleString()}</b></td>
       <td>${o.FGStatus==='In Stock'?'<span class="pill pill-completed">In Stock</span>':o.FGStatus?'<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>':'—'}</td>
       <td>${esc(o.PendingDepartment||'—')}</td><td>${esc(o.PendingReason||'—')}</td>
-      <td title="${esc(o.CreatedByName || o.CreatedBy || '—')}">${esc(actorShortName(o.CreatedByName || o.CreatedBy || ''))}</td><td title="${esc(ppcActor || '—')}">${esc(actorShortName(ppcActor || ''))}</td><td title="${esc(getLastDispatchActor(o.OrderID) || '—')}">${esc(actorShortName(getLastDispatchActor(o.OrderID) || ''))}</td>
+      <td title="${esc(fgActor || '—')}">${esc(actorShortName(fgActor || ''))}</td><td title="${esc(ppcActor || '—')}">${esc(actorShortName(ppcActor || ''))}</td><td title="${esc(getLastDispatchActor(o.OrderID) || '—')}">${esc(actorShortName(getLastDispatchActor(o.OrderID) || ''))}</td>
       <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td><td class="action-cell">${action||'—'}</td>
     </tr>`;
   }).join('');
