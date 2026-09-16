@@ -759,6 +759,20 @@ body {
   .bulk-action-fields{grid-template-columns:1fr}
   .bulk-note-field{grid-column:auto}
 }
+/* ===== QUICK ENTRY: PPC / DISPATCH / FG STOCK ===== */
+#ppc-order-bulk-table{min-width:1080px}
+#ppc-order-bulk-table th,#ppc-order-bulk-table td{padding:7px 8px;vertical-align:middle}
+#ppc-order-bulk-table th{position:sticky;top:0;z-index:3}
+#ppc-order-bulk-table input,#ppc-order-bulk-table select{padding:7px 8px;font-size:12px}
+.ppc-customer-cell{min-width:190px}.ppc-customer-cell input{display:block;margin-bottom:5px}.ppc-customer-cell input:last-child{margin-bottom:0}
+.ppc-article-cell{min-width:190px}.ppc-article-cell select,.ppc-article-cell input{display:block;margin-bottom:5px}.ppc-article-cell>*:last-child{margin-bottom:0}
+.ppc-qty-cell{min-width:145px}.ppc-qty-wrap{display:grid;grid-template-columns:1fr 74px;gap:5px}
+.ppc-date-input{min-width:128px}.ppc-ship-cell{min-width:210px}.ppc-ship-cell input{display:block;margin-bottom:5px}.ppc-ship-cell input:last-child{margin-bottom:0}
+.bulk-dispatch-list table{min-width:1040px}
+.bulk-order-cell{min-width:205px}.bulk-scheduled-cell{font-weight:700;color:#c4b5fd;white-space:nowrap}.bulk-ship-cell{min-width:175px}
+#stock-table{min-width:820px}.stock-customer-cell{min-width:170px;max-width:240px;white-space:normal;line-height:1.25}
+#tab-stock .table-scroll{max-height:420px;overflow:auto}#tab-stock #stock-table th{position:sticky;top:0;z-index:4}
+@media(max-width:800px){#ppc-order-bulk-table{min-width:980px}.bulk-dispatch-list table{min-width:980px}}
 </style>
 
 </head>
@@ -1027,7 +1041,7 @@ body {
       <h2>PPC — Multiple Order Creation</h2>
       <div class="sub" style="margin-bottom:10px;">Create many customer orders in one save. Ship To Party is registered here and will automatically appear at Dispatch.</div>
       <div class="table-scroll">
-        <table id="ppc-order-bulk-table"><thead><tr><th>Customer</th><th>Location</th><th>Type</th><th>Part / Set</th><th>Unit</th><th>Qty</th><th>UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To Party</th><th>Ship-to Address</th><th></th></tr></thead><tbody></tbody></table>
+        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div class="modal-actions" style="margin-top:10px;"><button class="btn-ghost" onclick="addPPCBulkRow()">+ Add Row</button><button class="btn-primary" onclick="savePPCBulkOrders()">Save All Orders</button><button class="btn-ghost" onclick="clearPPCBulkRows()">Clear</button></div>
       <div class="status-msg" id="ppc-bulk-status"></div>
@@ -1068,12 +1082,13 @@ body {
           <thead>
             <tr>
               <th class="bulk-check-col"><input type="checkbox" id="bulk-select-all-check" onclick="toggleAllBulkDispatch(this.checked)" title="Select all visible"></th>
-              <th>Order / Customer</th>
+              <th>Customer / Location</th>
               <th>Part</th>
               <th>Unit</th>
+              <th>Scheduled</th>
               <th>Pending</th>
               <th>Dispatch Qty</th>
-              <th>Ship To Party</th>
+              <th>Ship To</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -1282,7 +1297,7 @@ body {
       <div class="sub" id="stock-result-count" style="margin:-2px 0 8px;text-align:right;"></div>
       <div class="table-scroll">
         <table id="stock-table">
-          <thead><tr><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th><th>Last Updated By</th></tr></thead>
+          <thead><tr><th>Customer</th><th>Part Code</th><th>Production Unit</th><th>Available Qty</th><th>Last Updated</th><th>Last Updated By</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -2171,15 +2186,21 @@ function renderStockTable() {
   (data.stockMovements||[]).forEach(m=>{const k=String(m.PartCode||'')+'|'+String(m.Unit||''); const t=new Date(m.DateTime||0).getTime(); if(!actorMap[k]||t>actorMap[k].t) actorMap[k]={t,name:m.UserName||m.User||''};});
   if (count) count.textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
 
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td>${esc(r.PartCode)}</td>
+  const customerMap={};
+  (data.orders||[]).forEach(o=>{const k=String(o.PartCode||'').trim().toLowerCase()+'|'+String(o.Unit||'').trim().toLowerCase();if(!customerMap[k])customerMap[k]=new Set();if(String(o.Customer||'').trim())customerMap[k].add(String(o.Customer).trim());});
+  tbody.innerHTML = rows.map(r => {
+    const key=String(r.PartCode||'').trim().toLowerCase()+'|'+String(r.Unit||r.ProductionUnit||'').trim().toLowerCase();
+    const customers=[...(customerMap[key]||new Set())];
+    const actor=actorMap[String(r.PartCode||'')+'|'+String(r.Unit||r.ProductionUnit||'') ]?.name || r.LastUpdatedByName || '';
+    return `<tr>
+      <td class="stock-customer-cell" title="${esc(customers.join(', ')||'No linked customer')}">${esc(customers.length?customers.slice(0,2).join(', ')+(customers.length>2?' +'+(customers.length-2):''):'—')}</td>
+      <td><b>${esc(r.PartCode)}</b></td>
       <td>${esc(r.Unit || r.ProductionUnit || 'Unassigned')}</td>
-      <td>${Number(r.AvailableQty||0).toLocaleString()}</td>
+      <td><b>${Number(r.AvailableQty||0).toLocaleString()}</b></td>
       <td>${fmtDate(r.LastUpdated)}</td>
-      <td title="${esc(actorMap[String(r.PartCode||'')+'|'+String(r.Unit||r.ProductionUnit||'') ]?.name || r.LastUpdatedByName || '—')}">${esc(actorShortName(actorMap[String(r.PartCode||'')+'|'+String(r.Unit||r.ProductionUnit||'') ]?.name || r.LastUpdatedByName || ''))}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="5" class="empty">No stock matches the selected filters.</td></tr>';
+      <td title="${esc(actor||'—')}">${esc(actorShortName(actor))}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty">No stock matches the selected filters.</td></tr>';
 }
 
 let dispatchSearchIndex = [];
@@ -2794,25 +2815,22 @@ function addPPCBulkRow(seed={}){
 function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
 function renderPPCBulkRows(){
  const tb=document.querySelector('#ppc-order-bulk-table tbody');if(!tb)return;if(!ppcBulkRows.length)addPPCBulkRow();
- tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr>
- <td><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"></td><td><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
- <td><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></td>
- <td>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets Configured —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
- <td>${isOwnerUI()?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td><td><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"></td><td>${r.orderType==='SET'?`<select data-p="uom" data-i="${i}" disabled><option value="Set" selected>Set</option></select>`:`<select data-p="uom" data-i="${i}">${(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter']).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}</td><td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td><td><input data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td><td><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"></td><td><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Ship-to Address" autocomplete="off"></td><td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})">×</button></td></tr>`).join('');
+ tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr class="ppc-quick-row">
+ <td class="ppc-customer-cell"><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
+ <td class="ppc-article-cell"><div class="ppc-type-wrap"><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></div>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
+ <td>${isOwnerUI()?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td>
+ <td class="ppc-qty-cell"><div class="ppc-qty-wrap"><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"><select data-p="uom" data-i="${i}" ${r.orderType==='SET'?'disabled':''}>${(r.orderType==='SET'?['Set']:(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter'])).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select></div></td>
+ <td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
+ <td><input class="ppc-date-input" data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td>
+ <td class="ppc-ship-cell"><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
+ <td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
  tb.querySelectorAll('[data-p]').forEach(el=>el.addEventListener('input',()=>{
-   const i=Number(el.dataset.i), field=el.dataset.p;
-   if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){
-     ppcBulkRows[i].unit=SESSION.unit;
-     el.value=SESSION.unit;
-   } else {
-     ppcBulkRows[i][field]=el.value;
-   }
-   if(field==='shipToParty'){
-     const matches=bulkShipToAddressSuggestions(el.value);
-     if(matches.length && !String(ppcBulkRows[i].shipToAddress||'').trim()) ppcBulkRows[i].shipToAddress=matches[0];
-   }
+   const i=Number(el.dataset.i),field=el.dataset.p;
+   if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){ppcBulkRows[i].unit=SESSION.unit;el.value=SESSION.unit;}else{ppcBulkRows[i][field]=el.value;}
+   if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(ppcBulkRows[i].shipToAddress||'').trim())ppcBulkRows[i].shipToAddress=matches[0];}
  }));
 }
+
 function bulkShipToAddressSuggestions(party){
   const q=String(party||'').trim().toLowerCase();
   if(!q)return [];
@@ -2885,27 +2903,20 @@ function renderBulkDispatchRows(){
   const tb=document.querySelector('#bulk-dispatch-table tbody'); if(!tb)return;
   const rows=getBulkDispatchRows_();
   const visible=rows.slice(0,200);
-
-  const visibleIds=new Set(visible.map(o=>String(o.OrderID)));
   const allVisibleSelected=visible.length>0 && visible.every(o=>bulkDispatchSelected.has(String(o.OrderID)));
   const master=document.getElementById('bulk-select-all-check');
   if(master){
     master.checked=allVisibleSelected;
     master.indeterminate=!allVisibleSelected && visible.some(o=>bulkDispatchSelected.has(String(o.OrderID)));
   }
-
   const vc=document.getElementById('bulk-visible-count');
   if(vc) vc.textContent=rows.length.toLocaleString();
-
   if(!visible.length){
-    tb.innerHTML='<tr><td colspan="7" class="empty">No pending orders found.</td></tr>';
-    updateBulkDispatchUI_();
-    return;
+    tb.innerHTML='<tr><td colspan="8" class="empty">No pending orders found.</td></tr>';
+    updateBulkDispatchUI_(); return;
   }
-
   tb.innerHTML=visible.map(o=>{
-    const id=String(o.OrderID);
-    const pending=Number(o.PendingQty||0);
+    const id=String(o.OrderID), pending=Number(o.PendingQty||0);
     const qty=bulkDispatchQty[id]||'';
     const ship=bulkDispatchShipTo[id] ?? o.ShipToParty ?? '';
     const checked=bulkDispatchSelected.has(id);
@@ -2913,65 +2924,34 @@ function renderBulkDispatchRows(){
       <td class="bulk-check-col"><input type="checkbox" class="bulk-dispatch-check" data-id="${esc(id)}" ${checked?'checked':''}></td>
       <td class="bulk-order-cell">
         <b>${esc(o.Customer||'—')}</b>
-        <span>${esc(id)}</span>
-        <small>${esc(o.CustomerLocation||'')}${o.ScheduledDate?' · '+esc(fmtDate(o.ScheduledDate)):''}</small>
+        <small>${esc(o.CustomerLocation||'—')}</small>
       </td>
       <td><b>${esc(o.PartCode||'—')}</b></td>
       <td><span class="bulk-unit-pill">${esc(o.Unit||'—')}</span></td>
+      <td class="bulk-scheduled-cell">${o.ScheduledDate?esc(fmtDate(o.ScheduledDate)):'—'}</td>
       <td class="bulk-pending-cell"><b>${pending.toLocaleString()}</b><small>${esc(o.UOM||'Nos')}</small></td>
-      <td class="bulk-qty-cell">
-        <div class="bulk-qty-wrap">
-          <input type="number" min="1" max="${pending}" data-bqty="${esc(id)}" value="${esc(qty)}" placeholder="0">
-          <button type="button" class="bulk-full-btn" data-full="${esc(id)}">Full</button>
-        </div>
-      </td>
+      <td class="bulk-qty-cell"><div class="bulk-qty-wrap">
+        <input type="number" min="1" max="${pending}" data-bqty="${esc(id)}" value="${esc(qty)}" placeholder="0">
+        <button type="button" class="bulk-full-btn" data-full="${esc(id)}">Full</button>
+      </div></td>
       <td class="bulk-ship-cell"><input list="dl-shipto" data-bship="${esc(id)}" value="${esc(ship)}" placeholder="PPC ship-to"></td>
     </tr>`;
   }).join('');
-
   tb.querySelectorAll('.bulk-dispatch-check').forEach(el=>{
-    el.onchange=()=>{
-      const id=el.dataset.id;
-      if(el.checked) bulkDispatchSelected.add(id);
-      else bulkDispatchSelected.delete(id);
-      const tr=el.closest('tr');
-      if(tr) tr.classList.toggle('bulk-row-selected',el.checked);
-      updateBulkDispatchUI_();
-      syncBulkMasterCheck_();
-    };
+    el.onchange=()=>{ const id=el.dataset.id; if(el.checked) bulkDispatchSelected.add(id); else bulkDispatchSelected.delete(id);
+      const tr=el.closest('tr'); if(tr)tr.classList.toggle('bulk-row-selected',el.checked); updateBulkDispatchUI_(); syncBulkMasterCheck_(); };
   });
-
   tb.querySelectorAll('[data-bqty]').forEach(el=>{
-    el.oninput=()=>{
-      const id=el.dataset.bqty;
-      const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id));
-      let v=Number(el.value||0);
-      if(o) v=Math.min(Math.max(v,0),Number(o.PendingQty||0));
-      if(v) el.value=v||'';
-      bulkDispatchQty[id]=el.value;
-      if(v>0) bulkDispatchSelected.add(id);
-      updateBulkDispatchUI_();
-      syncBulkMasterCheck_();
-    };
+    el.oninput=()=>{ const id=el.dataset.bqty; const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id));
+      let v=Number(el.value||0); if(o)v=Math.min(Math.max(v,0),Number(o.PendingQty||0)); el.value=v||''; bulkDispatchQty[id]=el.value;
+      if(v>0)bulkDispatchSelected.add(id); updateBulkDispatchUI_(); syncBulkMasterCheck_(); };
   });
-
   tb.querySelectorAll('[data-full]').forEach(el=>{
-    el.onclick=()=>{
-      const id=el.dataset.full;
-      const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id));
-      if(!o)return;
-      bulkDispatchQty[id]=String(Number(o.PendingQty||0));
-      bulkDispatchSelected.add(id);
-      renderBulkDispatchRows();
-      const input=tb.querySelector(`[data-bqty="${CSS.escape(id)}"]`);
-      if(input){input.focus();input.select();}
-    };
+    el.onclick=()=>{ const id=el.dataset.full; const o=(data.orders||[]).find(x=>String(x.OrderID)===String(id)); if(!o)return;
+      bulkDispatchQty[id]=String(Number(o.PendingQty||0)); bulkDispatchSelected.add(id); renderBulkDispatchRows();
+      const input=tb.querySelector(`[data-bqty="${CSS.escape(id)}"]`); if(input){input.focus();input.select();} };
   });
-
-  tb.querySelectorAll('[data-bship]').forEach(el=>{
-    el.oninput=()=>bulkDispatchShipTo[el.dataset.bship]=el.value;
-  });
-
+  tb.querySelectorAll('[data-bship]').forEach(el=>{el.oninput=()=>bulkDispatchShipTo[el.dataset.bship]=el.value;});
   updateBulkDispatchUI_();
 }
 
