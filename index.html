@@ -1114,6 +1114,16 @@ body {
           <input id="s-qty" type="number" min="0" placeholder="500">
         </div>
         <div class="field">
+          <label>Production Unit</label>
+          <select id="s-unit">
+            <option value="">— Select —</option>
+            <option value="Unit 1">Unit 1</option>
+            <option value="Unit 2">Unit 2</option>
+            <option value="Unit 5">Unit 5</option>
+            <option value="Unit Delta">Unit Delta</option>
+          </select>
+        </div>
+        <div class="field">
           <label>Mode</label>
           <select id="s-mode">
             <option value="set">Set to this value</option>
@@ -1450,47 +1460,11 @@ function applyRoleUI() {
   const activeTab=document.querySelector('.tab.active'); if(activeTab&&activeTab.style.display==='none') switchTab('orders');
 }
 
-function initAllOrdersUnitFilter(){
-  const el = document.getElementById('f-unit');
-  if (!el) return;
-  const units = ['Unit 1','Unit 2','Unit 5','Unit Delta'];
-  const roleTokens = String(SESSION?.role || '').trim().toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
-  const isOwner = roleTokens.includes('owner');
-  const assigned = String(SESSION?.unit || '').trim();
-  const current = el.value;
-
-  // Owner is always global: never lock the All Orders unit filter to SESSION.unit.
-  if (isOwner) {
-    el.disabled = false;
-    el.innerHTML = '<option value="">All units</option>' +
-      units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    el.value = units.includes(current) ? current : '';
-    el.title = 'Owner: choose any unit';
-    return;
-  }
-
-  // Unit-bound users are restricted to their assigned unit.
-  if (assigned) {
-    el.innerHTML = `<option value="${esc(assigned)}">${esc(assigned)}</option>`;
-    el.value = assigned;
-    el.disabled = true;
-    el.title = 'Locked to your assigned unit';
-    return;
-  }
-
-  // Unassigned non-owner users can use all units unless backend scope restricts them.
-  el.disabled = false;
-  el.innerHTML = '<option value="">All units</option>' +
-    units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-  el.value = units.includes(current) ? current : '';
-  el.title = '';
-}
-
 function lockUnitFieldsForSession(){
   const role=String(SESSION?.role||'').trim().toLowerCase();
   const unit=String(SESSION?.unit||'').trim();
   const restricted=role.split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean).some(r=>['ppc','dispatch','viewonly'].includes(r));
-  ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit'].forEach(id=>{
+  ['n-unit','d-unit','bulk-d-unit','de-unit','f-unit','s-unit'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     if(restricted && unit){
@@ -1529,7 +1503,6 @@ function showApp() {
 
   const role = String(SESSION.role || '').trim().toLowerCase();
   lockUnitFieldsForSession();
-  initAllOrdersUnitFilter();
   initStockFilters();
   initDispatchHistoryFilters();
 
@@ -1717,7 +1690,6 @@ function renderStats() {
 }
 
 function getFiltered() {
-  initAllOrdersUnitFilter();
   const c = document.getElementById('f-customer').value;
   const p = document.getElementById('f-part').value;
   const u = document.getElementById('f-unit').value;
@@ -1777,7 +1749,8 @@ function actorShortName(name){
   if(!s)return '—';
   const parts=s.split(/\s+/).filter(Boolean);
   if(parts.length===1)return parts[0];
-  // Display names may include role/company text. Use the person's first + surname initial.
+  // Display names can contain role/company text, e.g. "Tushar Bokefod MIS Admin GreenPack".
+  // Prefer the second token as the surname so this renders "Tushar B.".
   return parts[0]+' '+parts[1].charAt(0).toUpperCase()+'.';
 }
 
@@ -1805,10 +1778,11 @@ function renderTable() {
   tbl.querySelector('tbody').innerHTML = rows.map(o => {
     const orderQty=Number(o.OrderQty||0), dispatched=Number(o.DispatchedQty||0);
     const plan=plans[o.OrderID], planned=plan?Number(plan.PlannedQty||0):0, additional=Number(adds[o.OrderID]||0), total=planned+additional;
-    const finalizedPpcActor=(plan && String(plan.Status||'').toLowerCase()==='finalized') ? (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName || '') : '';
+    const finalizedPpcActor=(plan && String(plan.Status||'').toLowerCase()==='finalized') ? (plan.FinalizedByName || plan.FinalizedBy || '') : '';
     const draftPpcActor=(plan && String(plan.Status||'').toLowerCase()!=='finalized') ? (plan.UpdatedByName || plan.UpdatedBy || '') : '';
     const creatorIsPpc=/\bppc\b/i.test(String(o.CreatedByRole||''));
-    const ppcActor=finalizedPpcActor || draftPpcActor || (creatorIsPpc ? (o.CreatedByName || o.CreatedBy || '') : '');
+    const ppcActor=o.PPCByName || o.PPCBy || finalizedPpcActor || draftPpcActor || (creatorIsPpc ? (o.CreatedByName || o.CreatedBy || '') : '');
+    const dispatchActor=o.DispatchByName || o.DispatchBy || getLastDispatchActor(o.OrderID) || '';
     const pct=orderQty?Math.min(100,Math.round(dispatched/orderQty*100)):0;
     const statusPill=o.Status==='Completed'?'pill-completed':'pill-pending';
     const prioPill=o.Priority==='High'?'pill-high':o.Priority==='Low'?'pill-low':'pill-medium';
@@ -1824,7 +1798,7 @@ function renderTable() {
       <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</td><td>${fmtDate(o.ScheduledDate)}</td>
       <td>${o.FGStatus==='In Stock'?'<span class="pill pill-completed">In Stock</span>':o.FGStatus?'<span class="pill pill-pending">'+esc(o.FGStatus)+'</span>':'—'}</td>
       <td>${esc(o.PendingDepartment||'—')}</td><td>${esc(o.PendingReason||'—')}</td>
-      <td title="${esc(o.CreatedByName || o.CreatedBy || '—')}">${esc(actorShortName(o.CreatedByName || o.CreatedBy || ''))}</td><td title="${esc(ppcActor || '—')}">${esc(actorShortName(ppcActor || ''))}</td><td title="${esc(getLastDispatchActor(o.OrderID) || '—')}">${esc(actorShortName(getLastDispatchActor(o.OrderID) || ''))}</td>
+      <td title="${esc(o.CreatedByName || o.CreatedBy || '—')}">${esc(actorShortName(o.CreatedByName || o.CreatedBy || ''))}</td><td title="${esc(ppcActor || '—')}">${esc(actorShortName(ppcActor || ''))}</td><td title="${esc(dispatchActor || '—')}">${esc(actorShortName(dispatchActor || ''))}</td>
       <td><span class="pill ${statusPill}">${esc(o.Status)}</span></td><td class="action-cell">${action||'—'}</td>
     </tr>`;
   }).join('');
@@ -1880,16 +1854,22 @@ async function submitStock() {
   const part = document.getElementById('s-part').value.trim();
   const qty = document.getElementById('s-qty').value;
   const mode = document.getElementById('s-mode').value;
+  const unitEl = document.getElementById('s-unit');
+  const unit = String(unitEl?.value || SESSION?.unit || '').trim();
   const statusEl = document.getElementById('stock-status');
   if (!part || qty === '') {
     statusEl.textContent = 'Part code and quantity are required.'; statusEl.className = 'status-msg err';
     return;
   }
+  if (!unit) {
+    statusEl.textContent = 'Production unit is required.'; statusEl.className = 'status-msg err';
+    return;
+  }
   statusEl.textContent = 'Saving…'; statusEl.className = 'status-msg';
   try {
-    const res = await postAction({ action: 'setStock', partCode: part, qty, mode });
+    const res = await postAction({ action: 'setStock', partCode: part, qty, mode, unit });
     if (res.error) throw new Error(res.error);
-    statusEl.textContent = `Stock updated — now ${res.newQty}.`; statusEl.className = 'status-msg ok';
+    statusEl.textContent = `Stock updated — ${res.unit} — now ${res.newQty}.`; statusEl.className = 'status-msg ok';
     document.getElementById('s-qty').value = '';
     await loadData();
     renderStockTable();
@@ -1898,6 +1878,23 @@ async function submitStock() {
   } catch (e) {
     statusEl.textContent = 'Failed: ' + e.message; statusEl.className = 'status-msg err';
   }
+}
+
+function initStockEntryUnit(){
+  const el=document.getElementById('s-unit'); if(!el)return;
+  const units=['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const isOwner=roleTokens.includes('owner');
+  const assigned=String(SESSION?.unit||'').trim();
+  if(!isOwner && assigned){
+    el.innerHTML=`<option value="${esc(assigned)}">${esc(assigned)}</option>`; el.value=assigned; el.disabled=true; el.title='Locked to your assigned unit';
+  }else{
+    const current=el.value;
+    el.innerHTML='<option value="">— Select —</option>'+units.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    el.value=units.includes(current)?current:(assigned && isOwner && units.includes(assigned)?assigned:'');
+    el.disabled=false; el.title='';
+  }
+  el.onchange = showCurrentStock;
 }
 
 function initStockFilters() {
@@ -1937,6 +1934,7 @@ function renderStockMovementTable(){
 }
 
 function renderStockTable() {
+  initStockEntryUnit();
   const tbody = document.querySelector('#stock-table tbody');
   if (!tbody) return;
   initStockFilters();
@@ -2585,7 +2583,7 @@ let bulkDispatchShipTo = {};
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function addPPCBulkRow(seed={}){
-  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
+  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'Unit 1',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
   renderPPCBulkRows();
 }
 function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
@@ -2595,7 +2593,7 @@ function renderPPCBulkRows(){
  <td><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"></td><td><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
  <td><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></td>
  <td>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets Configured —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
- <td>${String(SESSION?.role||'').toLowerCase()==='owner'?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td><td><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"></td><td>${r.orderType==='SET'?`<select data-p="uom" data-i="${i}" disabled><option value="Set" selected>Set</option></select>`:`<select data-p="uom" data-i="${i}">${(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter']).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}</td><td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td><td><input data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td><td><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"></td><td><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Ship-to Address" autocomplete="off"></td><td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})">×</button></td></tr>`).join('');
+ <td>${String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).includes('owner')?`<select data-p="unit" data-i="${i}">${(data.units||['Unit 1','Unit 2','Unit 5','Unit Delta']).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td><td><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"></td><td>${r.orderType==='SET'?`<select data-p="uom" data-i="${i}" disabled><option value="Set" selected>Set</option></select>`:`<select data-p="uom" data-i="${i}">${(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter']).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}</td><td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td><td><input data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td><td><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"></td><td><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Ship-to Address" autocomplete="off"></td><td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})">×</button></td></tr>`).join('');
  tb.querySelectorAll('[data-p]').forEach(el=>el.addEventListener('input',()=>{
    const i=Number(el.dataset.i), field=el.dataset.p;
    if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){
@@ -2618,8 +2616,27 @@ function bulkShipToAddressSuggestions(party){
 function removePPCBulkRow(i){ppcBulkRows.splice(i,1);renderPPCBulkRows();}
 async function savePPCBulkOrders(){
   const st=document.getElementById('ppc-bulk-status');
-  const rows=ppcBulkRows.filter(r=>r.customer||r.partCode||r.orderQty);
+  // Read the live form values immediately before saving. This prevents a stale
+  // in-memory row (especially Unit after a re-render) from being submitted.
+  const tb=document.querySelector('#ppc-order-bulk-table tbody');
+  if(tb){
+    tb.querySelectorAll('[data-p]').forEach(el=>{
+      const i=Number(el.dataset.i), field=el.dataset.p;
+      if(!Number.isInteger(i) || !ppcBulkRows[i]) return;
+      if(field==='unit') {
+        const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+        const isOwner=roleTokens.includes('owner');
+        ppcBulkRows[i].unit=isOwner ? String(el.value||'').trim() : String(SESSION?.unit||'').trim();
+      } else {
+        ppcBulkRows[i][field]=el.value;
+      }
+    });
+  }
+  const rows=ppcBulkRows.filter(r=>r.customer||r.partCode||r.setCode||r.orderQty);
   if(!rows.length){st.textContent='Add at least one order.';st.className='status-msg err';return;}
+  // For unit-bound users the assigned unit is authoritative.
+  const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  if(!roleTokens.includes('owner') && SESSION?.unit) rows.forEach(r=>r.unit=String(SESSION.unit).trim());
   st.textContent='Saving '+rows.length+' orders…';st.className='status-msg';
   try{
     const r=await postAction({action:'bulkCreateOrders',orders:rows});
@@ -2632,6 +2649,7 @@ async function savePPCBulkOrders(){
     clearPPCBulkRows();
   }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
+
 function renderPPCPendingRows(){
   const tb=document.querySelector('#ppc-pending-table tbody'); if(!tb)return;
   const q=(document.getElementById('ppc-pending-search')?.value||'').toLowerCase().trim();
