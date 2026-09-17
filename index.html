@@ -2092,10 +2092,15 @@ function showStock() {
 
 
 function showCurrentStock() {
-  const part = document.getElementById('s-part').value.trim();
+  // This helper belongs to the legacy single-stock form. The new Bulk FG
+  // Stock screen does not contain #s-part/#s-current, so never dereference
+  // a missing element after a bulk save.
+  const partEl = document.getElementById('s-part');
   const el = document.getElementById('s-current');
+  if (!partEl || !el) return;
+  const part = String(partEl.value || '').trim();
   if (!part) { el.textContent = ''; return; }
-  const unit=document.getElementById('s-unit')?.value || SESSION?.unit || '';
+  const unit = document.getElementById('s-unit')?.value || SESSION?.unit || '';
   el.textContent = `Current stock: ${getStockFor(part, unit)}`;
 }
 
