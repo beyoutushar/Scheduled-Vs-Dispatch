@@ -2960,7 +2960,7 @@ let bulkDispatchShipTo = {};
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function addPPCBulkRow(seed={}){
-  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
+  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:seed.unit||SESSION?.unit||((data.units||[])[0]||''),uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
   renderPPCBulkRows();
 }
 function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
@@ -2975,11 +2975,15 @@ function renderPPCBulkRows(){
  <td><input class="ppc-date-input" data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td>
  <td class="ppc-ship-cell"><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
  <td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
- tb.querySelectorAll('[data-p]').forEach(el=>el.addEventListener('input',()=>{
+ tb.querySelectorAll('[data-p]').forEach(el=>{
+   const syncField=()=>{
    const i=Number(el.dataset.i),field=el.dataset.p;
    if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){ppcBulkRows[i].unit=SESSION.unit;el.value=SESSION.unit;}else{ppcBulkRows[i][field]=el.value;}
    if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(ppcBulkRows[i].shipToAddress||'').trim())ppcBulkRows[i].shipToAddress=matches[0];}
- }));
+   };
+   el.addEventListener('input',syncField);
+   el.addEventListener('change',syncField);
+ });
 }
 
 function bulkShipToAddressSuggestions(party){
