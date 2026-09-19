@@ -760,7 +760,8 @@ body {
   .bulk-note-field{grid-column:auto}
 }
 /* ===== QUICK ENTRY: PPC / DISPATCH / FG STOCK ===== */
-#ppc-order-bulk-table{min-width:1080px}
+#ppc-order-bulk-table{min-width:1160px}
+.ppc-current-stock-cell{min-width:105px;white-space:nowrap}.ppc-current-stock{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:5px 8px;border-radius:7px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);color:var(--accent-2);font-weight:700;font-size:11px}.ppc-current-stock.zero{background:rgba(234,184,77,.07);border-color:rgba(234,184,77,.16);color:var(--warn)}
 #ppc-order-bulk-table th,#ppc-order-bulk-table td{padding:7px 8px;vertical-align:middle}
 #ppc-order-bulk-table th{position:sticky;top:0;z-index:3}
 #ppc-order-bulk-table input,#ppc-order-bulk-table select{padding:7px 8px;font-size:12px}
@@ -770,6 +771,7 @@ body {
 .ppc-date-input{min-width:128px}.ppc-ship-cell{min-width:210px}.ppc-ship-cell input{display:block;margin-bottom:5px}.ppc-ship-cell input:last-child{margin-bottom:0}
 .bulk-dispatch-list table{min-width:1040px}
 .bulk-order-cell{min-width:205px}.bulk-scheduled-cell{font-weight:700;color:#c4b5fd;white-space:nowrap}.bulk-ship-cell{min-width:175px}
+.bulk-dispatch-stock-cell{min-width:105px;white-space:nowrap}.bulk-dispatch-stock{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:5px 8px;border-radius:7px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);color:var(--accent-2);font-weight:700;font-size:11px}.bulk-dispatch-stock.zero{background:rgba(234,184,77,.07);border-color:rgba(234,184,77,.16);color:var(--warn)}
 #stock-table{min-width:820px}
 /* ===== BULK FG STOCK ===== */
 #bulk-stock-table{min-width:760px}
@@ -788,7 +790,7 @@ body {
 #tab-orders #orders-table thead th:first-child{left:0;z-index:22}
 #tab-orders #orders-table td:first-child{position:sticky;left:0;z-index:4;background:var(--panel)}
 #tab-orders #orders-table tr:hover td:first-child{background:var(--panel-2)}
-@media(max-width:800px){#ppc-order-bulk-table{min-width:980px}.bulk-dispatch-list table{min-width:980px}}
+@media(max-width:800px){#ppc-order-bulk-table{min-width:1120px}.bulk-dispatch-list table{min-width:980px}}
 </style>
 
 </head>
@@ -1004,6 +1006,7 @@ body {
         <div class="mini-note">Type anything to filter the pending orders, then click the required order.</div>
       </div>
       <div id="d-order-info" class="sub" style="margin-bottom:12px;"></div>
+      <div class="sub" id="d-stock-info" style="margin-bottom:12px;">Select an order to see current FG stock.</div>
       <div class="grid">
         <div class="field" id="d-qty-field">
           <label>Dispatched Quantity (this entry)</label>
@@ -1057,7 +1060,7 @@ body {
       <h2>PPC — Multiple Order Creation</h2>
       <div class="sub" style="margin-bottom:10px;">Create many customer orders in one save. Ship To Party is registered here and will automatically appear at Dispatch.</div>
       <div class="table-scroll">
-        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th></th></tr></thead><tbody></tbody></table>
+        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Current FG Stock</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th></th></tr></thead><tbody></tbody></table>
       </div>
       <div class="modal-actions" style="margin-top:10px;"><button class="btn-ghost" onclick="addPPCBulkRow()">+ Add Row</button><button class="btn-primary" onclick="savePPCBulkOrders()">Save All Orders</button><button class="btn-ghost" onclick="clearPPCBulkRows()">Clear</button></div>
       <div class="status-msg" id="ppc-bulk-status"></div>
@@ -1100,6 +1103,7 @@ body {
               <th class="bulk-check-col"><input type="checkbox" id="bulk-select-all-check" onclick="toggleAllBulkDispatch(this.checked)" title="Select all visible"></th>
               <th>Customer / Location</th>
               <th>Part</th>
+              <th>Current FG Stock</th>
               <th>Unit</th>
               <th>Scheduled</th>
               <th>Pending</th>
@@ -1159,7 +1163,7 @@ body {
       </div>
       <div class="table-scroll">
         <table id="dispatch-history-table">
-          <thead><tr><th>Dispatch Date</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Dispatched By</th><th>Dispatched On</th></tr></thead>
+          <thead><tr><th>Dispatch Date</th><th>Customer</th><th>Part Code</th><th>Unit</th><th>Ship To Party</th><th>Qty</th><th>UOM</th><th>Note</th><th>Dispatched By</th><th>Dispatched On</th><th>Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -1326,7 +1330,7 @@ body {
         <h2>FG Stock Movement History</h2>
         <div class="sub" style="margin-bottom:10px;">Quality-check trail: every FG addition, adjustment and dispatch shows who performed it.</div>
         <div class="table-scroll">
-          <table id="stock-movement-table"><thead><tr><th>Date / Time</th><th>Part Code</th><th>Unit</th><th>Movement</th><th>Qty</th><th>Reference</th><th>Done By</th></tr></thead><tbody></tbody></table>
+          <table id="stock-movement-table"><thead><tr><th>Date / Time</th><th>Part Code</th><th>Unit</th><th>Movement</th><th>Qty</th><th>Reference</th><th>Done By</th><th>Actions</th></tr></thead><tbody></tbody></table>
         </div>
       </div>
   </div>
@@ -1429,6 +1433,30 @@ body {
     <div class="modal-actions">
       <button class="btn-ghost" onclick="closeDispatchEditModal()">Cancel</button>
       <button class="btn-primary" onclick="saveEditedDispatch()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="stock-movement-edit-modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Edit FG Stock History</h2>
+      <button class="btn-ghost btn-small" onclick="closeStockMovementEditModal()">Close</button>
+    </div>
+    <input id="sme-id" type="hidden">
+    <div class="grid">
+      <div class="field"><label>Part Code</label><input id="sme-part" disabled></div>
+      <div class="field"><label>Unit</label><input id="sme-unit" disabled></div>
+      <div class="field"><label>Movement</label><select id="sme-type"><option value="ADD">ADD</option><option value="ADJUST_OUT">ADJUST_OUT</option></select></div>
+      <div class="field"><label>Quantity</label><input id="sme-qty" type="number" min="0.01" step="any"></div>
+      <div class="field"><label>Date / Time</label><input id="sme-date" type="datetime-local"></div>
+      <div class="field"><label>Reference</label><input id="sme-reference" placeholder="Reference / correction note"></div>
+    </div>
+    <div class="sub" style="margin-top:8px;">Changing quantity or movement type automatically corrects the current FG stock for this Part Code + Unit.</div>
+    <div class="status-msg" id="stock-movement-edit-status"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeStockMovementEditModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEditedStockMovement()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -2288,13 +2316,72 @@ function clearStockFilters() {
   renderStockTable();
 }
 
+function stockMovementDateInput_(value){
+  if(!value)return '';
+  const d=new Date(value); if(isNaN(d.getTime()))return '';
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function openEditStockMovement(movementId){
+  const r=(data.stockMovements||[]).find(x=>String(x.MovementID||'')===String(movementId));
+  if(!r)return;
+  if(String(r.TransactionType||'').toUpperCase()==='DISPATCH'){
+    alert('Dispatch stock movements must be corrected from Dispatch History so the order and stock remain synchronized.');
+    return;
+  }
+  document.getElementById('sme-id').value=r.MovementID||'';
+  document.getElementById('sme-part').value=r.PartCode||'';
+  document.getElementById('sme-unit').value=r.Unit||'';
+  document.getElementById('sme-type').value=String(r.TransactionType||'ADD').toUpperCase()==='ADJUST_OUT'?'ADJUST_OUT':'ADD';
+  document.getElementById('sme-qty').value=Number(r.Qty||0)||'';
+  document.getElementById('sme-date').value=stockMovementDateInput_(r.DateTime);
+  document.getElementById('sme-reference').value=r.Reference||'';
+  const st=document.getElementById('stock-movement-edit-status'); st.textContent=''; st.className='status-msg';
+  const m=document.getElementById('stock-movement-edit-modal-backdrop'); m.classList.add('open'); m.style.display='flex';
+}
+
+function closeStockMovementEditModal(){
+  const m=document.getElementById('stock-movement-edit-modal-backdrop');
+  m.classList.remove('open'); m.style.display='none';
+}
+
+async function saveEditedStockMovement(){
+  const st=document.getElementById('stock-movement-edit-status');
+  const body={
+    action:'updateStockMovement',
+    movementId:document.getElementById('sme-id').value,
+    transactionType:document.getElementById('sme-type').value,
+    qty:document.getElementById('sme-qty').value,
+    dateTime:document.getElementById('sme-date').value,
+    reference:document.getElementById('sme-reference').value.trim()
+  };
+  if(!body.movementId || !Number(body.qty) || Number(body.qty)<=0){st.textContent='Quantity must be greater than 0.';st.className='status-msg err';return;}
+  st.textContent='Saving…';st.className='status-msg';
+  try{
+    const res=await postAction(body); if(res.error)throw new Error(res.error);
+    st.textContent='FG stock history corrected successfully.';st.className='status-msg ok';
+    await loadData(false);
+    renderStockTable(); renderStockMovementTable();
+    setTimeout(closeStockMovementEditModal,250);
+  }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
+}
+
 function renderStockMovementTable(){
   const tb=document.querySelector('#stock-movement-table tbody'); if(!tb)return;
   let rows=[...(data.stockMovements||[])].slice().sort((a,b)=>new Date(b.DateTime||0)-new Date(a.DateTime||0));
   const assigned=String(SESSION?.unit||'').trim();
   const role=String(SESSION?.role||'').toLowerCase();
   if(assigned && role!=='owner') rows=rows.filter(r=>String(r.Unit||'').trim()===assigned);
-  tb.innerHTML=rows.slice(0,200).map(r=>`<tr><td>${esc(fmtDateTime(r.DateTime))}</td><td>${esc(r.PartCode||'—')}</td><td>${esc(r.Unit||'—')}</td><td>${esc(r.TransactionType||'—')}</td><td>${Number(r.Qty||0).toLocaleString()}</td><td>${esc(r.Reference||'—')}</td><td title="${esc(r.UserName||r.User||'—')}"><b>${esc(actorShortName(r.UserName||r.User||''))}</b></td></tr>`).join('') || '<tr><td colspan="7" class="empty">No FG movement history found.</td></tr>';
+  tb.innerHTML=rows.slice(0,200).map(r=>{
+    const movementId=String(r.MovementID||'');
+    const type=String(r.TransactionType||'').toUpperCase();
+    const canEdit=(isOwnerUI()||isPPCUI()||isDispatchUI()) && movementId && type!=='DISPATCH';
+    const action=type==='DISPATCH'
+      ? '<span class="sub" title="Edit dispatch quantity from Dispatch History">Edit in Dispatch History</span>'
+      : (canEdit?`<button class="btn-ghost btn-small" type="button" onclick="openEditStockMovement('${esc(movementId)}')">Edit</button>`:'—');
+    return `<tr><td>${esc(fmtDateTime(r.DateTime))}</td><td>${esc(r.PartCode||'—')}</td><td>${esc(r.Unit||'—')}</td><td>${esc(r.TransactionType||'—')}</td><td>${Number(r.Qty||0).toLocaleString()}</td><td>${esc(r.Reference||'—')}</td><td title="${esc(r.UserName||r.User||'—')}"><b>${esc(actorShortName(r.UserName||r.User||''))}</b></td><td>${action}</td></tr>`;
+  }).join('') || '<tr><td colspan="8" class="empty">No FG movement history found.</td></tr>';
 }
 
 function renderStockTable() {
@@ -2478,8 +2565,10 @@ function updateOrderInfo() {
   const id = document.getElementById('d-order').value;
   const o = data.orders.find(x => String(x.OrderID) === String(id));
   const info = document.getElementById('d-order-info');
+  const stockInfo = document.getElementById('d-stock-info');
   if (!o) {
     info.textContent = 'Search and select a pending order above.';
+    if (stockInfo) stockInfo.textContent = 'Select an order to see current FG stock.';
     return;
   }
 
@@ -2496,6 +2585,12 @@ function updateOrderInfo() {
   if (!SESSION.unit) {
     const unitSel = document.getElementById('d-unit');
     if (o.Unit) unitSel.value = o.Unit;
+  }
+
+  const dispatchUnit = String(document.getElementById('d-unit')?.value || o.Unit || SESSION?.unit || '').trim();
+  const currentStock = getStockFor(o.PartCode, dispatchUnit);
+  if (stockInfo) {
+    stockInfo.innerHTML = `Current FG stock (${esc(dispatchUnit || 'Unit')}): <b>${Number(currentStock || 0).toLocaleString()}</b>`;
   }
 }
 
@@ -2587,6 +2682,22 @@ function renderSetDispatchPreview(){
   box.style.display='block';
   box.innerHTML=`<div class="set-dispatch-title">SET DISPATCH · ${esc(first.SetCode||'Set')} <span>${pendingSets.toLocaleString()} complete set(s) pending</span></div><div class="set-dispatch-meta">${esc(first.Customer||'—')} · ${esc(first.Unit||'—')} · ${esc(first.ShipToParty||'—')}</div><div class="set-dispatch-components">${rows.map(o=>`<div><span>${esc(o.PartCode||'—')}</span><b>${Number(o.SetComponentQty||1).toLocaleString()} / set</b><em>${Number(o.PendingQty||0).toLocaleString()} pending</em></div>`).join('')}</div>`;
 }
+
+function updateDispatchStockInfo(){
+  const orderId = document.getElementById('d-order')?.value || '';
+  const o = (data.orders || []).find(x => String(x.OrderID) === String(orderId));
+  const el = document.getElementById('d-stock-info');
+  if (!el) return;
+  if (!o) { el.textContent = 'Select an order to see current FG stock.'; return; }
+  const unit = String(document.getElementById('d-unit')?.value || o.Unit || SESSION?.unit || '').trim();
+  const stock = getStockFor(o.PartCode, unit);
+  el.innerHTML = `Current FG stock (${esc(unit || 'Unit')}): <b>${Number(stock || 0).toLocaleString()}</b>`;
+}
+
+document.addEventListener('change', function(e){
+  if (e.target && e.target.id === 'd-unit') updateDispatchStockInfo();
+});
+
 async function submitDispatch() {
   const mode=document.getElementById('d-mode').value, type=document.getElementById('d-dispatch-type')?.value||'STANDARD', setOrderId=document.getElementById('d-set-order')?.value||'', orderId=document.getElementById('d-order').value, qty=document.getElementById('d-qty').value, unit=document.getElementById('d-unit').value, shipToParty=document.getElementById('d-shipto').value.trim(), shipToAddress=document.getElementById('d-shipto-address')?.value.trim()||'', date=document.getElementById('d-date').value, dept=document.getElementById('d-dept').value, reason=document.getElementById('d-reason').value.trim(), statusEl=document.getElementById('dispatch-status');
   if(mode==='pending'){if(!orderId){statusEl.textContent='Select an order.';statusEl.className='status-msg err';return;}if(!dept||!reason){statusEl.textContent='For Still Pending, select the department and enter the reason.';statusEl.className='status-msg err';return;}try{const res=await postAction({action:'updatePending',orderId,pendingDepartment:dept,pendingReason:reason});if(res.error)throw new Error(res.error);const o=data.orders.find(x=>String(x.OrderID)===String(orderId));if(o){o.PendingQty=res.pending;o.PendingDepartment=dept;o.PendingReason=reason;o.Status='Pending';}statusEl.textContent=`✓ Still pending — ${res.pending} quantity pending.`;statusEl.className='status-msg ok';renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();}catch(e){statusEl.textContent='Failed: '+e.message;statusEl.className='status-msg err';}return;}
@@ -2780,6 +2891,7 @@ function renderDispatchHistory() {
     <td>${esc(r.log.Note || '—')}</td>
     <td title="${esc(r.log.DispatchedByName || r.log.DispatchedBy || '—')}">${esc(actorShortName(r.log.DispatchedByName || r.log.DispatchedBy || ''))}</td>
     <td>${esc(fmtDateTime(r.loggedAt))}</td>
+    <td style="white-space:nowrap;">${(isOwnerUI()||isEditorUI())?`<button class="btn-ghost btn-small" type="button" onclick="openEditDispatch('${esc(r.log.LogID)}')">Edit</button>${isOwnerUI()?` <button class="btn-ghost btn-small" type="button" onclick="deleteDispatchEntry('${esc(r.log.LogID)}')">Delete</button>`:''}`:'—'}</td>
   </tr>`).join('') : '';
 
   if (empty) empty.style.display = rows.length ? 'none' : 'block';
@@ -2969,17 +3081,24 @@ function renderPPCBulkRows(){
  tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr class="ppc-quick-row">
  <td class="ppc-customer-cell"><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
  <td class="ppc-article-cell"><div class="ppc-type-wrap"><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></div>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
+ <td class="ppc-current-stock-cell"><span class="ppc-current-stock ${getStockFor(r.partCode,r.unit)<=0?'zero':''}" data-ppc-stock="${i}">${Number(getStockFor(r.partCode,r.unit)||0).toLocaleString()}</span></td>
  <td>${isOwnerUI()?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td>
  <td class="ppc-qty-cell"><div class="ppc-qty-wrap"><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"><select data-p="uom" data-i="${i}" ${r.orderType==='SET'?'disabled':''}>${(r.orderType==='SET'?['Set']:(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter'])).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select></div></td>
  <td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
  <td><input class="ppc-date-input" data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td>
  <td class="ppc-ship-cell"><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
  <td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
- tb.querySelectorAll('[data-p]').forEach(el=>el.addEventListener('input',()=>{
+ const updatePPCBulkField=(el)=>{
    const i=Number(el.dataset.i),field=el.dataset.p;
    if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){ppcBulkRows[i].unit=SESSION.unit;el.value=SESSION.unit;}else{ppcBulkRows[i][field]=el.value;}
    if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(ppcBulkRows[i].shipToAddress||'').trim())ppcBulkRows[i].shipToAddress=matches[0];}
- }));
+   if(field==='partCode'||field==='unit'){
+     const stock=getStockFor(ppcBulkRows[i].partCode,ppcBulkRows[i].unit);
+     const stockEl=tb.querySelector(`[data-ppc-stock="${i}"]`);
+     if(stockEl){stockEl.textContent=Number(stock||0).toLocaleString();stockEl.classList.toggle('zero',Number(stock||0)<=0);}
+   }
+ };
+ tb.querySelectorAll('[data-p]').forEach(el=>{el.addEventListener('input',()=>updatePPCBulkField(el));el.addEventListener('change',()=>updatePPCBulkField(el));});
 }
 
 function bulkShipToAddressSuggestions(party){
@@ -3063,7 +3182,7 @@ function renderBulkDispatchRows(){
   const vc=document.getElementById('bulk-visible-count');
   if(vc) vc.textContent=rows.length.toLocaleString();
   if(!visible.length){
-    tb.innerHTML='<tr><td colspan="8" class="empty">No pending orders found.</td></tr>';
+    tb.innerHTML='<tr><td colspan="9" class="empty">No pending orders found.</td></tr>';
     updateBulkDispatchUI_(); return;
   }
   tb.innerHTML=visible.map(o=>{
@@ -3078,6 +3197,7 @@ function renderBulkDispatchRows(){
         <small>${esc(o.CustomerLocation||'—')}</small>
       </td>
       <td><b>${esc(o.PartCode||'—')}</b></td>
+      <td class="bulk-dispatch-stock-cell"><span class="bulk-dispatch-stock ${getStockFor(o.PartCode,o.Unit)<=0?'zero':''}">${Number(getStockFor(o.PartCode,o.Unit)||0).toLocaleString()}</span></td>
       <td><span class="bulk-unit-pill">${esc(o.Unit||'—')}</span></td>
       <td class="bulk-scheduled-cell">${o.ScheduledDate?esc(fmtDate(o.ScheduledDate)):'—'}</td>
       <td class="bulk-pending-cell"><b>${pending.toLocaleString()}</b><small>${esc(o.UOM||'Nos')}</small></td>
