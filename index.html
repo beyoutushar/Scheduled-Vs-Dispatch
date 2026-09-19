@@ -1775,6 +1775,7 @@ function setConn(state, msg) {
 }
 
 let loadInFlight = null;
+let hasLoadedData = false;
 async function refreshData(){
   const btns=[...document.querySelectorAll('button')].filter(b=>/^(refresh|refresh view)$/i.test(String(b.textContent||'').trim()));
   const old=btns.map(b=>b.textContent);
@@ -1786,7 +1787,10 @@ async function refreshData(){
   }
 }
 async function loadData(silent=false,force=false) {
-  if(loadInFlight && !force) return loadInFlight;
+  // Never start a second core request while one is already running.
+  // This prevents the 5-second auto-refresh from creating overlapping
+  // requests and incorrectly showing "Connection failed" on a live session.
+  if(loadInFlight) return loadInFlight;
   const tbody = document.querySelector('#orders-table tbody');
   if (tbody && !tbody.children.length) tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
   if (!silent) setConn('', 'Loading…');
@@ -1794,9 +1798,19 @@ async function loadData(silent=false,force=false) {
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN) + '&_=' + Date.now(), {cache:'no-store'});
       const json = await res.json();
-      if (json.error && /session has expired|auth_required/i.test(json.error)) { stopAutoRefresh(); setConn('err','Session expired — please sign in again.'); return false; }
-      if (json.error) { setConn('err', json.error); return false; }
+      if (json.error && /session has expired|auth_required/i.test(json.error)) {
+        stopAutoRefresh();
+        setConn('err','Session expired — please sign in again.');
+        return false;
+      }
+      if (json.error) {
+        // A temporary background-refresh error must not make an already-live
+        // dashboard look disconnected. Keep the last good data on screen.
+        if (!silent || !hasLoadedData) setConn('err', json.error);
+        return false;
+      }
       data = {...data,...json};
+      hasLoadedData = true;
       logShipToIndex={};
       (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
       const count = Array.isArray(data.orders) ? data.orders.length : 0;
@@ -1804,7 +1818,14 @@ async function loadData(silent=false,force=false) {
       populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI(); showStock();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
-    } catch (e) { setConn('err', 'Connection failed — data not lost.'); return false; }
+    } catch (e) {
+      // Background polling is best-effort. If the dashboard already has
+      // valid data, keep the existing Live state and retry on the next cycle.
+      if (!silent || !hasLoadedData) {
+        setConn('err', 'Connection failed — data not lost.');
+      }
+      return false;
+    }
     finally { loadInFlight=null; }
   })();
   return loadInFlight;
