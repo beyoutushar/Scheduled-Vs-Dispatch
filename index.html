@@ -2960,7 +2960,7 @@ let bulkDispatchShipTo = {};
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function addPPCBulkRow(seed={}){
-  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:seed.unit||SESSION?.unit||((data.units||[])[0]||''),uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
+  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
   renderPPCBulkRows();
 }
 function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
@@ -2975,15 +2975,11 @@ function renderPPCBulkRows(){
  <td><input class="ppc-date-input" data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td>
  <td class="ppc-ship-cell"><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
  <td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
- tb.querySelectorAll('[data-p]').forEach(el=>{
-   const syncField=()=>{
+ tb.querySelectorAll('[data-p]').forEach(el=>el.addEventListener('input',()=>{
    const i=Number(el.dataset.i),field=el.dataset.p;
    if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){ppcBulkRows[i].unit=SESSION.unit;el.value=SESSION.unit;}else{ppcBulkRows[i][field]=el.value;}
    if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(ppcBulkRows[i].shipToAddress||'').trim())ppcBulkRows[i].shipToAddress=matches[0];}
-   };
-   el.addEventListener('input',syncField);
-   el.addEventListener('change',syncField);
- });
+ }));
 }
 
 function bulkShipToAddressSuggestions(party){
@@ -3168,74 +3164,7 @@ async function saveBulkDispatch(){
   st.className='status-msg';
 
   try{
-    let r=await postAction({action:'bulkDispatch',items,unit,dispatchedDate:date,note});
-
-    /*
-     * Compatibility fallback:
-     * Older Apps Script deployments may still reject bulk dispatch when
-     * an FG Stock bucket does not exist. FG Stock is NOT a prerequisite
-     * for dispatch, so retry those items through the existing single
-     * dispatch action, which already allows dispatch without a stock row.
-     *
-     * This is intentionally limited to that exact legacy stock error.
-     * No other validation/error is bypassed.
-     */
-    const bulkErrorText=String(
-      (r?.validationErrors||[]).join('\n') || r?.error || ''
-    );
-
-    if(r && r.error && /No FG stock bucket exists/i.test(bulkErrorText)){
-      const fallbackOrders=[];
-      const fallbackLogs=[];
-      const fallbackErrors=[];
-
-      for(const item of items){
-        const one=await postAction({
-          action:'addDispatch',
-          orderId:item.orderId,
-          unit:unit,
-          dispatchedQty:Number(item.dispatchedQty),
-          dispatchedDate:date,
-          shipToParty:item.shipToParty,
-          shipToAddress:item.shipToAddress||'',
-          uom:item.uom||'Nos',
-          pendingDepartment:'',
-          pendingReason:note,
-          note:note
-        });
-
-        if(one && !one.error){
-          fallbackOrders.push({
-            orderId:item.orderId,
-            dispatched:Number(one.dispatched||0),
-            pending:Number(one.pending||0),
-            status:String(one.status||'Pending')
-          });
-          if(one.log) fallbackLogs.push(one.log);
-        }else{
-          fallbackErrors.push(
-            String(item.orderId)+': '+String(
-              (one?.validationErrors||[]).join('\n') || one?.error || 'Dispatch failed'
-            )
-          );
-        }
-      }
-
-      if(fallbackErrors.length){
-        throw new Error(
-          'Dispatch fallback failed:\n'+fallbackErrors.join('\n')
-        );
-      }
-
-      r={
-        ok:true,
-        count:fallbackOrders.length,
-        orders:fallbackOrders,
-        logs:fallbackLogs,
-        fallback:true
-      };
-    }
-
+    const r=await postAction({action:'bulkDispatch',items,unit,dispatchedDate:date,note});
     if(r.error)throw new Error((r.validationErrors||[]).join('\n')||r.error);
 
     (r.orders||[]).forEach(u=>{
@@ -3259,9 +3188,12 @@ async function saveBulkDispatch(){
     renderStats();
     renderTable();
 
-    st.textContent=r.fallback
-      ? '✓ '+savedCount+' dispatches saved. FG Stock was not required.'
-      : '✓ '+savedCount+' dispatches saved in one batch.';
+    // Refresh the complete live dataset after dispatch so FG stock is
+    // immediately reflected for the dispatched Part Code + Unit.
+    // This does NOT make FG stock a prerequisite for dispatch.
+    await loadData();
+
+    st.textContent='✓ '+savedCount+' dispatches saved in one batch. Current FG stock refreshed.';
     st.className='status-msg ok';
   }catch(e){
     st.textContent='Failed: '+e.message;
