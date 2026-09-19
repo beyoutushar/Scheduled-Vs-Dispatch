@@ -1741,7 +1741,11 @@ function showApp() {
    LIVE AUTO-REFRESH
    Fetches fresh MIS data without reloading the webpage.
    ========================================================= */
-const AUTO_REFRESH_MS = 5000;
+// Apps Script can take a few seconds to answer a large MIS read.
+// Polling every 5 seconds can create unnecessary pressure and make a
+// healthy dashboard briefly look disconnected. Keep one request in flight
+// and use a calmer refresh interval.
+const AUTO_REFRESH_MS = 10000;
 let autoRefreshTimer = null;
 
 function startAutoRefresh() {
@@ -1776,6 +1780,13 @@ function setConn(state, msg) {
 
 let loadInFlight = null;
 let hasLoadedData = false;
+let lastGoodOrderCount = 0;
+
+function showLiveConnection() {
+  const count = Array.isArray(data?.orders) ? data.orders.length : lastGoodOrderCount;
+  setConn('ok', 'Live — connected · ' + count + ' orders');
+}
+
 async function refreshData(){
   const btns=[...document.querySelectorAll('button')].filter(b=>/^(refresh|refresh view)$/i.test(String(b.textContent||'').trim()));
   const old=btns.map(b=>b.textContent);
@@ -1804,25 +1815,35 @@ async function loadData(silent=false,force=false) {
         return false;
       }
       if (json.error) {
-        // A temporary background-refresh error must not make an already-live
-        // dashboard look disconnected. Keep the last good data on screen.
-        if (!silent || !hasLoadedData) setConn('err', json.error);
+        // Do not replace a working dashboard with a red connection state just
+        // because one background poll failed. Keep the last good data visible.
+        if (hasLoadedData || (Array.isArray(data?.orders) && data.orders.length)) {
+          console.warn('Background MIS refresh returned an error:', json.error);
+          showLiveConnection();
+        } else {
+          setConn('err', json.error);
+        }
         return false;
       }
       data = {...data,...json};
       hasLoadedData = true;
       logShipToIndex={};
       (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
-      const count = Array.isArray(data.orders) ? data.orders.length : 0;
-      setConn('ok', 'Live — connected · ' + count + ' orders');
+      lastGoodOrderCount = Array.isArray(data.orders) ? data.orders.length : lastGoodOrderCount;
+      showLiveConnection();
       populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI(); showStock();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
     } catch (e) {
-      // Background polling is best-effort. If the dashboard already has
-      // valid data, keep the existing Live state and retry on the next cycle.
-      if (!silent || !hasLoadedData) {
+      // Background polling is best-effort. If this page already has data,
+      // NEVER turn the live badge red because of a temporary fetch/network
+      // failure. The next scheduled poll will retry automatically.
+      if (hasLoadedData || (Array.isArray(data?.orders) && data.orders.length)) {
+        console.warn('Background MIS refresh failed:', e);
+        showLiveConnection();
+      } else {
         setConn('err', 'Connection failed — data not lost.');
+        console.error('Initial MIS data load failed:', e);
       }
       return false;
     }
@@ -1838,7 +1859,13 @@ async function loadV2(force=false){
     try{
       const res=await fetch(APPS_SCRIPT_URL+'?mode=v2&token='+encodeURIComponent(TOKEN),{cache:'no-store'});
       const json=await res.json();
-      if(json.error){setConn('err',json.error);return false;}
+      if(json.error){
+        // V2/admin configuration is optional for the operational dashboard.
+        // Never overwrite the main Live connection badge when this auxiliary
+        // request fails.
+        console.warn('V2 configuration request returned an error:', json.error);
+        return false;
+      }
       data.v2=json.v2||{permissions:[]};
       v2Loaded=true;
       renderV2();
