@@ -768,6 +768,12 @@ body {
 .ppc-customer-cell{min-width:190px}.ppc-customer-cell input{display:block;margin-bottom:5px}.ppc-customer-cell input:last-child{margin-bottom:0}
 .ppc-article-cell{min-width:190px}.ppc-article-cell select,.ppc-article-cell input{display:block;margin-bottom:5px}.ppc-article-cell>*:last-child{margin-bottom:0}
 .ppc-qty-cell{min-width:145px}.ppc-qty-wrap{display:grid;grid-template-columns:1fr 74px;gap:5px}
+.ppc-defaults-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.02);font-size:12px}
+.ppc-defaults-bar label{display:flex;align-items:center;gap:7px;color:var(--muted);cursor:pointer}
+.ppc-defaults-bar input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px}
+.ppc-defaults-hint{color:var(--muted);font-size:11px}
+.ppc-copy-check{display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-size:11px;color:var(--muted)}
+.ppc-copy-check input{accent-color:var(--accent);width:14px;height:14px}
 .ppc-date-input{min-width:128px}.ppc-ship-cell{min-width:210px}.ppc-ship-cell input{display:block;margin-bottom:5px}.ppc-ship-cell input:last-child{margin-bottom:0}
 .bulk-dispatch-list table{min-width:1040px}
 .bulk-order-cell{min-width:205px}.bulk-scheduled-cell{font-weight:700;color:#c4b5fd;white-space:nowrap}.bulk-ship-cell{min-width:175px}
@@ -786,6 +792,10 @@ body {
 /* ===== ALL ORDERS: keep the table header visible while scrolling ===== */
 #tab-orders .table-scroll{max-height:calc(100vh - 330px);min-height:320px;overflow:auto;position:relative;border:1px solid var(--border);border-radius:10px}
 #tab-orders #orders-table{min-width:1780px}
+/* ===== DISPATCH HISTORY: freeze table headers while scrolling ===== */
+#tab-dispatch-history .table-scroll{max-height:420px;overflow:auto;position:relative;border:1px solid var(--border);border-radius:10px}
+#tab-dispatch-history #dispatch-history-table{min-width:1100px}
+#tab-dispatch-history #dispatch-history-table thead th{position:sticky;top:0;z-index:20;background:#15121d;box-shadow:0 1px 0 var(--border),0 3px 8px rgba(0,0,0,.18)}
 #tab-orders #orders-table thead th{position:sticky;top:0;z-index:20;background:#15121d;box-shadow:0 1px 0 var(--border),0 3px 8px rgba(0,0,0,.18)}
 #tab-orders #orders-table thead th:first-child{left:0;z-index:22}
 #tab-orders #orders-table td:first-child{position:sticky;left:0;z-index:4;background:var(--panel)}
@@ -1059,8 +1069,12 @@ body {
     <div class="card" id="ppc-multiple-card">
       <h2>PPC — Multiple Order Creation</h2>
       <div class="sub" style="margin-bottom:10px;">Create many customer orders in one save. Ship To Party is registered here and will automatically appear at Dispatch.</div>
+      <div class="ppc-defaults-bar">
+        <label><input id="ppc-auto-defaults" type="checkbox" checked onchange="togglePPCAutoDefaults(this.checked)"> Auto-fill new rows with default details</label>
+        <span class="ppc-defaults-hint">Enter common details once. Part Code and Qty can then be entered row-by-row. Scheduled date remains editable for every row.</span>
+      </div>
       <div class="table-scroll">
-        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Current FG Stock</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th></th></tr></thead><tbody></tbody></table>
+        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Current FG Stock</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th>Defaults</th></tr></thead><tbody></tbody></table>
       </div>
       <div class="modal-actions" style="margin-top:10px;"><button class="btn-ghost" onclick="addPPCBulkRow()">+ Add Row</button><button class="btn-primary" onclick="savePPCBulkOrders()">Save All Orders</button><button class="btn-ghost" onclick="clearPPCBulkRows()">Clear</button></div>
       <div class="status-msg" id="ppc-bulk-status"></div>
@@ -1741,11 +1755,7 @@ function showApp() {
    LIVE AUTO-REFRESH
    Fetches fresh MIS data without reloading the webpage.
    ========================================================= */
-// Apps Script can take a few seconds to answer a large MIS read.
-// Polling every 5 seconds can create unnecessary pressure and make a
-// healthy dashboard briefly look disconnected. Keep one request in flight
-// and use a calmer refresh interval.
-const AUTO_REFRESH_MS = 10000;
+const AUTO_REFRESH_MS = 5000;
 let autoRefreshTimer = null;
 
 function startAutoRefresh() {
@@ -1780,13 +1790,6 @@ function setConn(state, msg) {
 
 let loadInFlight = null;
 let hasLoadedData = false;
-let lastGoodOrderCount = 0;
-
-function showLiveConnection() {
-  const count = Array.isArray(data?.orders) ? data.orders.length : lastGoodOrderCount;
-  setConn('ok', 'Live — connected · ' + count + ' orders');
-}
-
 async function refreshData(){
   const btns=[...document.querySelectorAll('button')].filter(b=>/^(refresh|refresh view)$/i.test(String(b.textContent||'').trim()));
   const old=btns.map(b=>b.textContent);
@@ -1815,35 +1818,25 @@ async function loadData(silent=false,force=false) {
         return false;
       }
       if (json.error) {
-        // Do not replace a working dashboard with a red connection state just
-        // because one background poll failed. Keep the last good data visible.
-        if (hasLoadedData || (Array.isArray(data?.orders) && data.orders.length)) {
-          console.warn('Background MIS refresh returned an error:', json.error);
-          showLiveConnection();
-        } else {
-          setConn('err', json.error);
-        }
+        // A temporary background-refresh error must not make an already-live
+        // dashboard look disconnected. Keep the last good data on screen.
+        if (!silent || !hasLoadedData) setConn('err', json.error);
         return false;
       }
       data = {...data,...json};
       hasLoadedData = true;
       logShipToIndex={};
       (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
-      lastGoodOrderCount = Array.isArray(data.orders) ? data.orders.length : lastGoodOrderCount;
-      showLiveConnection();
+      const count = Array.isArray(data.orders) ? data.orders.length : 0;
+      setConn('ok', 'Live — connected · ' + count + ' orders');
       populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI(); showStock();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
     } catch (e) {
-      // Background polling is best-effort. If this page already has data,
-      // NEVER turn the live badge red because of a temporary fetch/network
-      // failure. The next scheduled poll will retry automatically.
-      if (hasLoadedData || (Array.isArray(data?.orders) && data.orders.length)) {
-        console.warn('Background MIS refresh failed:', e);
-        showLiveConnection();
-      } else {
+      // Background polling is best-effort. If the dashboard already has
+      // valid data, keep the existing Live state and retry on the next cycle.
+      if (!silent || !hasLoadedData) {
         setConn('err', 'Connection failed — data not lost.');
-        console.error('Initial MIS data load failed:', e);
       }
       return false;
     }
@@ -1859,13 +1852,7 @@ async function loadV2(force=false){
     try{
       const res=await fetch(APPS_SCRIPT_URL+'?mode=v2&token='+encodeURIComponent(TOKEN),{cache:'no-store'});
       const json=await res.json();
-      if(json.error){
-        // V2/admin configuration is optional for the operational dashboard.
-        // Never overwrite the main Live connection badge when this auxiliary
-        // request fails.
-        console.warn('V2 configuration request returned an error:', json.error);
-        return false;
-      }
+      if(json.error){setConn('err',json.error);return false;}
       data.v2=json.v2||{permissions:[]};
       v2Loaded=true;
       renderV2();
@@ -3118,12 +3105,66 @@ let bulkDispatchSelected = new Set();
 let bulkDispatchQty = {};
 let bulkDispatchShipTo = {};
 
+let ppcAutoDefaults = true;
+let ppcBulkDefaults = {
+  customer:'', customerLocation:'', unit:'', priority:'Medium',
+  scheduledDate:todayISO(), shipToParty:'', shipToAddress:'', uom:'Nos'
+};
+
 function todayISO(){ return new Date().toISOString().slice(0,10); }
+function togglePPCAutoDefaults(enabled){
+  ppcAutoDefaults=!!enabled;
+}
+function getPPCDefaultDetails_(){
+  // Row 0 is the simple "fill once" row. New rows copy only common details.
+  if(ppcBulkRows.length){
+    const r=ppcBulkRows[0];
+    ppcBulkDefaults={
+      customer:String(r.customer||''),
+      customerLocation:String(r.customerLocation||''),
+      unit:String(r.unit||SESSION?.unit||''),
+      priority:String(r.priority||'Medium'),
+      scheduledDate:String(r.scheduledDate||todayISO()),
+      shipToParty:String(r.shipToParty||''),
+      shipToAddress:String(r.shipToAddress||''),
+      uom:String(r.uom||'Nos')
+    };
+  }
+  return {...ppcBulkDefaults};
+}
+function newPPCBulkRow_(seed={}){
+  const defaults=(ppcAutoDefaults ? getPPCDefaultDetails_() : {});
+  return {
+    customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',
+    unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),
+    shipToParty:'',shipToAddress:'',useDefaults:ppcAutoDefaults,
+    ...(ppcAutoDefaults?defaults:{}),...seed
+  };
+}
 function addPPCBulkRow(seed={}){
-  ppcBulkRows.push({customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',...seed});
+  ppcBulkRows.push(newPPCBulkRow_(seed));
   renderPPCBulkRows();
 }
-function clearPPCBulkRows(){ppcBulkRows=[];renderPPCBulkRows();document.getElementById('ppc-bulk-status').textContent='';}
+function applyPPCDefaultsToRow_(i){
+  const r=ppcBulkRows[i], d=getPPCDefaultDetails_();
+  if(!r)return;
+  r.customer=d.customer;
+  r.customerLocation=d.customerLocation;
+  if(!(isPPCUI() && SESSION?.unit)) r.unit=d.unit;
+  r.priority=d.priority;
+  r.scheduledDate=d.scheduledDate || todayISO();
+  r.shipToParty=d.shipToParty;
+  r.shipToAddress=d.shipToAddress;
+  if(r.orderType!=='SET') r.uom=d.uom||'Nos';
+  r.useDefaults=true;
+}
+function clearPPCBulkRows(){
+  ppcBulkRows=[];
+  ppcBulkDefaults={customer:'',customerLocation:'',unit:SESSION?.unit||'',priority:'Medium',scheduledDate:todayISO(),shipToParty:'',shipToAddress:'',uom:'Nos'};
+  renderPPCBulkRows();
+  const st=document.getElementById('ppc-bulk-status');
+  if(st) st.textContent='';
+}
 function renderPPCBulkRows(){
  const tb=document.querySelector('#ppc-order-bulk-table tbody');if(!tb)return;if(!ppcBulkRows.length)addPPCBulkRow();
  tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr class="ppc-quick-row">
@@ -3135,11 +3176,13 @@ function renderPPCBulkRows(){
  <td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
  <td><input class="ppc-date-input" data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td>
  <td class="ppc-ship-cell"><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
- <td><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
+ <td><label class="ppc-copy-check" title="Copy the common details into this row"><input type="checkbox" ${r.useDefaults?'checked':''} onchange="togglePPCRowDefaults_(${i},this.checked)"> Default</label><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
  const updatePPCBulkField=(el)=>{
    const i=Number(el.dataset.i),field=el.dataset.p;
    if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){ppcBulkRows[i].unit=SESSION.unit;el.value=SESSION.unit;}else{ppcBulkRows[i][field]=el.value;}
-   if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(ppcBulkRows[i].shipToAddress||'').trim())ppcBulkRows[i].shipToAddress=matches[0];}
+   // Keep row 1 as the single source for common defaults.
+   if(i===0 && ['customer','customerLocation','unit','priority','scheduledDate','shipToParty','shipToAddress','uom'].includes(field)) getPPCDefaultDetails_();
+   if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(ppcBulkRows[i].shipToAddress||'').trim()){ppcBulkRows[i].shipToAddress=matches[0];}}
    if(field==='partCode'||field==='unit'){
      const stock=getStockFor(ppcBulkRows[i].partCode,ppcBulkRows[i].unit);
      const stockEl=tb.querySelector(`[data-ppc-stock="${i}"]`);
@@ -3147,6 +3190,10 @@ function renderPPCBulkRows(){
    }
  };
  tb.querySelectorAll('[data-p]').forEach(el=>{el.addEventListener('input',()=>updatePPCBulkField(el));el.addEventListener('change',()=>updatePPCBulkField(el));});
+}
+function togglePPCRowDefaults_(i,checked){
+  ppcBulkRows[i].useDefaults=!!checked;
+  if(checked){applyPPCDefaultsToRow_(i);renderPPCBulkRows();}
 }
 
 function bulkShipToAddressSuggestions(party){
@@ -3168,7 +3215,9 @@ async function savePPCBulkOrders(){
     if(r.orders?.length){ const seen=new Set(data.customers||[]); r.orders.forEach(o=>{if(o.Customer&&!seen.has(o.Customer)){seen.add(o.Customer);data.customers.push(o.Customer);}}); }
     populateDropdowns();renderStats();renderTable();populateDispatchOrderSelect();renderPPCPendingRows();
     st.textContent='✓ '+r.count+' orders created in one batch.';st.className='status-msg ok';
-    clearPPCBulkRows();
+    // Clear rows but keep the success message visible.
+    ppcBulkRows=[];
+    renderPPCBulkRows();
   }catch(e){st.textContent='Failed: '+e.message;st.className='status-msg err';}
 }
 function renderPPCPendingRows(){
