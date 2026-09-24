@@ -886,7 +886,7 @@ body {
     <button class="btn-primary btn-block" id="login-btn" onclick="doLogin()"><span class="btn-label" id="login-btn-label">Sign In</span></button>
      <div class="status-msg" id="login-status"></div>
        </div>
-       <div class="login-signature">©Designed By TusharBokefod</div>
+       <div class="login-signature">© TusharB</div>
      </div>
 
 <!-- SETUP: Apps Script URL (first-time only, before login even loads) -->
@@ -3316,7 +3316,11 @@ let ppcBulkDefaults = {
   scheduledDate:todayISO(), shipToParty:'', shipToAddress:'', uom:'Nos'
 };
 
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+function todayISO(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
 function togglePPCAutoDefaults(enabled){
   ppcAutoDefaults=!!enabled;
 }
@@ -3338,10 +3342,11 @@ function getPPCDefaultDetails_(){
   return {...ppcBulkDefaults};
 }
 function newPPCBulkRow_(seed={}){
+  const firstUnit=(data.units&&data.units.length)?String(data.units[0]):'';
   const defaults=(ppcAutoDefaults ? getPPCDefaultDetails_() : {});
   return {
     customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',
-    unit:SESSION?.unit||'',uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),
+    unit:SESSION?.unit||firstUnit,uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),
     shipToParty:'',shipToAddress:'',useDefaults:ppcAutoDefaults,
     ...(ppcAutoDefaults?defaults:{}),...seed
   };
@@ -3409,7 +3414,11 @@ function bulkShipToAddressSuggestions(party){
 function removePPCBulkRow(i){ppcBulkRows.splice(i,1);renderPPCBulkRows();}
 async function savePPCBulkOrders(){
   const st=document.getElementById('ppc-bulk-status');
-  const rows=ppcBulkRows.filter(r=>r.customer||r.partCode||r.orderQty).map(r=>({...r,unit:isOwnerUI()?String(r.unit||'').trim():String(SESSION?.unit||'').trim()}));
+  const rows=ppcBulkRows.filter(r=>r.customer||r.partCode||r.orderQty).map((r,i)=>{
+    const unitEl=document.querySelector(`#ppc-order-bulk-table [data-p="unit"][data-i="${i}"]`);
+    const selectedUnit=String(unitEl?.value||r.unit||((data.units||[])[0]||'')).trim();
+    return {...r,unit:isOwnerUI()?selectedUnit:String(SESSION?.unit||selectedUnit).trim()};
+  });
   if(!rows.length){st.textContent='Add at least one order.';st.className='status-msg err';return;}
   st.textContent='Saving '+rows.length+' orders…';st.className='status-msg';
   try{
@@ -3890,9 +3899,16 @@ function exportCSV() {
 
 function fmtDate(v) {
   if (!v) return '—';
+  const s=String(v).trim();
+  // Date-only values must never pass through UTC conversion.
+  // This keeps 20/09/2026 as 20/09/2026 instead of 19/09/2026
+  // when Google Sheets returns midnight in Asia/Kolkata as 18:30Z.
+  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
   const d = new Date(v);
-  if (isNaN(d)) return String(v);
-  return d.toISOString().slice(0,10);
+  if (isNaN(d.getTime())) return s;
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 function esc(s) {
   return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
