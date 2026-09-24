@@ -766,6 +766,8 @@ body {
 #ppc-order-bulk-table th{position:sticky;top:0;z-index:3}
 #ppc-order-bulk-table input,#ppc-order-bulk-table select{padding:7px 8px;font-size:12px}
 .ppc-customer-cell{min-width:190px}.ppc-customer-cell input{display:block;margin-bottom:5px}.ppc-customer-cell input:last-child{margin-bottom:0}
+.ppc-autocomplete-wrap{position:relative;display:block;margin-bottom:5px}.ppc-autocomplete-wrap:last-child{margin-bottom:0}.ppc-autocomplete-menu{position:fixed;display:none;max-height:240px;overflow-y:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:99999;padding:4px}.ppc-autocomplete-menu.show{display:block}.ppc-autocomplete-item{padding:8px 9px;font-size:12px;color:var(--text);cursor:pointer;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ppc-autocomplete-item:hover{background:rgba(139,92,246,.14)}
+
 .ppc-article-cell{min-width:190px}.ppc-article-cell select,.ppc-article-cell input{display:block;margin-bottom:5px}.ppc-article-cell>*:last-child{margin-bottom:0}
 .ppc-qty-cell{min-width:145px}.ppc-qty-wrap{display:grid;grid-template-columns:1fr 74px;gap:5px}
 .ppc-defaults-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.02);font-size:12px}
@@ -1144,7 +1146,7 @@ body {
         <span class="ppc-defaults-hint">Enter common details once. Part Code and Qty can then be entered row-by-row. Scheduled date remains editable for every row.</span>
       </div>
       <div class="table-scroll">
-        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Current FG Stock</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th>Defaults</th></tr></thead><tbody></tbody></table>
+        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Current FG Stock</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th>Note</th><th>Defaults</th></tr></thead><tbody></tbody></table>
       </div>
       <div class="modal-actions" style="margin-top:10px;"><button class="btn-ghost" onclick="addPPCBulkRow()">+ Add Row</button><button class="btn-primary" onclick="savePPCBulkOrders()">Save All Orders</button><button class="btn-ghost" onclick="clearPPCBulkRows()">Clear</button></div>
       <div class="status-msg" id="ppc-bulk-status"></div>
@@ -3383,29 +3385,61 @@ function clearPPCBulkRows(){
 function renderPPCBulkRows(){
  const tb=document.querySelector('#ppc-order-bulk-table tbody');if(!tb)return;if(!ppcBulkRows.length)addPPCBulkRow();
  tb.innerHTML=ppcBulkRows.map((r,i)=>`<tr class="ppc-quick-row">
- <td class="ppc-customer-cell"><input data-p="customer" data-i="${i}" list="dl-bulk-customers" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off"><input data-p="customerLocation" data-i="${i}" list="dl-bulk-locations" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off"></td>
- <td class="ppc-article-cell"><div class="ppc-type-wrap"><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></div>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<input data-p="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Part Code">`}</td>
+ <td class="ppc-customer-cell"><div class="ppc-autocomplete-wrap"><input data-p="customer" data-i="${i}" value="${esc(r.customer)}" placeholder="Customer" autocomplete="off" onfocus="showPPCAutocomplete_(this)" oninput="syncPPCBulkField_(this);showPPCAutocomplete_(this)"></div><div class="ppc-autocomplete-wrap"><input data-p="customerLocation" data-i="${i}" value="${esc(r.customerLocation)}" placeholder="Location" autocomplete="off" onfocus="showPPCAutocomplete_(this)" oninput="syncPPCBulkField_(this);showPPCAutocomplete_(this)"></div></td>
+ <td class="ppc-article-cell"><div class="ppc-type-wrap"><select data-p="orderType" data-i="${i}" onchange="ppcBulkRows[${i}].orderType=this.value;ppcBulkRows[${i}].uom=this.value==='SET'?'Set':'Nos';if(this.value==='SET')ppcBulkRows[${i}].partCode='';else ppcBulkRows[${i}].setCode='';renderPPCBulkRows()"><option value="STANDARD" ${r.orderType!=='SET'?'selected':''}>Article</option><option value="SET" ${r.orderType==='SET'?'selected':''}>Set</option></select></div>${r.orderType==='SET'?`<select data-p="setCode" data-i="${i}"><option value="">${(data.sets||[]).length?'— Select Set —':'— No Sets —'}</option>${(data.sets||[]).map(x=>`<option value="${esc(x.SetCode)}" ${r.setCode===x.SetCode?'selected':''}>${esc(x.SetCode)}${x.SetName?' — '+esc(x.SetName):''}</option>`).join('')}</select>`:`<div class="ppc-autocomplete-wrap"><input data-p="partCode" data-i="${i}" value="${esc(r.partCode)}" placeholder="Part Code" autocomplete="off" onfocus="showPPCAutocomplete_(this)" oninput="syncPPCBulkField_(this);showPPCAutocomplete_(this)"></div>`}</td>
  <td class="ppc-current-stock-cell"><span class="ppc-current-stock ${getStockFor(r.partCode,r.unit)<=0?'zero':''}" data-ppc-stock="${i}">${Number(getStockFor(r.partCode,r.unit)||0).toLocaleString()}</span></td>
  <td>${isOwnerUI()?`<select data-p="unit" data-i="${i}">${(data.units||[]).map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`:`<select data-p="unit" data-i="${i}" disabled><option value="${esc(SESSION?.unit||r.unit||'')}" selected>${esc(SESSION?.unit||r.unit||'')}</option></select>`}</td>
  <td class="ppc-qty-cell"><div class="ppc-qty-wrap"><input data-p="orderQty" data-i="${i}" type="number" min="1" value="${esc(r.orderQty)}" placeholder="Qty"><select data-p="uom" data-i="${i}" ${r.orderType==='SET'?'disabled':''}>${(r.orderType==='SET'?['Set']:(data.uoms||['Nos','Pcs','Kg','Box','Sheet','Set','Meter'])).map(u=>`<option ${r.uom===u?'selected':''}>${esc(u)}</option>`).join('')}</select></div></td>
  <td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
  <td><input class="ppc-date-input" data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td>
- <td class="ppc-ship-cell"><input data-p="shipToParty" data-i="${i}" list="dl-shipto" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off"><input data-p="shipToAddress" data-i="${i}" list="dl-bulk-shipto-addresses" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
+ <td class="ppc-ship-cell"><div class="ppc-autocomplete-wrap"><input data-p="shipToParty" data-i="${i}" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off" onfocus="showPPCAutocomplete_(this)" oninput="syncPPCBulkField_(this);showPPCAutocomplete_(this)"></div><input data-p="shipToAddress" data-i="${i}" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
+ <td class="ppc-note-cell"><input data-p="note" data-i="${i}" value="${esc(r.note||'')}" placeholder="Note" autocomplete="off"></td>
  <td><label class="ppc-copy-check" title="Copy the common details into this row"><input type="checkbox" ${r.useDefaults?'checked':''} onchange="togglePPCRowDefaults_(${i},this.checked)"> Default</label><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
- const updatePPCBulkField=(el)=>{
-   const i=Number(el.dataset.i),field=el.dataset.p;
-   if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){ppcBulkRows[i].unit=SESSION.unit;el.value=SESSION.unit;}else{ppcBulkRows[i][field]=el.value;}
-   // Keep row 1 as the single source for common defaults.
-   if(i===0 && ['customer','customerLocation','unit','priority','scheduledDate','shipToParty','shipToAddress','uom'].includes(field)) getPPCDefaultDetails_();
-   if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(ppcBulkRows[i].shipToAddress||'').trim()){ppcBulkRows[i].shipToAddress=matches[0];}}
-   if(field==='partCode'||field==='unit'){
-     const stock=getStockFor(ppcBulkRows[i].partCode,ppcBulkRows[i].unit);
-     const stockEl=tb.querySelector(`[data-ppc-stock="${i}"]`);
-     if(stockEl){stockEl.textContent=Number(stock||0).toLocaleString();stockEl.classList.toggle('zero',Number(stock||0)<=0);}
-   }
- };
- tb.querySelectorAll('[data-p]').forEach(el=>{el.addEventListener('input',()=>updatePPCBulkField(el));el.addEventListener('change',()=>updatePPCBulkField(el));});
+ const sync=el=>syncPPCBulkField_(el);
+ tb.querySelectorAll('[data-p]').forEach(el=>{if(!el.getAttribute('oninput'))el.addEventListener('input',()=>sync(el));el.addEventListener('change',()=>sync(el));});
 }
+function ppcAutocompleteValues_(field){
+  if(field==='customer') return data.customers||[];
+  if(field==='customerLocation') return data.locations||[];
+  if(field==='partCode') return data.partCodes||[];
+  if(field==='shipToParty') return data.shipToParties||[];
+  return [];
+}
+function hidePPCAutocomplete_(){const m=document.getElementById('ppc-autocomplete-menu');if(m)m.classList.remove('show');}
+function showPPCAutocomplete_(el){
+  if(!el||!el.dataset||!['customer','customerLocation','partCode','shipToParty'].includes(el.dataset.p))return;
+  let m=document.getElementById('ppc-autocomplete-menu');
+  if(!m){m=document.createElement('div');m.id='ppc-autocomplete-menu';m.className='ppc-autocomplete-menu';document.body.appendChild(m);}
+  const q=String(el.value||'').trim().toLowerCase();
+  const vals=[...new Set(ppcAutocompleteValues_(el.dataset.p).map(v=>String(v||'').trim()).filter(Boolean))];
+  const matches=vals.filter(v=>!q||v.toLowerCase().includes(q)).slice(0,40);
+  if(!matches.length){hidePPCAutocomplete_();return;}
+  const r=el.getBoundingClientRect();
+  m.style.left=Math.max(4,r.left)+'px';
+  m.style.top=(r.bottom+3)+'px';
+  m.style.width=Math.max(r.width,220)+'px';
+  m.innerHTML=matches.map(v=>`<div class="ppc-autocomplete-item" data-value="${esc(v)}">${esc(v)}</div>`).join('');
+  m.classList.add('show');
+  m.querySelectorAll('.ppc-autocomplete-item').forEach(item=>item.addEventListener('mousedown',e=>{
+    e.preventDefault();
+    const value=item.dataset.value||'';
+    el.value=value;
+    syncPPCBulkField_(el);
+    hidePPCAutocomplete_();
+    if(el.dataset.p==='shipToParty'){const matches=bulkShipToAddressSuggestions(value);if(matches.length){const addr=document.querySelector(`#ppc-order-bulk-table [data-p="shipToAddress"][data-i="${el.dataset.i}"]`);if(addr&&!String(addr.value||'').trim()){addr.value=matches[0];syncPPCBulkField_(addr);}}}
+  }));
+}
+function syncPPCBulkField_(el){
+  if(!el||!el.dataset||el.dataset.i==null||!el.dataset.p)return;
+  const i=Number(el.dataset.i),field=el.dataset.p,r=ppcBulkRows[i];if(!r)return;
+  if(field==='unit' && (isPPCUI()||isDispatchUI()) && SESSION?.unit){r.unit=SESSION.unit;el.value=SESSION.unit;}else{r[field]=el.value;}
+  if(i===0 && ['customer','customerLocation','unit','priority','scheduledDate','shipToParty','shipToAddress','uom'].includes(field))getPPCDefaultDetails_();
+  if(field==='shipToParty'){const matches=bulkShipToAddressSuggestions(el.value);if(matches.length&&!String(r.shipToAddress||'').trim()){r.shipToAddress=matches[0];}}
+  if(field==='partCode'||field==='unit'){const stock=getStockFor(r.partCode,r.unit);const stockEl=document.querySelector(`#ppc-order-bulk-table [data-ppc-stock="${i}"]`);if(stockEl){stockEl.textContent=Number(stock||0).toLocaleString();stockEl.classList.toggle('zero',Number(stock||0)<=0);}}
+}
+document.addEventListener('click',e=>{const m=document.getElementById('ppc-autocomplete-menu');if(m&&!m.contains(e.target)&&!e.target.closest('#ppc-order-bulk-table .ppc-autocomplete-wrap'))hidePPCAutocomplete_();});
+window.addEventListener('scroll',hidePPCAutocomplete_,true);
+
 function togglePPCRowDefaults_(i,checked){
   ppcBulkRows[i].useDefaults=!!checked;
   if(checked){applyPPCDefaultsToRow_(i);renderPPCBulkRows();}
