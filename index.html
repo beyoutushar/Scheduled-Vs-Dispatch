@@ -836,7 +836,7 @@ body {
   .bulk-note-field{grid-column:auto}
 }
 /* ===== QUICK ENTRY: PPC / DISPATCH / FG STOCK ===== */
-#ppc-order-bulk-table{min-width:1160px}
+#ppc-order-bulk-table{min-width:1080px}
 .ppc-current-stock-cell{min-width:105px;white-space:nowrap}.ppc-current-stock{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:5px 8px;border-radius:7px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);color:var(--accent-2);font-weight:700;font-size:11px}.ppc-current-stock.zero{background:rgba(234,184,77,.07);border-color:rgba(234,184,77,.16);color:var(--warn)}
 #ppc-order-bulk-table th,#ppc-order-bulk-table td{padding:7px 8px;vertical-align:middle}
 #ppc-order-bulk-table th{position:sticky;top:0;z-index:3}
@@ -1222,7 +1222,7 @@ body {
         <span class="ppc-defaults-hint">Enter common details once. Part Code and Qty can then be entered row-by-row. Scheduled date remains editable for every row.</span>
       </div>
       <div class="table-scroll">
-        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Current FG Stock</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th>Note</th><th>Defaults</th></tr></thead><tbody></tbody></table>
+        <table id="ppc-order-bulk-table"><thead><tr><th>Customer / Location</th><th>Article / Set</th><th>Current FG Stock</th><th>Unit</th><th>Qty / UOM</th><th>Priority</th><th>Scheduled</th><th>Ship To / Address</th><th>Defaults</th></tr></thead><tbody></tbody></table>
       </div>
       <div class="modal-actions" style="margin-top:10px;"><button class="btn-ghost" onclick="addPPCBulkRow()">+ Add Row</button><button class="btn-primary" onclick="savePPCBulkOrders()">Save All Orders</button><button class="btn-ghost" onclick="clearPPCBulkRows()">Clear</button></div>
       <div class="status-msg" id="ppc-bulk-status"></div>
@@ -3486,8 +3486,7 @@ function renderPPCBulkRows(){
  <td><select data-p="priority" data-i="${i}">${(data.priorities||['High','Medium','Low']).map(u=>`<option ${r.priority===u?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
  <td><input class="ppc-date-input" data-p="scheduledDate" data-i="${i}" type="date" value="${esc(r.scheduledDate)}"></td>
  <td class="ppc-ship-cell"><div class="ppc-autocomplete-wrap"><input data-p="shipToParty" data-i="${i}" value="${esc(r.shipToParty)}" placeholder="Ship To" autocomplete="off" onfocus="showPPCAutocomplete_(this)" oninput="syncPPCBulkField_(this);showPPCAutocomplete_(this)"></div><input data-p="shipToAddress" data-i="${i}" value="${esc(r.shipToAddress)}" placeholder="Address" autocomplete="off"></td>
- <td class="ppc-note-cell"><input data-p="note" data-i="${i}" value="${esc(r.note||'')}" placeholder="Note" autocomplete="off"></td>
- <td><label class="ppc-copy-check" title="Copy the common details into this row"><input type="checkbox" ${r.useDefaults?'checked':''} onchange="togglePPCRowDefaults_(${i},this.checked)"> Default</label><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
+  <td><label class="ppc-copy-check" title="Copy the common details into this row"><input type="checkbox" ${r.useDefaults?'checked':''} onchange="togglePPCRowDefaults_(${i},this.checked)"> Default</label><button class="btn-ghost btn-small" onclick="removePPCBulkRow(${i})" title="Remove row">×</button></td></tr>`).join('');
  const sync=el=>syncPPCBulkField_(el);
  tb.querySelectorAll('[data-p]').forEach(el=>{if(!el.getAttribute('oninput'))el.addEventListener('input',()=>sync(el));el.addEventListener('change',()=>sync(el));});
 }
