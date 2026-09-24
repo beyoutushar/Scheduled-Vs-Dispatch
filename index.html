@@ -3344,11 +3344,16 @@ function getPPCDefaultDetails_(){
 function newPPCBulkRow_(seed={}){
   const firstUnit=(data.units&&data.units.length)?String(data.units[0]):'';
   const defaults=(ppcAutoDefaults ? getPPCDefaultDetails_() : {});
+  // Never let an empty common-default Unit overwrite the real row Unit.
+  // The visible dropdown and the internal row state must always agree.
+  const defaultUnit=String(defaults.unit||SESSION?.unit||firstUnit||'').trim();
   return {
     customer:'',customerLocation:'',partCode:'',orderType:'STANDARD',setCode:'',
-    unit:SESSION?.unit||firstUnit,uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),
+    unit:defaultUnit,uom:'Nos',orderQty:'',priority:'Medium',scheduledDate:todayISO(),
     shipToParty:'',shipToAddress:'',useDefaults:ppcAutoDefaults,
-    ...(ppcAutoDefaults?defaults:{}),...seed
+    ...(ppcAutoDefaults?defaults:{}),
+    unit:defaultUnit,
+    ...seed
   };
 }
 function addPPCBulkRow(seed={}){
@@ -3414,9 +3419,15 @@ function bulkShipToAddressSuggestions(party){
 function removePPCBulkRow(i){ppcBulkRows.splice(i,1);renderPPCBulkRows();}
 async function savePPCBulkOrders(){
   const st=document.getElementById('ppc-bulk-status');
-  const rows=ppcBulkRows.filter(r=>r.customer||r.partCode||r.orderQty).map((r,i)=>{
-    const unitEl=document.querySelector(`#ppc-order-bulk-table [data-p="unit"][data-i="${i}"]`);
-    const selectedUnit=String(unitEl?.value||r.unit||((data.units||[])[0]||'')).trim();
+  const sourceRows=ppcBulkRows.filter(r=>r.customer||r.partCode||r.orderQty);
+  const rows=sourceRows.map((r,sourceIndex)=>{
+    // Read the actual visible dropdown first. This fixes cases where the UI
+    // shows Unit 5/Unit 1/etc. but the internal row object is still blank.
+    const unitEl=document.querySelector(`#ppc-order-bulk-table [data-p="unit"][data-i="${sourceIndex}"]`);
+    const visibleUnit=String(unitEl?.value||'').trim();
+    const fallbackUnit=String(r.unit||SESSION?.unit||((data.units||[])[0]||'')).trim();
+    const selectedUnit=visibleUnit||fallbackUnit;
+    r.unit=selectedUnit;
     return {...r,unit:isOwnerUI()?selectedUnit:String(SESSION?.unit||selectedUnit).trim()};
   });
   if(!rows.length){st.textContent='Add at least one order.';st.className='status-msg err';return;}
@@ -3901,14 +3912,21 @@ function fmtDate(v) {
   if (!v) return '—';
   const s=String(v).trim();
   // Date-only values must never pass through UTC conversion.
-  // This keeps 20/09/2026 as 20/09/2026 instead of 19/09/2026
-  // when Google Sheets returns midnight in Asia/Kolkata as 18:30Z.
   const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  if(m && !/[T ]/.test(s)) return `${m[1]}-${m[2]}-${m[3]}`;
+  // Google Sheets may serialize an India-midnight date as the previous UTC day
+  // (for example 20/09/2026 -> 2026-09-19T18:30:00.000Z). Always render
+  // Schedule/Dispatch dates in the plant's Asia/Kolkata calendar.
   const d = new Date(v);
   if (isNaN(d.getTime())) return s;
-  const pad=n=>String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  try {
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+    const out={}; parts.forEach(x=>{if(x.type!=='literal')out[x.type]=x.value;});
+    return `${out.year}-${out.month}-${out.day}`;
+  } catch(e) {
+    const pad=n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
 }
 function esc(s) {
   return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
