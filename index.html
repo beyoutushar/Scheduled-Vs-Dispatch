@@ -448,6 +448,82 @@
 .set-dispatch-components{display:grid;gap:5px;margin-top:9px;}
 .set-dispatch-components>div{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:6px 8px;border-radius:7px;background:rgba(0,0,0,.16);font-size:12px;}
 .set-dispatch-components em{font-style:normal;opacity:.7;}
+
+/* ===== PPC HEADER ALIGNMENT + PROFESSIONAL LIGHT THEME ===== */
+#ppc-order-bulk-table{table-layout:fixed;width:100%;}
+#ppc-order-bulk-table th:nth-child(1),#ppc-order-bulk-table td:nth-child(1){width:17%;}
+#ppc-order-bulk-table th:nth-child(2),#ppc-order-bulk-table td:nth-child(2){width:17%;}
+#ppc-order-bulk-table th:nth-child(3),#ppc-order-bulk-table td:nth-child(3){width:9%;text-align:center;}
+#ppc-order-bulk-table th:nth-child(4),#ppc-order-bulk-table td:nth-child(4){width:8%;text-align:center;}
+#ppc-order-bulk-table th:nth-child(5),#ppc-order-bulk-table td:nth-child(5){width:13%;}
+#ppc-order-bulk-table th:nth-child(5){text-align:center;}
+#ppc-order-bulk-table th:nth-child(6),#ppc-order-bulk-table td:nth-child(6){width:8%;}
+#ppc-order-bulk-table th:nth-child(7),#ppc-order-bulk-table td:nth-child(7){width:10%;}
+#ppc-order-bulk-table th:nth-child(8),#ppc-order-bulk-table td:nth-child(8){width:14%;}
+#ppc-order-bulk-table th:nth-child(9),#ppc-order-bulk-table td:nth-child(9){width:12%;}
+#ppc-order-bulk-table th:nth-child(10),#ppc-order-bulk-table td:nth-child(10){width:9%;text-align:center;}
+.ppc-qty-wrap{grid-template-columns:minmax(70px,1fr) 68px;align-items:center;}
+.ppc-qty-wrap select{text-align:center;text-align-last:center;}
+.ppc-current-stock-cell{text-align:center!important;}
+
+/* Professional light-mode surfaces and contrast */
+:root[data-theme="light"] body{background:var(--bg);color:var(--text);}
+:root[data-theme="light"] .topbar,
+:root[data-theme="light"] header{background:rgba(255,255,255,.94);border-bottom-color:#dfe3ec;}
+:root[data-theme="light"] .card{border-color:#dfe3ec;box-shadow:0 8px 24px rgba(30,41,59,.07);}
+:root[data-theme="light"] .stat{border-color:#dfe3ec;box-shadow:0 6px 18px rgba(30,41,59,.06);}
+:root[data-theme="light"] .stat .num{color:#20232b;}
+:root[data-theme="light"] .stat:nth-child(2) .num,:root[data-theme="light"] .stat:nth-child(6) .num{color:#b77900;}
+:root[data-theme="light"] .stat:nth-child(3) .num,:root[data-theme="light"] .stat:nth-child(5) .num{color:#047857;}
+:root[data-theme="light"] nav,
+:root[data-theme="light"] .tabs{border-bottom-color:#dfe3ec;}
+:root[data-theme="light"] .tab-btn{color:#667085;}
+:root[data-theme="light"] .tab-btn:hover{color:#344054;background:#f7f8fb;}
+:root[data-theme="light"] .tab-btn.active{color:#5b21b6;border-bottom-color:#7c3aed;}
+:root[data-theme="light"] .sub,
+:root[data-theme="light"] .mini-note,
+:root[data-theme="light"] .ppc-defaults-hint{color:#667085;}
+:root[data-theme="light"] .ppc-defaults-bar{background:#f8fafc;border-color:#dfe3ec;}
+:root[data-theme="light"] .table-scroll,
+:root[data-theme="light"] .bulk-dispatch-list{background:#fff;border-color:#dfe3ec;}
+:root[data-theme="light"] table{border-color:#e4e7ec;}
+:root[data-theme="light"] th{background:#f3f5f9!important;color:#475467;border-bottom-color:#dfe3ec;}
+:root[data-theme="light"] td{border-bottom-color:#edf0f4;color:#344054;}
+:root[data-theme="light"] tr:hover td{background:#f8fafc;}
+:root[data-theme="light"] #ppc-order-bulk-table th{box-shadow:0 1px 0 #dfe3ec;}
+:root[data-theme="light"] #ppc-order-bulk-table input,
+:root[data-theme="light"] #ppc-order-bulk-table select{border-color:#d0d5dd;background:#fff;color:#344054;box-shadow:0 1px 2px rgba(16,24,40,.03);}
+:root[data-theme="light"] input:focus,
+:root[data-theme="light"] select:focus,
+:root[data-theme="light"] textarea:focus{border-color:#7c3aed!important;box-shadow:0 0 0 3px rgba(124,58,237,.10)!important;outline:none;}
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder{color:#98a2b3;}
+:root[data-theme="light"] .ppc-autocomplete-menu{background:#fff;border-color:#d0d5dd;box-shadow:0 16px 36px rgba(16,24,40,.14);}
+:root[data-theme="light"] .ppc-autocomplete-item{color:#344054;}
+:root[data-theme="light"] .ppc-autocomplete-item:hover{background:#f3f0ff;color:#4c1d95;}
+:root[data-theme="light"] .ppc-current-stock{background:#ecfdf3;border-color:#a7f3d0;color:#047857;}
+:root[data-theme="light"] .ppc-current-stock.zero{background:#fffaeb;border-color:#fedf89;color:#b54708;}
+:root[data-theme="light"] .btn-ghost{border-color:#d0d5dd;box-shadow:0 1px 2px rgba(16,24,40,.04);}
+:root[data-theme="light"] .btn-primary{box-shadow:0 5px 14px rgba(109,40,217,.18);}
+:root[data-theme="light"] .status-msg{color:#475467;}
+:root[data-theme="light"] .status-msg.err{color:#b42318;}
+:root[data-theme="light"] .status-msg.ok{color:#047857;}
+:root[data-theme="light"] .conn{box-shadow:0 1px 3px rgba(16,24,40,.06);}
+:root[data-theme="light"] .conn.ok{background:#ecfdf3;border-color:#a7f3d0;color:#047857;}
+:root[data-theme="light"] .conn.err{background:#fff1f3;border-color:#fecdd3;color:#be123c;}
+:root[data-theme="light"] .theme-toggle{background:#fff!important;color:#344054!important;border-color:#d0d5dd!important;box-shadow:0 1px 2px rgba(16,24,40,.05);}
+:root[data-theme="light"] .app-pref-select{background:#fff!important;color:#344054!important;border-color:#d0d5dd!important;}
+:root[data-theme="light"] .ppc-copy-check{color:#667085;}
+:root[data-theme="light"] .ppc-copy-check input,
+:root[data-theme="light"] .ppc-defaults-bar input[type=checkbox]{accent-color:#7c3aed;}
+:root[data-theme="light"] .modal-actions{border-color:#e4e7ec;}
+:root[data-theme="light"] .bulk-dispatch-actionbar{background:rgba(255,255,255,.96);border-top-color:#e4e7ec;box-shadow:0 -8px 24px rgba(16,24,40,.08);}
+:root[data-theme="light"] .bulk-dispatch-summary{background:#f8fafc;border-color:#e4e7ec;}
+:root[data-theme="light"] ::-webkit-scrollbar{width:10px;height:10px;}
+:root[data-theme="light"] ::-webkit-scrollbar-track{background:#eef1f5;}
+:root[data-theme="light"] ::-webkit-scrollbar-thumb{background:#c5cad4;border-radius:999px;border:2px solid #eef1f5;}
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover{background:#98a2b3;}
+
 </style>
 <style>.admin-plain-label{font-size:12px;color:var(--muted);margin-top:-8px;margin-bottom:10px}
 
