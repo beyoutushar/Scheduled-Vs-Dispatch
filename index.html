@@ -451,20 +451,24 @@
 
 /* ===== PPC HEADER ALIGNMENT + PROFESSIONAL LIGHT THEME ===== */
 #ppc-order-bulk-table{table-layout:fixed;width:100%;}
-#ppc-order-bulk-table th:nth-child(1),#ppc-order-bulk-table td:nth-child(1){width:17%;}
-#ppc-order-bulk-table th:nth-child(2),#ppc-order-bulk-table td:nth-child(2){width:17%;}
+/* 9-column PPC table: give Quantity enough room for 4-5+ digit values and keep Defaults compact. */
+#ppc-order-bulk-table th:nth-child(1),#ppc-order-bulk-table td:nth-child(1){width:15%;}
+#ppc-order-bulk-table th:nth-child(2),#ppc-order-bulk-table td:nth-child(2){width:15%;}
 #ppc-order-bulk-table th:nth-child(3),#ppc-order-bulk-table td:nth-child(3){width:9%;text-align:center;}
 #ppc-order-bulk-table th:nth-child(4),#ppc-order-bulk-table td:nth-child(4){width:8%;text-align:center;}
-#ppc-order-bulk-table th:nth-child(5),#ppc-order-bulk-table td:nth-child(5){width:13%;}
+#ppc-order-bulk-table th:nth-child(5),#ppc-order-bulk-table td:nth-child(5){width:16%;}
 #ppc-order-bulk-table th:nth-child(5){text-align:center;}
 #ppc-order-bulk-table th:nth-child(6),#ppc-order-bulk-table td:nth-child(6){width:8%;}
 #ppc-order-bulk-table th:nth-child(7),#ppc-order-bulk-table td:nth-child(7){width:10%;}
-#ppc-order-bulk-table th:nth-child(8),#ppc-order-bulk-table td:nth-child(8){width:14%;}
-#ppc-order-bulk-table th:nth-child(9),#ppc-order-bulk-table td:nth-child(9){width:12%;}
-#ppc-order-bulk-table th:nth-child(10),#ppc-order-bulk-table td:nth-child(10){width:9%;text-align:center;}
-.ppc-qty-wrap{grid-template-columns:minmax(70px,1fr) 68px;align-items:center;}
-.ppc-qty-wrap select{text-align:center;text-align-last:center;}
+#ppc-order-bulk-table th:nth-child(8),#ppc-order-bulk-table td:nth-child(8){width:12%;}
+#ppc-order-bulk-table th:nth-child(9),#ppc-order-bulk-table td:nth-child(9){width:7%;text-align:center;}
+.ppc-qty-wrap{display:grid;grid-template-columns:minmax(90px,1fr) 64px;gap:5px;align-items:center;}
+.ppc-qty-wrap input{min-width:0;width:100%;box-sizing:border-box;}
+.ppc-qty-wrap select{width:64px;min-width:64px;text-align:center;text-align-last:center;}
 .ppc-current-stock-cell{text-align:center!important;}
+.ppc-copy-check{gap:3px;font-size:10px;}
+.ppc-copy-check input{width:13px;height:13px;}
+#ppc-order-bulk-table td:nth-child(9) .btn-small{margin-top:4px;}
 
 /* Professional light-mode surfaces and contrast */
 :root[data-theme="light"] body{background:var(--bg);color:var(--text);}
