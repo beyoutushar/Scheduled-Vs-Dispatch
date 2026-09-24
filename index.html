@@ -2048,7 +2048,9 @@ function startAutoRefresh() {
   autoRefreshTimer = setInterval(() => {
     if (document.visibilityState !== 'visible') return;
     if (!TOKEN || !SESSION) return;
-    loadData(true);
+    const force = forceNextSync;
+    forceNextSync = false;
+    loadData(true, force);
   }, AUTO_REFRESH_MS);
 }
 
@@ -2073,6 +2075,8 @@ function setConn(state, msg) {
 
 let loadInFlight = null;
 let hasLoadedData = false;
+let dataVersion = 0;
+let forceNextSync = false;
 async function refreshData(){
   const btns=[...document.querySelectorAll('button')].filter(b=>/^(refresh|refresh view)$/i.test(String(b.textContent||'').trim()));
   const old=btns.map(b=>b.textContent);
@@ -2084,16 +2088,17 @@ async function refreshData(){
   }
 }
 async function loadData(silent=false,force=false) {
-  // Never start a second core request while one is already running.
-  // This prevents the 5-second auto-refresh from creating overlapping
-  // requests and incorrectly showing "Connection failed" on a live session.
+  // Auto-refresh remains enabled, but unchanged cycles now make a tiny
+  // version-only request. A full payload is downloaded only when the data
+  // version has changed (or when Refresh is explicitly forced).
   if(loadInFlight) return loadInFlight;
   const tbody = document.querySelector('#orders-table tbody');
   if (tbody && !tbody.children.length) tbody.innerHTML = Array(6).fill('<tr class="skeleton-row"><td colspan="20"></td></tr>').join('');
   if (!silent) setConn('', 'Loading…');
   loadInFlight=(async()=>{
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN) + '&_=' + Date.now(), {cache:'no-store'});
+      const versionParam = (!force && dataVersion) ? '&sinceVersion=' + encodeURIComponent(dataVersion) : '';
+      const res = await fetch(APPS_SCRIPT_URL + '?mode=core&token=' + encodeURIComponent(TOKEN) + versionParam + '&_=' + Date.now(), {cache:'no-store'});
       const json = await res.json();
       if (json.error && /session has expired|auth_required/i.test(json.error)) {
         stopAutoRefresh();
@@ -2101,12 +2106,20 @@ async function loadData(silent=false,force=false) {
         return false;
       }
       if (json.error) {
-        // A temporary background-refresh error must not make an already-live
-        // dashboard look disconnected. Keep the last good data on screen.
         if (!silent || !hasLoadedData) setConn('err', json.error);
         return false;
       }
+
+      // Server confirms nothing changed. Keep every rendered control/table
+      // exactly where it is; there is no reason to rebuild the DOM.
+      if (json.unchanged) {
+        dataVersion = Number(json.version || dataVersion || 0);
+        if (hasLoadedData) setConn('ok', 'Live — connected · ' + (Array.isArray(data.orders) ? data.orders.length : 0) + ' orders');
+        return true;
+      }
+
       data = {...data,...json};
+      dataVersion = Number(json.version || dataVersion || 0);
       hasLoadedData = true;
       logShipToIndex={};
       (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
@@ -2116,17 +2129,14 @@ async function loadData(silent=false,force=false) {
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
     } catch (e) {
-      // Background polling is best-effort. If the dashboard already has
-      // valid data, keep the existing Live state and retry on the next cycle.
-      if (!silent || !hasLoadedData) {
-        setConn('err', 'Connection failed — data not lost.');
-      }
+      if (!silent || !hasLoadedData) setConn('err', 'Connection failed — data not lost.');
       return false;
     }
     finally { loadInFlight=null; }
   })();
   return loadInFlight;
 }
+
 let v2Loaded=false, v2InFlight=null;
 async function loadV2(force=false){
   if(v2Loaded && !force) return true;
@@ -3055,6 +3065,13 @@ async function postAction(body) {
   const raw = await res.text();
   try {
     const json = JSON.parse(raw);
+    if (json.version) {
+      dataVersion = Number(json.version) || dataVersion;
+      // A write may affect related data (FG stock, dispatch history, actors,
+      // status, etc.). Let the next background cycle perform one full sync,
+      // then return to cheap version-only heartbeats.
+      forceNextSync = true;
+    }
     if (json.error && /session has expired/i.test(json.error)) {
       sessionStorage.removeItem('svd_token');
       sessionStorage.removeItem('svd_session');
