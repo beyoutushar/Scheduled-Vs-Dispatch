@@ -23,7 +23,7 @@
     --danger: #e5586e;
     --radius: 14px;
     --radius-sm: 9px;
-    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Devanagari", Noto Sans, Roboto, sans-serif;
     --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
     --shadow-md: 0 10px 30px rgba(0,0,0,.35);
     --ease: cubic-bezier(.4,0,.2,1);
@@ -803,10 +803,74 @@ body {
 @media(max-width:800px){#ppc-order-bulk-table{min-width:1120px}.bulk-dispatch-list table{min-width:980px}}
 </style>
 
+
+<style id="language-theme-style">
+/* ===== LANGUAGE + THEME CONTROLS ===== */
+.app-preferences{display:flex;align-items:center;gap:7px;margin-left:2px}
+.app-pref-select{width:auto!important;min-width:108px;padding:6px 28px 6px 9px!important;font-size:11px!important;background:var(--panel-2)!important;border:1px solid var(--border)!important;color:var(--text)!important;border-radius:999px!important}
+.theme-toggle{width:34px;height:30px;padding:0!important;border:1px solid var(--border)!important;background:var(--panel-2)!important;color:var(--text)!important;border-radius:999px!important;display:inline-flex;align-items:center;justify-content:center;font-size:15px!important}
+.theme-toggle:hover{border-color:var(--accent)!important;background:var(--panel-3)!important}
+.login-preferences{position:absolute;top:18px;right:18px;z-index:5;display:flex;gap:7px;align-items:center}
+.login-preferences .app-pref-select{background:rgba(18,16,24,.75)!important;color:#f5f3fa!important;border-color:rgba(196,181,253,.18)!important}
+.login-preferences .theme-toggle{background:rgba(18,16,24,.75)!important;color:#f5f3fa!important;border-color:rgba(196,181,253,.18)!important}
+
+/* ===== LIGHT THEME ===== */
+:root[data-theme="light"]{
+  --bg:#f4f6fb;
+  --bg-grad:radial-gradient(1100px 560px at 8% -8%,rgba(124,58,237,.10),transparent 60%),radial-gradient(900px 520px at 100% 0%,rgba(52,211,153,.08),transparent 55%),#f4f6fb;
+  --panel:#ffffff;
+  --panel-2:#f8f9fc;
+  --panel-3:#eef1f7;
+  --border:#d9deea;
+  --border-soft:#e7eaf1;
+  --text:#20232b;
+  --muted:#667085;
+  --accent:#6d28d9;
+  --accent-2:#059669;
+  --warn:#b77900;
+  --danger:#c92a4a;
+  --shadow-sm:0 2px 8px rgba(20,25,40,.08);
+  --shadow-md:0 16px 44px rgba(20,25,40,.12);
+}
+:root[data-theme="light"] body{color:var(--text)}
+:root[data-theme="light"] .card{background:linear-gradient(180deg,#fff,#fafbfe);backdrop-filter:none}
+:root[data-theme="light"] .stat{background:linear-gradient(155deg,#fff,#f6f7fb);backdrop-filter:none}
+:root[data-theme="light"] th{background:#f7f8fc;color:#5d6677}
+:root[data-theme="light"] .bulk-dispatch-list th,
+:root[data-theme="light"] #tab-dispatch-history #dispatch-history-table thead th,
+:root[data-theme="light"] #tab-orders #orders-table thead th{background:#f0f2f7}
+:root[data-theme="light"] input,
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea{background:#fff;color:#20232b}
+:root[data-theme="light"] .btn-ghost{color:#4b5565;background:#fff}
+:root[data-theme="light"] .btn-ghost:hover{color:#20232b;background:#f1f3f7}
+:root[data-theme="light"] .chat-text{background:#f4f6fb;color:#20232b}
+:root[data-theme="light"] .modal{background:rgba(255,255,255,.96);backdrop-filter:blur(12px)}
+:root[data-theme="light"] .login-wrap{background:#f4f6fb;background-image:linear-gradient(rgba(109,40,217,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(109,40,217,.035) 1px,transparent 1px)}
+:root[data-theme="light"] .login-wrap::before{opacity:.25}
+:root[data-theme="light"] .login-wrap::after{opacity:.18}
+:root[data-theme="light"] .login-card{background:rgba(255,255,255,.88);border-color:rgba(109,40,217,.15);box-shadow:0 30px 80px rgba(30,35,55,.16)}
+:root[data-theme="light"] .login-card h2{color:#20232b}
+:root[data-theme="light"] .login-card .sub,
+:root[data-theme="light"] .login-card label{color:#667085}
+:root[data-theme="light"] .login-card input{background:#fff;color:#20232b;border-color:#d9deea}
+:root[data-theme="light"] .login-card input::placeholder{color:#98a0af}
+:root[data-theme="light"] .login-preferences .app-pref-select,
+:root[data-theme="light"] .login-preferences .theme-toggle{background:#fff!important;color:#20232b!important;border-color:#d9deea!important}
+:root[data-theme="light"] .set-help-item,.set-builder-summary{background:var(--panel-2)}
+:root[data-theme="light"] .login-signature{color:rgba(109,40,217,.32)}
+</style>
+
 </head>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen" class="login-wrap">
+  <div class="login-preferences">
+    <select id="login-language-select" class="app-pref-select" aria-label="Language" onchange="setAppLanguage(this.value)">
+      <option value="en">English</option><option value="mr">मराठी</option><option value="hi">हिन्दी</option>
+    </select>
+    <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme"><span id="login-theme-icon">☀</span></button>
+  </div>
   <div class="login-card">
     <img src="./GREENPACK-LATEST-LOGO.png" alt="Greenpack Complete Packaging Solutions" class="brand-logo">
     <h2>Schedule vs Dispatch — MIS</h2>
@@ -822,7 +886,7 @@ body {
     <button class="btn-primary btn-block" id="login-btn" onclick="doLogin()"><span class="btn-label" id="login-btn-label">Sign In</span></button>
      <div class="status-msg" id="login-status"></div>
        </div>
-       <div class="login-signature">© TusharB</div>
+       <div class="login-signature">©Designed By TusharBokefod</div>
      </div>
 
 <!-- SETUP: Apps Script URL (first-time only, before login even loads) -->
@@ -846,7 +910,13 @@ body {
       <div class="sub" id="scope-sub">Live order tracking</div>
     </div>
   </div>
-  <div style="display:flex; align-items:center; gap:10px;">
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div class="app-preferences">
+      <select id="app-language-select" class="app-pref-select" aria-label="Language" onchange="setAppLanguage(this.value)">
+        <option value="en">English</option><option value="mr">मराठी</option><option value="hi">हिन्दी</option>
+      </select>
+      <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme"><span id="theme-icon">☀</span></button>
+    </div>
     <span class="pill pill-role" id="role-badge"></span>
     <div id="conn" class="conn">Connecting…</div>
     <button class="btn-ghost btn-small" onclick="doLogout()">Log out</button>
@@ -1476,6 +1546,141 @@ body {
 </div>
 
 <script>
+
+
+/* ========================================================================
+   GREENPACK UI PREFERENCES — English / Marathi / Hindi + Dark / Light
+   This layer translates interface text only. Business data is left intact.
+   ======================================================================== */
+const APP_LANG_KEY = 'svd_language';
+const APP_THEME_KEY = 'svd_theme';
+
+const UI_TRANSLATIONS = {
+  en: {
+    'Schedule vs Dispatch — MIS':'Schedule vs Dispatch — MIS',
+    'Live order tracking':'Live order tracking',
+    'Sign in with your Greenpack MIS credentials':'Sign in with your Greenpack MIS credentials',
+    'Username':'Username','Password':'Password','Sign In':'Sign In','Log out':'Log out',
+    'Multiple Orders':'Multiple Orders','Customer Sets':'Customer Sets','Sets':'Sets','All Orders':'All Orders','New Order':'New Order','FG Stock':'FG Stock','Dispatch History':'Dispatch History','Complaints':'Complaints','Discussion':'Discussion','Admin':'Admin',
+    'Multiple Dispatch':'Multiple Dispatch','Single Dispatch':'Single Dispatch',
+    'Customer / Location':'Customer / Location','Article / Set':'Article / Set','Current FG Stock':'Current FG Stock','Unit':'Unit','Qty / UOM':'Qty / UOM','Priority':'Priority','Scheduled':'Scheduled','Ship To / Address':'Ship To / Address','Defaults':'Defaults',
+    'Add Row':'Add Row','Save All Orders':'Save All Orders','Clear':'Clear','Clear filters':'Clear filters','Export CSV':'Export CSV','Refresh':'Refresh','Refresh View':'Refresh View',
+    'Search':'Search','From Date':'From Date','To Date':'To Date','All customers':'All customers','All part codes':'All part codes','All units':'All units','All statuses':'All statuses','All departments':'All departments','Pending':'Pending','Completed':'Completed','Change status…':'Change status…','Apply':'Apply','Select all matching':'Select all matching','selected':'selected','No orders match these filters.':'No orders match these filters.',
+    'Set Builder':'Set Builder','Build the Set once. PPC can then select the Set and order only the number of Sets required.':'Build the Set once. PPC can then select the Set and order only the number of Sets required.','PPC / Owner':'PPC / Owner','Set identity':'Set identity','Give the set a unique code and a clear name.':'Give the set a unique code and a clear name.','Add child articles':'Add child articles','Select the Part Code, then enter Size/Variant and Production Unit. Each child starts at 1 piece per set.':'Select the Part Code, then enter Size/Variant and Production Unit. Each child starts at 1 piece per set.','Save':'Save','The MIS expands every child requirement automatically when PPC orders the set.':'The MIS expands every child requirement automatically when PPC orders the set.','Set Code *':'Set Code *','Set Name *':'Set Name *','Customer (optional)':'Customer (optional)','Child Part Code *':'Child Part Code *','Size / Variant':'Size / Variant','Production Unit':'Production Unit','Add Child Article':'Add Child Article','Save Set':'Save Set','Add the child articles that make up 1 set. You can use the same Part Code more than once when the Size / Variant is different.':'Add the child articles that make up 1 set. You can use the same Part Code more than once when the Size / Variant is different.',
+    'Customer Name':'Customer Name','Customer Location':'Customer Location','Order Type':'Order Type','Standard Article':'Standard Article','Customer Set':'Customer Set','Part Code':'Part Code','Set Code':'Set Code','Order Quantity':'Order Quantity','UOM':'UOM','Priority Level':'Priority Level','Scheduled Date':'Scheduled Date','Ship To Party':'Ship To Party','Ship-to Address':'Ship-to Address','Set Components':'Set Components','Default is 1 piece per set. Change Qty / Set here for this order only.':'Default is 1 piece per set. Change Qty / Set here for this order only.','Qty / Set':'Qty / Set','Enter a Part Code to see current FG stock.':'Enter a Part Code to see current FG stock.','Create Order':'Create Order',
+    'Dispatch / Still Pending':'Dispatch / Still Pending','Dispatch Item Type':'Dispatch Item Type','Set':'Set','Find Set Order':'Find Set Order','— Select pending set —':'— Select pending set —','Set Dispatch is one transaction. Enter the number of complete sets; all child articles are dispatched automatically.':'Set Dispatch is one transaction. Enter the number of complete sets; all child articles are dispatched automatically.','Entry Type':'Entry Type','Dispatch Completed / Partial Dispatch':'Dispatch Completed / Partial Dispatch','Still Pending — No Dispatch':'Still Pending — No Dispatch','Find Order':'Find Order','Type anything to filter the pending orders, then click the required order.':'Type anything to filter the pending orders, then click the required order.','Dispatched Quantity (this entry)':'Dispatched Quantity (this entry)','Dispatching Unit':'Dispatching Unit','Select an order to see current FG stock.':'Select an order to see current FG stock.','Log Dispatch':'Log Dispatch','Save Still Pending':'Save Still Pending',
+    'Dispatch — Multiple Orders':'Dispatch — Multiple Orders','Select all visible':'Select all visible','Clear selection':'Clear selection','selected orders':'selected orders','Total Qty':'Total Qty','Common Ship To':'Common Ship To','Dispatch Date':'Dispatch Date','Common Note':'Common Note','Dispatch Selected Orders':'Dispatch Selected Orders',
+    'Dispatch History':'Dispatch History','Search and filter completed dispatch transactions. Dispatch users see only their assigned unit.':'Search and filter completed dispatch transactions. Dispatch users see only their assigned unit.','Customer, part code, ship to…':'Customer, part code, ship to…','Unit':'Unit','UOM':'UOM','Date / Time':'Date / Time','Order ID':'Order ID','Customer':'Customer','Ship To':'Ship To','Quantity':'Quantity','Note':'Note','Done By':'Done By','Actions':'Actions','Edit':'Edit','Delete':'Delete',
+    'Bulk FG Stock Update':'Bulk FG Stock Update','Save All FG Stock':'Save All FG Stock','Current FG Stock':'Current FG Stock','Search Part Code':'Search Part Code','Search Customer':'Search Customer','Production Unit':'Production Unit','Available Qty':'Available Qty','Last Updated':'Last Updated','Last Updated By':'Last Updated By','Stock Status':'Stock Status','All Stock':'All Stock','Available Only':'Available Only','Zero Stock':'Zero Stock','FG Stock Movement History':'FG Stock Movement History','Quality-check trail: every FG addition, adjustment and dispatch shows who performed it.':'Quality-check trail: every FG addition, adjustment and dispatch shows who performed it.','Movement':'Movement','Reference':'Reference',
+    'Raise a Complaint / Issue':'Raise a Complaint / Issue','Category':'Category','Subject':'Subject','Description':'Description','Short issue title':'Short issue title','Explain the problem...':'Explain the problem...','Raise Complaint':'Raise Complaint','Complaints / Issues':'Complaints / Issues','Priority':'Priority','Reason':'Reason','Reason Note':'Reason Note','Approved By':'Approved By','Additional Quantity':'Additional Quantity','Add Quantity':'Add Quantity','Additional explanation (optional)':'Additional explanation (optional)','Customer increased demand':'Customer increased demand','Stock correction':'Stock correction','Other':'Other',
+    'Group Discussion':'Group Discussion','Write a message for everyone...':'Write a message for everyone...','Send Message':'Send Message',
+    'Edit Order':'Edit Order','Edit Dispatch Entry':'Edit Dispatch Entry','Edit FG Stock History':'Edit FG Stock History','Close':'Close','Cancel':'Cancel','Save Changes':'Save Changes','Dispatched Quantity':'Dispatched Quantity','Dispatch Unit':'Dispatch Unit','Dispatched Date':'Dispatched Date','Pending Department':'Pending Department','Pending Reason':'Pending Reason','Pending Department (if balance remains)':'Pending Department (if balance remains)','Pending Reason (if balance remains)':'Pending Reason (if balance remains)','Note':'Note','Changing quantity or movement type automatically corrects the current FG stock for this Part Code + Unit.':'Changing quantity or movement type automatically corrects the current FG stock for this Part Code + Unit.',
+    'One-time setup':'One-time setup','Apps Script Web App URL':'Apps Script Web App URL','Continue':'Continue',
+    'No PPC plans created yet.':'No PPC plans created yet.','No orders found.':'No orders found.','Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.':'Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.'
+  },
+  mr: {
+    'Schedule vs Dispatch — MIS':'शेड्यूल विरुद्ध डिस्पॅच — MIS','Live order tracking':'ऑर्डरचे लाइव्ह ट्रॅकिंग','Sign in with your Greenpack MIS credentials':'तुमच्या Greenpack MIS क्रेडेन्शियल्सने लॉगिन करा','Username':'युजरनेम','Password':'पासवर्ड','Sign In':'लॉगिन','Log out':'लॉग आउट',
+    'Multiple Orders':'एकाधिक ऑर्डर्स','Customer Sets':'कस्टमर सेट्स','Sets':'सेट्स','All Orders':'सर्व ऑर्डर्स','New Order':'नवीन ऑर्डर','FG Stock':'FG स्टॉक','Dispatch History':'डिस्पॅच इतिहास','Complaints':'तक्रारी','Discussion':'चर्चा','Admin':'अॅडमिन','Multiple Dispatch':'एकाधिक डिस्पॅच','Single Dispatch':'सिंगल डिस्पॅच',
+    'Customer / Location':'ग्राहक / लोकेशन','Article / Set':'आर्टिकल / सेट','Current FG Stock':'सध्याचा FG स्टॉक','Unit':'युनिट','Qty / UOM':'प्रमाण / UOM','Priority':'प्राधान्य','Scheduled':'नियोजित','Ship To / Address':'Ship To / पत्ता','Defaults':'डीफॉल्ट','Add Row':'रो जोडा','Save All Orders':'सर्व ऑर्डर्स सेव्ह करा','Clear':'साफ करा','Clear filters':'फिल्टर साफ करा','Export CSV':'CSV एक्सपोर्ट','Refresh':'रिफ्रेश','Refresh View':'व्ह्यू रिफ्रेश','Search':'शोधा','From Date':'पासून तारीख','To Date':'पर्यंत तारीख','All customers':'सर्व ग्राहक','All part codes':'सर्व पार्ट कोड','All units':'सर्व युनिट्स','All statuses':'सर्व स्टेटस','All departments':'सर्व विभाग','Pending':'प्रलंबित','Completed':'पूर्ण','Change status…':'स्टेटस बदला…','Apply':'लागू करा','Select all matching':'जुळणारे सर्व निवडा','selected':'निवडलेले','No orders match these filters.':'या फिल्टरशी जुळणाऱ्या ऑर्डर्स नाहीत.',
+    'Set Builder':'सेट बिल्डर','Build the Set once. PPC can then select the Set and order only the number of Sets required.':'सेट एकदा तयार करा. त्यानंतर PPC सेट निवडून आवश्यक तेवढे सेट ऑर्डर करू शकते.','PPC / Owner':'PPC / मालक','Set identity':'सेटची माहिती','Give the set a unique code and a clear name.':'सेटला युनिक कोड आणि स्पष्ट नाव द्या.','Add child articles':'चाइल्ड आर्टिकल जोडा','Select the Part Code, then enter Size/Variant and Production Unit. Each child starts at 1 piece per set.':'पार्ट कोड निवडा, नंतर साइज/व्हेरिएंट आणि प्रॉडक्शन युनिट भरा. प्रत्येक चाइल्डची सुरुवात प्रति सेट 1 नगाने होते.','Save':'सेव्ह','The MIS expands every child requirement automatically when PPC orders the set.':'PPC सेट ऑर्डर केल्यावर MIS प्रत्येक चाइल्डची गरज आपोआप तयार करते.','Set Code *':'सेट कोड *','Set Name *':'सेट नाव *','Customer (optional)':'ग्राहक (ऐच्छिक)','Child Part Code *':'चाइल्ड पार्ट कोड *','Size / Variant':'साइज / व्हेरिएंट','Production Unit':'प्रॉडक्शन युनिट','Add Child Article':'चाइल्ड आर्टिकल जोडा','Save Set':'सेट सेव्ह करा','Add the child articles that make up 1 set. You can use the same Part Code more than once when the Size / Variant is different.':'1 सेट बनवणारे चाइल्ड आर्टिकल जोडा. साइज / व्हेरिएंट वेगळा असल्यास तोच पार्ट कोड पुन्हा वापरू शकता.',
+    'Customer Name':'ग्राहकाचे नाव','Customer Location':'ग्राहकाचे लोकेशन','Order Type':'ऑर्डर प्रकार','Standard Article':'स्टँडर्ड आर्टिकल','Customer Set':'कस्टमर सेट','Part Code':'पार्ट कोड','Set Code':'सेट कोड','Order Quantity':'ऑर्डर प्रमाण','UOM':'UOM','Priority Level':'प्राधान्य स्तर','Scheduled Date':'नियोजित तारीख','Ship To Party':'Ship To पार्टी','Ship-to Address':'Ship-to पत्ता','Set Components':'सेटचे घटक','Default is 1 piece per set. Change Qty / Set here for this order only.':'डीफॉल्ट 1 नग प्रति सेट आहे. या ऑर्डरसाठी Qty / Set येथे बदला.','Qty / Set':'प्रमाण / सेट','Enter a Part Code to see current FG stock.':'सध्याचा FG स्टॉक पाहण्यासाठी पार्ट कोड भरा.','Create Order':'ऑर्डर तयार करा',
+    'Dispatch / Still Pending':'डिस्पॅच / अजून प्रलंबित','Dispatch Item Type':'डिस्पॅच आयटम प्रकार','Set':'सेट','Find Set Order':'सेट ऑर्डर शोधा','— Select pending set —':'— प्रलंबित सेट निवडा —','Set Dispatch is one transaction. Enter the number of complete sets; all child articles are dispatched automatically.':'सेट डिस्पॅच एकाच व्यवहारात होतो. पूर्ण सेटची संख्या भरा; सर्व चाइल्ड आर्टिकल्स आपोआप डिस्पॅच होतील.','Entry Type':'एंट्री प्रकार','Dispatch Completed / Partial Dispatch':'डिस्पॅच पूर्ण / अंशतः डिस्पॅच','Still Pending — No Dispatch':'अजून प्रलंबित — डिस्पॅच नाही','Find Order':'ऑर्डर शोधा','Type anything to filter the pending orders, then click the required order.':'प्रलंबित ऑर्डर्स फिल्टर करण्यासाठी काहीही टाइप करा आणि आवश्यक ऑर्डर निवडा.','Dispatched Quantity (this entry)':'डिस्पॅच प्रमाण (या एंट्रीचे)','Dispatching Unit':'डिस्पॅच युनिट','Select an order to see current FG stock.':'सध्याचा FG स्टॉक पाहण्यासाठी ऑर्डर निवडा.','Log Dispatch':'डिस्पॅच नोंदवा','Save Still Pending':'प्रलंबित सेव्ह करा',
+    'Dispatch — Multiple Orders':'डिस्पॅच — एकाधिक ऑर्डर्स','Select all visible':'दिसणारे सर्व निवडा','Clear selection':'निवड साफ करा','selected orders':'निवडलेल्या ऑर्डर्स','Total Qty':'एकूण प्रमाण','Common Ship To':'कॉमन Ship To','Dispatch Date':'डिस्पॅच तारीख','Common Note':'कॉमन नोट','Dispatch Selected Orders':'निवडलेल्या ऑर्डर्स डिस्पॅच करा',
+    'Search and filter completed dispatch transactions. Dispatch users see only their assigned unit.':'पूर्ण झालेल्या डिस्पॅच व्यवहारांचा शोध व फिल्टर करा. डिस्पॅच वापरकर्त्यांना फक्त त्यांचे युनिट दिसते.','Customer, part code, ship to…':'ग्राहक, पार्ट कोड, Ship To…','Date / Time':'तारीख / वेळ','Order ID':'ऑर्डर ID','Customer':'ग्राहक','Ship To':'Ship To','Quantity':'प्रमाण','Note':'नोट','Done By':'कोणाकडून','Actions':'कृती','Edit':'संपादन','Delete':'डिलीट',
+    'Bulk FG Stock Update':'बल्क FG स्टॉक अपडेट','Save All FG Stock':'सर्व FG स्टॉक सेव्ह करा','Search Part Code':'पार्ट कोड शोधा','Search Customer':'ग्राहक शोधा','Available Qty':'उपलब्ध प्रमाण','Last Updated':'शेवटचे अपडेट','Last Updated By':'शेवटचे अपडेट करणारे','Stock Status':'स्टॉक स्टेटस','All Stock':'सर्व स्टॉक','Available Only':'फक्त उपलब्ध','Zero Stock':'शून्य स्टॉक','FG Stock Movement History':'FG स्टॉक हालचाल इतिहास','Quality-check trail: every FG addition, adjustment and dispatch shows who performed it.':'क्वालिटी-चेक नोंद: प्रत्येक FG वाढ, समायोजन आणि डिस्पॅच कोणी केले ते येथे दिसते.','Movement':'हालचाल','Reference':'संदर्भ',
+    'Raise a Complaint / Issue':'तक्रार / समस्या नोंदवा','Category':'श्रेणी','Subject':'विषय','Description':'वर्णन','Short issue title':'समस्येचे थोडक्यात शीर्षक','Explain the problem...':'समस्या समजावून सांगा...','Raise Complaint':'तक्रार नोंदवा','Complaints / Issues':'तक्रारी / समस्या','Reason':'कारण','Reason Note':'कारणाची नोंद','Approved By':'मंजूर करणारे','Additional Quantity':'अतिरिक्त प्रमाण','Add Quantity':'प्रमाण जोडा','Additional explanation (optional)':'अतिरिक्त माहिती (ऐच्छिक)','Customer increased demand':'ग्राहकाची मागणी वाढली','Stock correction':'स्टॉक दुरुस्ती','Other':'इतर',
+    'Group Discussion':'ग्रुप चर्चा','Write a message for everyone...':'सर्वांसाठी संदेश लिहा...','Send Message':'संदेश पाठवा',
+    'Edit Order':'ऑर्डर संपादित करा','Edit Dispatch Entry':'डिस्पॅच एंट्री संपादित करा','Edit FG Stock History':'FG स्टॉक इतिहास संपादित करा','Close':'बंद करा','Cancel':'रद्द करा','Save Changes':'बदल सेव्ह करा','Dispatched Quantity':'डिस्पॅच केलेले प्रमाण','Dispatch Unit':'डिस्पॅच युनिट','Dispatched Date':'डिस्पॅच तारीख','Pending Department':'प्रलंबित विभाग','Pending Reason':'प्रलंबित कारण','Pending Department (if balance remains)':'शिल्लक असल्यास प्रलंबित विभाग','Pending Reason (if balance remains)':'शिल्लक असल्यास प्रलंबित कारण','Note':'नोट','Changing quantity or movement type automatically corrects the current FG stock for this Part Code + Unit.':'प्रमाण किंवा हालचाल प्रकार बदलल्यास या पार्ट कोड + युनिटचा सध्याचा FG स्टॉक आपोआप दुरुस्त होतो.',
+    'One-time setup':'एकदाच सेटअप','Apps Script Web App URL':'Apps Script Web App URL','Continue':'पुढे जा','No PPC plans created yet.':'अजून कोणतेही PPC प्लॅन तयार केलेले नाहीत.','No orders found.':'कोणत्याही ऑर्डर्स सापडल्या नाहीत.','Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.':'शोध प्रत्यक्ष Orders डेटामध्ये केला जातो, त्यामुळे Part Codes यादीत नसलेला पार्ट कोडही शोधता येतो.'
+  },
+  hi: {
+    'Schedule vs Dispatch — MIS':'शेड्यूल बनाम डिस्पैच — MIS','Live order tracking':'ऑर्डर की लाइव ट्रैकिंग','Sign in with your Greenpack MIS credentials':'अपने Greenpack MIS क्रेडेंशियल से लॉगिन करें','Username':'यूज़रनेम','Password':'पासवर्ड','Sign In':'लॉगिन','Log out':'लॉग आउट',
+    'Multiple Orders':'एकाधिक ऑर्डर','Customer Sets':'कस्टमर सेट्स','Sets':'सेट्स','All Orders':'सभी ऑर्डर','New Order':'नया ऑर्डर','FG Stock':'FG स्टॉक','Dispatch History':'डिस्पैच इतिहास','Complaints':'शिकायतें','Discussion':'चर्चा','Admin':'एडमिन','Multiple Dispatch':'एकाधिक डिस्पैच','Single Dispatch':'सिंगल डिस्पैच',
+    'Customer / Location':'ग्राहक / लोकेशन','Article / Set':'आर्टिकल / सेट','Current FG Stock':'वर्तमान FG स्टॉक','Unit':'यूनिट','Qty / UOM':'मात्रा / UOM','Priority':'प्राथमिकता','Scheduled':'निर्धारित','Ship To / Address':'Ship To / पता','Defaults':'डिफ़ॉल्ट','Add Row':'रो जोड़ें','Save All Orders':'सभी ऑर्डर सेव करें','Clear':'साफ़ करें','Clear filters':'फ़िल्टर साफ़ करें','Export CSV':'CSV एक्सपोर्ट','Refresh':'रिफ्रेश','Refresh View':'व्यू रिफ्रेश','Search':'खोजें','From Date':'से तारीख','To Date':'तक तारीख','All customers':'सभी ग्राहक','All part codes':'सभी पार्ट कोड','All units':'सभी यूनिट','All statuses':'सभी स्टेटस','All departments':'सभी विभाग','Pending':'लंबित','Completed':'पूर्ण','Change status…':'स्टेटस बदलें…','Apply':'लागू करें','Select all matching':'सभी मिलते-जुलते चुनें','selected':'चयनित','No orders match these filters.':'इन फ़िल्टर से कोई ऑर्डर नहीं मिला।',
+    'Set Builder':'सेट बिल्डर','Build the Set once. PPC can then select the Set and order only the number of Sets required.':'सेट एक बार बनाएं। फिर PPC सेट चुनकर आवश्यक संख्या में सेट ऑर्डर कर सकता है।','PPC / Owner':'PPC / मालिक','Set identity':'सेट की जानकारी','Give the set a unique code and a clear name.':'सेट को यूनिक कोड और स्पष्ट नाम दें।','Add child articles':'चाइल्ड आर्टिकल जोड़ें','Select the Part Code, then enter Size/Variant and Production Unit. Each child starts at 1 piece per set.':'पार्ट कोड चुनें, फिर साइज/वेरिएंट और प्रोडक्शन यूनिट भरें। हर चाइल्ड की शुरुआत प्रति सेट 1 नग से होती है।','Save':'सेव','The MIS expands every child requirement automatically when PPC orders the set.':'PPC के सेट ऑर्डर करने पर MIS हर चाइल्ड की आवश्यकता अपने आप बनाता है।','Set Code *':'सेट कोड *','Set Name *':'सेट नाम *','Customer (optional)':'ग्राहक (वैकल्पिक)','Child Part Code *':'चाइल्ड पार्ट कोड *','Size / Variant':'साइज / वेरिएंट','Production Unit':'प्रोडक्शन यूनिट','Add Child Article':'चाइल्ड आर्टिकल जोड़ें','Save Set':'सेट सेव करें','Add the child articles that make up 1 set. You can use the same Part Code more than once when the Size / Variant is different.':'1 सेट बनाने वाले चाइल्ड आर्टिकल जोड़ें। साइज / वेरिएंट अलग होने पर वही पार्ट कोड दोबारा इस्तेमाल कर सकते हैं।',
+    'Customer Name':'ग्राहक का नाम','Customer Location':'ग्राहक लोकेशन','Order Type':'ऑर्डर प्रकार','Standard Article':'स्टैंडर्ड आर्टिकल','Customer Set':'कस्टमर सेट','Part Code':'पार्ट कोड','Set Code':'सेट कोड','Order Quantity':'ऑर्डर मात्रा','UOM':'UOM','Priority Level':'प्राथमिकता स्तर','Scheduled Date':'निर्धारित तारीख','Ship To Party':'Ship To पार्टी','Ship-to Address':'Ship-to पता','Set Components':'सेट के घटक','Default is 1 piece per set. Change Qty / Set here for this order only.':'डिफ़ॉल्ट 1 नग प्रति सेट है। इस ऑर्डर के लिए Qty / Set यहां बदलें।','Qty / Set':'मात्रा / सेट','Enter a Part Code to see current FG stock.':'वर्तमान FG स्टॉक देखने के लिए पार्ट कोड भरें।','Create Order':'ऑर्डर बनाएं',
+    'Dispatch / Still Pending':'डिस्पैच / अभी लंबित','Dispatch Item Type':'डिस्पैच आइटम प्रकार','Set':'सेट','Find Set Order':'सेट ऑर्डर खोजें','— Select pending set —':'— लंबित सेट चुनें —','Set Dispatch is one transaction. Enter the number of complete sets; all child articles are dispatched automatically.':'सेट डिस्पैच एक ही ट्रांजैक्शन है। पूरे सेट की संख्या भरें; सभी चाइल्ड आर्टिकल अपने आप डिस्पैच होंगे।','Entry Type':'एंट्री प्रकार','Dispatch Completed / Partial Dispatch':'डिस्पैच पूर्ण / आंशिक डिस्पैच','Still Pending — No Dispatch':'अभी लंबित — डिस्पैच नहीं','Find Order':'ऑर्डर खोजें','Type anything to filter the pending orders, then click the required order.':'लंबित ऑर्डर फ़िल्टर करने के लिए कुछ भी टाइप करें और आवश्यक ऑर्डर चुनें।','Dispatched Quantity (this entry)':'डिस्पैच मात्रा (इस एंट्री की)','Dispatching Unit':'डिस्पैच यूनिट','Select an order to see current FG stock.':'वर्तमान FG स्टॉक देखने के लिए ऑर्डर चुनें।','Log Dispatch':'डिस्पैच दर्ज करें','Save Still Pending':'लंबित सेव करें',
+    'Dispatch — Multiple Orders':'डिस्पैच — एकाधिक ऑर्डर','Select all visible':'दिखने वाले सभी चुनें','Clear selection':'चयन साफ़ करें','selected orders':'चयनित ऑर्डर','Total Qty':'कुल मात्रा','Common Ship To':'कॉमन Ship To','Dispatch Date':'डिस्पैच तारीख','Common Note':'कॉमन नोट','Dispatch Selected Orders':'चयनित ऑर्डर डिस्पैच करें',
+    'Search and filter completed dispatch transactions. Dispatch users see only their assigned unit.':'पूर्ण डिस्पैच ट्रांजैक्शन खोजें और फ़िल्टर करें। डिस्पैच यूज़र को केवल अपना असाइन किया यूनिट दिखता है।','Customer, part code, ship to…':'ग्राहक, पार्ट कोड, Ship To…','Date / Time':'तारीख / समय','Order ID':'ऑर्डर ID','Customer':'ग्राहक','Ship To':'Ship To','Quantity':'मात्रा','Note':'नोट','Done By':'किसने किया','Actions':'कार्रवाई','Edit':'संपादित करें','Delete':'डिलीट',
+    'Bulk FG Stock Update':'बल्क FG स्टॉक अपडेट','Save All FG Stock':'सभी FG स्टॉक सेव करें','Search Part Code':'पार्ट कोड खोजें','Search Customer':'ग्राहक खोजें','Available Qty':'उपलब्ध मात्रा','Last Updated':'अंतिम अपडेट','Last Updated By':'अंतिम अपडेट करने वाला','Stock Status':'स्टॉक स्टेटस','All Stock':'सभी स्टॉक','Available Only':'केवल उपलब्ध','Zero Stock':'शून्य स्टॉक','FG Stock Movement History':'FG स्टॉक मूवमेंट इतिहास','Quality-check trail: every FG addition, adjustment and dispatch shows who performed it.':'क्वालिटी-चेक रिकॉर्ड: हर FG जोड़, समायोजन और डिस्पैच किसने किया, यहां दिखता है।','Movement':'मूवमेंट','Reference':'संदर्भ',
+    'Raise a Complaint / Issue':'शिकायत / समस्या दर्ज करें','Category':'श्रेणी','Subject':'विषय','Description':'विवरण','Short issue title':'समस्या का छोटा शीर्षक','Explain the problem...':'समस्या समझाएं...','Raise Complaint':'शिकायत दर्ज करें','Complaints / Issues':'शिकायतें / समस्याएं','Reason':'कारण','Reason Note':'कारण नोट','Approved By':'मंजूरी देने वाला','Additional Quantity':'अतिरिक्त मात्रा','Add Quantity':'मात्रा जोड़ें','Additional explanation (optional)':'अतिरिक्त जानकारी (वैकल्पिक)','Customer increased demand':'ग्राहक की मांग बढ़ी','Stock correction':'स्टॉक सुधार','Other':'अन्य',
+    'Group Discussion':'ग्रुप चर्चा','Write a message for everyone...':'सभी के लिए संदेश लिखें...','Send Message':'संदेश भेजें',
+    'Edit Order':'ऑर्डर संपादित करें','Edit Dispatch Entry':'डिस्पैच एंट्री संपादित करें','Edit FG Stock History':'FG स्टॉक इतिहास संपादित करें','Close':'बंद करें','Cancel':'रद्द करें','Save Changes':'बदलाव सेव करें','Dispatched Quantity':'डिस्पैच की गई मात्रा','Dispatch Unit':'डिस्पैच यूनिट','Dispatched Date':'डिस्पैच तारीख','Pending Department':'लंबित विभाग','Pending Reason':'लंबित कारण','Pending Department (if balance remains)':'शेष रहने पर लंबित विभाग','Pending Reason (if balance remains)':'शेष रहने पर लंबित कारण','Note':'नोट','Changing quantity or movement type automatically corrects the current FG stock for this Part Code + Unit.':'मात्रा या मूवमेंट प्रकार बदलने पर इस पार्ट कोड + यूनिट का वर्तमान FG स्टॉक अपने आप ठीक हो जाता है।',
+    'One-time setup':'एक बार का सेटअप','Apps Script Web App URL':'Apps Script Web App URL','Continue':'आगे बढ़ें','No PPC plans created yet.':'अभी कोई PPC प्लान नहीं बनाया गया है।','No orders found.':'कोई ऑर्डर नहीं मिला।','Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.':'सर्च वास्तविक Orders डेटा में होती है, इसलिए Part Codes सूची में न होने वाला पार्ट कोड भी मिल सकता है।'
+  }
+};
+
+function currentAppLanguage(){ return localStorage.getItem(APP_LANG_KEY)||'en'; }
+function currentTheme(){ return localStorage.getItem(APP_THEME_KEY)||'dark'; }
+const I18N_TEXT_ORIGINALS = new WeakMap();
+function uiTextOriginal(node){ return node; }
+function translateInterface(){
+  const lang=currentAppLanguage(), dict=UI_TRANSLATIONS[lang]||UI_TRANSLATIONS.en;
+  const root=document.documentElement;
+  root.lang=lang==='mr'?'mr':lang==='hi'?'hi':'en';
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.getAttribute('data-i18n');
+    if(dict[key]) el.textContent=dict[key];
+  });
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){
+    if(!n.nodeValue.trim() || n.parentElement?.closest('script,style')) return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;
+  }});
+  const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    let original=I18N_TEXT_ORIGINALS.get(n);
+    if(original==null){ original=n.nodeValue; I18N_TEXT_ORIGINALS.set(n,original); }
+    if(dict[original]) n.nodeValue=dict[original];
+    else if(dict[original.trim()]) n.nodeValue=original.replace(original.trim(),dict[original.trim()]);
+  });
+  document.querySelectorAll('input[placeholder],textarea[placeholder],input[title],button[title]').forEach(el=>{
+    ['placeholder','title'].forEach(attr=>{
+      if(!el.hasAttribute(attr)) return;
+      const storage='i18nOriginal'+attr.charAt(0).toUpperCase()+attr.slice(1);
+      const original=el.dataset[storage] ?? el.getAttribute(attr);
+      el.dataset[storage]=original;
+      if(dict[original]) el.setAttribute(attr,dict[original]);
+    });
+  });
+  document.querySelectorAll('option').forEach(o=>{
+    const original=o.dataset.i18nOriginal ?? o.textContent;
+    o.dataset.i18nOriginal=original;
+    if(dict[original]) o.textContent=dict[original];
+  });
+  const a=document.getElementById('app-language-select'), l=document.getElementById('login-language-select');
+  if(a)a.value=lang; if(l)l.value=lang;
+  updateThemeIcon();
+}
+function setAppLanguage(lang){
+  if(!UI_TRANSLATIONS[lang]) lang='en';
+  localStorage.setItem(APP_LANG_KEY,lang);
+  translateInterface();
+}
+function applyTheme(){
+  const theme=currentTheme();
+  document.documentElement.dataset.theme=theme;
+  updateThemeIcon();
+}
+function updateThemeIcon(){
+  const icon=currentTheme()==='light'?'☾':'☀';
+  const a=document.getElementById('theme-icon'),l=document.getElementById('login-theme-icon');
+  if(a)a.textContent=icon;if(l)l.textContent=icon;
+}
+function toggleTheme(){
+  const next=currentTheme()==='dark'?'light':'dark';
+  localStorage.setItem(APP_THEME_KEY,next); applyTheme();
+}
+(function initUIPreferences(){
+  applyTheme();
+  window.addEventListener('DOMContentLoaded',()=>translateInterface());
+  const observer=new MutationObserver(()=>{
+    if(window.__i18nBusy)return;
+    window.__i18nBusy=true;
+    requestAnimationFrame(()=>{try{translateInterface()}finally{window.__i18nBusy=false}});
+  });
+  window.addEventListener('DOMContentLoaded',()=>observer.observe(document.body,{childList:true,subtree:true}));
+})();
+
 const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyq77xCl55WruPeXGqB5k-hBwI-j_qsDP9zhRSlZ_vMfHNaI_JMyjr2Y9FwmEDVV086/exec';
 const FAST_REFRESH_DEBOUNCE = 120;
 const V2_BUILD = '2026.09.03-V3-FAST-BATCH';
