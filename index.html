@@ -1339,7 +1339,7 @@ body {
         <div class="spacer"></div>
         <button class="btn-ghost btn-small" onclick="clearFilters()">Clear filters</button>
         <button class="btn-primary btn-small" id="csv-btn" onclick="exportCSV()" style="display:none;">Export CSV</button>
-        <button class="btn-ghost btn-small" onclick="refreshData()">Refresh</button>
+        <button class="btn-ghost btn-small" onclick="refreshData()">Refresh</button><button class="btn-ghost btn-small" id="load-older-btn" onclick="loadOlderOrders()" style="display:none;">Load older</button>
       </div>
       <div class="search-hint">Search checks the actual Orders data, so you can find a part code even if it is not present in the Part Codes list.</div>
       <div id="bulkbar" class="bulkbar">
@@ -2061,6 +2061,17 @@ localStorage.setItem('svd_url', APPS_SCRIPT_URL);
 let TOKEN = sessionStorage.getItem('svd_token') || '';
 let SESSION = JSON.parse(sessionStorage.getItem('svd_session') || 'null');
 let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], sets: [], setOrders: [], departments: [], stock: [], stockMovements: [], uoms: ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'], discussion: [], complaints: [], complaintComments: [], v2: {permissions:[],roles:[],fields:[],dropdowns:[],plans:{},additional:{}} };
+let stockByPartUnit = Object.create(null);
+function rebuildStockIndex_(){
+  stockByPartUnit = Object.create(null);
+  (data.stock || []).forEach(s=>{
+    const part=String(s.PartCode || s.Code || '').trim().toLowerCase();
+    const unit=String(s.Unit || s.ProductionUnit || '').trim().toLowerCase();
+    if(!part || !unit) return;
+    const key=part+'|'+unit;
+    stockByPartUnit[key]=(stockByPartUnit[key]||0)+(Number(s.AvailableQty)||0);
+  });
+}
 let selectedOrders = new Set();
 let ppcSearchIndex = [];
 
@@ -2207,9 +2218,12 @@ function doLogout() {
   document.getElementById('login-screen').style.display = 'flex';
 }
 
+function rolesUI_(raw){
+  return String(raw==null?'':raw).toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+}
 function applyRoleUI() {
   const role = String(SESSION?.role || '').trim().toLowerCase();
-  const roles = role.split(/[+,|&\/]+/).map(x => x.trim()).filter(Boolean);
+  const roles = rolesUI_(role);
   const hasRole = r => roles.includes(r);
   const isOwner = hasRole('owner'), isPPC = hasRole('ppc'), isDispatch = hasRole('dispatch'), isAdmin = hasRole('admin');
   const perms = new Set((data?.v2 && data.v2.permissions) || []);
@@ -2241,7 +2255,7 @@ function initAllOrdersUnitFilter(){
   const el = document.getElementById('f-unit');
   if (!el) return;
   const units = ['Unit 1','Unit 2','Unit 5','Unit Delta'];
-  const roleTokens = String(SESSION?.role || '').trim().toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const roleTokens = rolesUI_(SESSION?.role);
   const isOwner = roleTokens.includes('owner');
   const assigned = String(SESSION?.unit || '').trim();
   const current = el.value;
@@ -2381,6 +2395,33 @@ async function refreshData(){
     btns.forEach((b,i)=>{b.disabled=false;b.textContent=old[i]||'Refresh';});
   }
 }
+async function loadOlderOrders(){
+  if(!data.hasMoreOrders || loadInFlight) return;
+  const btn=document.getElementById('load-older-btn');
+  if(btn){btn.disabled=true;btn.textContent='Loading…';}
+  try{
+    const nextOffset=Number(data.orderOffset||0)+Number(data.orderLimit||3000);
+    const limit=Number(data.orderLimit||3000);
+    const res=await fetch(APPS_SCRIPT_URL+'?mode=core&token='+encodeURIComponent(TOKEN)+'&orderOffset='+encodeURIComponent(nextOffset)+'&orderLimit='+encodeURIComponent(limit)+'&_='+Date.now(),{cache:'no-store'});
+    const json=await res.json();
+    if(json.error)throw new Error(json.error);
+    const existing=new Map((data.orders||[]).map(o=>[String(o.OrderID),o]));
+    (json.orders||[]).forEach(o=>existing.set(String(o.OrderID),o));
+    data.orders=Array.from(existing.values()).sort((a,b)=>new Date(a.CreatedAt||0)-new Date(b.CreatedAt||0));
+    const existingLogs=new Map((data.logs||[]).map(l=>[String(l.LogID),l]));
+    (json.logs||[]).forEach(l=>existingLogs.set(String(l.LogID),l));
+    data.logs=Array.from(existingLogs.values());
+    data.orderOffset=nextOffset;
+    data.orderLimit=limit;
+    data.hasMoreOrders=Boolean(json.hasMoreOrders);
+    rebuildStockIndex_();
+    populateDropdowns(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory();
+  }catch(e){alert('Could not load older orders: '+e.message);}
+  finally{
+    if(btn){btn.disabled=false;btn.textContent='Load older';btn.style.display=data.hasMoreOrders?'inline-flex':'none';}
+  }
+}
+
 async function loadData(silent=false,force=false) {
   // Auto-refresh remains enabled, but unchanged cycles now make a tiny
   // version-only request. A full payload is downloaded only when the data
@@ -2412,7 +2453,23 @@ async function loadData(silent=false,force=false) {
         return true;
       }
 
+      const hadOlderPages = Number(data.orderOffset||0) > 0;
+      if(hadOlderPages && Array.isArray(data.orders) && Array.isArray(json.orders)){
+        const mergedOrders = new Map();
+        json.orders.forEach(o=>mergedOrders.set(String(o.OrderID),o));
+        data.orders.forEach(o=>mergedOrders.set(String(o.OrderID),o));
+        json.orders = Array.from(mergedOrders.values()).sort((a,b)=>new Date(a.CreatedAt||0)-new Date(b.CreatedAt||0));
+        const mergedLogs = new Map();
+        (json.logs||[]).forEach(l=>mergedLogs.set(String(l.LogID),l));
+        (data.logs||[]).forEach(l=>mergedLogs.set(String(l.LogID),l));
+        json.logs = Array.from(mergedLogs.values());
+        json.orderOffset = data.orderOffset;
+        json.hasMoreOrders = data.hasMoreOrders;
+      }
       data = {...data,...json};
+      rebuildStockIndex_();
+      const olderBtn=document.getElementById('load-older-btn');
+      if(olderBtn) olderBtn.style.display=data.hasMoreOrders?'inline-flex':'none';
       dataVersion = Number(json.version || dataVersion || 0);
       hasLoadedData = true;
       logShipToIndex={};
@@ -2684,27 +2741,27 @@ function toggleOrderSelection(id,checked){if(checked)selectedOrders.add(String(i
 function toggleSelectAllVisible(checked){getFiltered().forEach(o=>{if(checked)selectedOrders.add(String(o.OrderID));else selectedOrders.delete(String(o.OrderID));});renderTable();}
 function selectAllMatching(){getFiltered().forEach(o=>selectedOrders.add(String(o.OrderID)));renderTable();}
 function clearSelection(){selectedOrders.clear();renderTable();}
-async function applyBulkStatus(){const status=document.getElementById('bulk-status').value;if(!status||!selectedOrders.size)return;try{const res=await postAction({action:'bulkChangeStatus',orderIds:[...selectedOrders],status});if(res.error)throw new Error(res.error);alert(`Completed: ${res.successCount}\nFailed: ${res.failCount}`);selectedOrders.clear();await loadData();}catch(e){alert(e.message);}}
+async function applyBulkStatus(){
+  const status=document.getElementById('bulk-status').value;
+  const count=selectedOrders.size;
+  if(!status||!count)return;
+  const confirmed=confirm(`Change ${count} selected order${count===1?'':'s'} to "${status}"?\n\nThis action updates many orders at once.`);
+  if(!confirmed)return;
+  try{
+    const res=await postAction({action:'bulkChangeStatus',orderIds:[...selectedOrders],status});
+    if(res.error)throw new Error(res.error);
+    alert(`Completed: ${res.successCount}\nFailed: ${res.failCount}`);
+    selectedOrders.clear();
+    await loadData(true,true);
+  }catch(e){alert(e.message);}
+}
 
 
 function getStockFor(partCode, unit) {
   const targetPart = String(partCode || '').trim().toLowerCase();
   const targetUnit = String(unit || SESSION?.unit || '').trim().toLowerCase();
-  if (!targetPart) return 0;
-
-  const matches = (data.stock || []).filter(s =>
-    String(s.PartCode || s.Code || '').trim().toLowerCase() === targetPart
-  );
-  if (!matches.length) return 0;
-
-  if (targetUnit) {
-    const exact = matches.find(s =>
-      String(s.Unit || s.ProductionUnit || '').trim().toLowerCase() === targetUnit
-    );
-    return exact ? (Number(exact.AvailableQty) || 0) : 0;
-  }
-
-  return matches.reduce((sum, s) => sum + (Number(s.AvailableQty) || 0), 0);
+  if (!targetPart || !targetUnit) return 0;
+  return Number(stockByPartUnit[targetPart + '|' + targetUnit] || 0);
 }
 
 function showStock() {
@@ -2759,7 +2816,7 @@ function renderBulkStockRows(){
   if(!tb)return;
   const rows=window.bulkStockRows||[];
   const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
-  const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const roleTokens=rolesUI_(SESSION?.role);
   const assigned=String(SESSION?.unit||'').trim();
   const isOwner=roleTokens.includes('owner');
 
@@ -2797,7 +2854,7 @@ function initBulkStockRows(){
 function addBulkStockRows(count=1){
   if(!window.bulkStockRows)window.bulkStockRows=[];
   const assigned=String(SESSION?.unit||'').trim();
-  const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const roleTokens=rolesUI_(SESSION?.role);
   const defaultUnit=roleTokens.includes('owner')?'':assigned;
   for(let i=0;i<count;i++)window.bulkStockRows.push({partCode:'',qty:'',unit:defaultUnit,mode:'add'});
   renderBulkStockRows();
@@ -2910,7 +2967,7 @@ async function submitBulkStock(){
 
 function initStockEntryUnit(){
   const el=document.getElementById('s-unit'); if(!el)return;
-  const roleTokens=String(SESSION?.role||'').toLowerCase().split(/[+,|&\/]+/).map(x=>x.trim()).filter(Boolean);
+  const roleTokens=rolesUI_(SESSION?.role);
   const assigned=String(SESSION?.unit||'').trim();
   if(assigned && !roleTokens.includes('owner')){
     el.innerHTML=`<option value="${esc(assigned)}" selected>${esc(assigned)}</option>`;
@@ -3535,6 +3592,7 @@ function renderDispatchHistory() {
     <td>${esc(r.log.Note || '—')}</td>
     <td title="${esc(r.log.DispatchedByName || r.log.DispatchedBy || '—')}">${esc(actorShortName(r.log.DispatchedByName || r.log.DispatchedBy || ''))}</td>
     <td>${esc(fmtDateTime(r.loggedAt))}</td>
+    <td title="${esc(r.log.LastEditedDetails || '')}">${esc(r.log.LastEditedByName || r.log.LastEditedBy || '—')}</td>
     <td style="white-space:nowrap;">${(isOwnerUI()||isEditorUI())?`<button class="btn-ghost btn-small" type="button" onclick="openEditDispatch('${esc(r.log.LogID)}')">Edit</button>${isOwnerUI()?` <button class="btn-ghost btn-small" type="button" onclick="deleteDispatchEntry('${esc(r.log.LogID)}')">Delete</button>`:''}`:'—'}</td>
   </tr>`).join('') : '';
 
@@ -4080,7 +4138,7 @@ async function saveBulkDispatch(){
 
 function hasRoleUI(name){
   const raw=String(SESSION?.role||'').toLowerCase();
-  return raw.split(/[+,|&\/]+/).map(x=>x.trim()).includes(String(name).toLowerCase());
+  return rolesUI_(raw).includes(String(name).toLowerCase());
 }
 function isOwnerUI(){return hasRoleUI('owner');}
 function isPPCUI(){return hasRoleUI('ppc');}
