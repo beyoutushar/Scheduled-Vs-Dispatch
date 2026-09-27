@@ -1314,7 +1314,7 @@ body {
     <div class="card">
       <div class="toolbar">
         <div class="search-wrap">
-          <input id="f-search" type="search" placeholder="Search customer, part code, Order ID, location…" oninput="renderTable()">
+          <input id="f-search" type="search" placeholder="Search customer, part code, Order ID, location…" oninput="debouncedRenderTable()">
         </div>
         <select id="f-customer" onchange="renderTable()"><option value="">All customers</option></select>
         <select id="f-part" onchange="renderTable()"><option value="">All part codes</option></select>
@@ -2062,16 +2062,35 @@ let TOKEN = sessionStorage.getItem('svd_token') || '';
 let SESSION = JSON.parse(sessionStorage.getItem('svd_session') || 'null');
 let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], sets: [], setOrders: [], departments: [], stock: [], stockMovements: [], uoms: ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'], discussion: [], complaints: [], complaintComments: [], v2: {permissions:[],roles:[],fields:[],dropdowns:[],plans:{},additional:{}} };
 let stockByPartUnit = Object.create(null);
-function rebuildStockIndex_(){
+let stockActorByPartUnit = Object.create(null);
+let dispatchActorByOrder = Object.create(null);
+function rebuildClientIndexes_(){
   stockByPartUnit = Object.create(null);
+  stockActorByPartUnit = Object.create(null);
+  dispatchActorByOrder = Object.create(null);
+
   (data.stock || []).forEach(s=>{
     const part=String(s.PartCode || s.Code || '').trim().toLowerCase();
     const unit=String(s.Unit || s.ProductionUnit || '').trim().toLowerCase();
     if(!part || !unit) return;
     const key=part+'|'+unit;
     stockByPartUnit[key]=(stockByPartUnit[key]||0)+(Number(s.AvailableQty)||0);
+    if(!stockActorByPartUnit[key]){
+      stockActorByPartUnit[key]=s.LastUpdatedByName || s.LastUpdatedBy || s.UpdatedByName || s.UpdatedBy || s.UserName || s.User || '';
+    }
+  });
+
+  (data.logs || []).forEach(l=>{
+    const id=String(l.OrderID || '');
+    if(!id) return;
+    const stamp=new Date(l.LoggedAt || 0).getTime() || 0;
+    const prev=dispatchActorByOrder[id];
+    if(!prev || stamp >= prev.stamp){
+      dispatchActorByOrder[id]={stamp,name:l.DispatchedByName || l.DispatchedBy || ''};
+    }
   });
 }
+function rebuildStockIndex_(){ rebuildClientIndexes_(); }
 let selectedOrders = new Set();
 let ppcSearchIndex = [];
 
@@ -2346,7 +2365,7 @@ function showApp() {
    LIVE AUTO-REFRESH
    Fetches fresh MIS data without reloading the webpage.
    ========================================================= */
-const AUTO_REFRESH_MS = 5000;
+const AUTO_REFRESH_MS = 10000;
 let autoRefreshTimer = null;
 
 function startAutoRefresh() {
@@ -2600,7 +2619,6 @@ function renderStats() {
 }
 
 function getFiltered() {
-  initAllOrdersUnitFilter();
   const c = document.getElementById('f-customer').value;
   const p = document.getElementById('f-part').value;
   const u = document.getElementById('f-unit').value;
@@ -2666,28 +2684,19 @@ function actorShortName(name){
 }
 
 function getLastDispatchActor(orderId){
-  const rows=(data.logs||[]).filter(l=>String(l.OrderID)===String(orderId));
-  if(!rows.length)return '';
-  rows.sort((a,b)=>new Date(b.LoggedAt||0)-new Date(a.LoggedAt||0));
-  return rows[0].DispatchedByName || rows[0].DispatchedBy || '';
+  return dispatchActorByOrder[String(orderId)]?.name || '';
 }
 
-// FG By = the latest user recorded against the current FG stock row for this Part Code + Unit.
-// We deliberately keep this separate from PPC By and Dispatch By so the audit trail is clear.
+// FG By = latest user recorded against the current FG stock bucket.
 function getFGStockActor(partCode, unit){
   const p=String(partCode||'').trim().toLowerCase();
   const u=String(unit||'').trim().toLowerCase();
-  if(!p)return '';
-  const row=(data.stock||[]).find(s=>
-    String(s.PartCode||s.Code||'').trim().toLowerCase()===p &&
-    String(s.Unit||s.ProductionUnit||'').trim().toLowerCase()===u
-  );
-  if(!row)return '';
-  return row.LastUpdatedByName || row.LastUpdatedBy || row.UpdatedByName || row.UpdatedBy || row.UserName || row.User || '';
+  return stockActorByPartUnit[p+'|'+u] || '';
 }
 
 function renderTable() {
   const rows = getFiltered();
+  const renderRows = rows.slice(0, 200);
   const tbl = document.getElementById('orders-table');
   const empty = document.getElementById('orders-empty');
   const canBulk = SESSION && (isOwnerUI() || (data.v2.permissions||[]).includes('edit_orders'));
@@ -2699,8 +2708,10 @@ function renderTable() {
   </tr>`;
   if (rows.length === 0) { tbl.querySelector('tbody').innerHTML=''; empty.style.display='block'; updateBulkBar(); return; }
   empty.style.display='none';
+  const countNote = document.getElementById('orders-render-count');
+  if(countNote) countNote.textContent = rows.length > renderRows.length ? `Showing ${renderRows.length} of ${rows.length} matching orders` : `Showing ${rows.length} orders`;
   const plans=(data.v2&&data.v2.plans)||{}, adds=(data.v2&&data.v2.additional)||{};
-  tbl.querySelector('tbody').innerHTML = rows.map(o => {
+  tbl.querySelector('tbody').innerHTML = renderRows.map(o => {
     const orderQty=Number(o.OrderQty||0), dispatched=Number(o.DispatchedQty||0);
     const plan=plans[o.OrderID], planned=plan?Number(plan.PlannedQty||0):0, additional=Number(adds[o.OrderID]||0), total=planned+additional;
     const finalizedPpcActor=(plan && String(plan.Status||'').toLowerCase()==='finalized') ? (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName || '') : '';
