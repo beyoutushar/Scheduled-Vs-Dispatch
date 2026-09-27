@@ -2516,7 +2516,22 @@ function addBulkStockRows(count=1){
 function updateBulkStockRow(index,key,value){
   if(!window.bulkStockRows?.[index])return;
   window.bulkStockRows[index][key]=value;
-  if(key==='partCode'||key==='unit')renderBulkStockRows();
+  if(key==='partCode'){
+    const row=document.querySelector('#bulk-stock-table tbody')?.rows?.[index];
+    if(row){
+      const cell=row.querySelector('.bulk-stock-current');
+      const part=String(value||'').trim();
+      const unit=String(window.bulkStockRows[index].unit||'').trim();
+      if(cell) cell.textContent=part&&unit?Number(getStockFor(part,unit)||0).toLocaleString():'0';
+    }
+    return;
+  }
+  if(key==='qty'){
+    const total=document.getElementById('bulk-stock-total-qty');
+    if(total) total.textContent=(window.bulkStockRows||[]).reduce((sum,r)=>sum+(Number(r.qty)||0),0).toLocaleString();
+    return;
+  }
+  if(key==='unit') renderBulkStockRows();
 }
 
 function removeBulkStockRow(index){
@@ -4070,6 +4085,19 @@ if(document.getElementById('n-order-type')) toggleOrderType();
 if(document.getElementById('d-dispatch-type')) toggleDispatchItemType();
 document.addEventListener('click', e => { if(!e.target.closest('.searchable-order-field')) document.querySelectorAll('.order-search-results').forEach(x=>x.classList.remove('open')); });
 init();
+</script>
+
+<script>
+document.addEventListener('keydown',function(e){
+  const el=e.target;
+  if(!el||!el.closest||!el.closest('#bulk-stock-table'))return;
+  if(el.matches('.bulk-stock-part input,.bulk-stock-qty input')&&e.key==='Enter'){
+    e.preventDefault();
+    const row=el.closest('tr');
+    const next=row?.nextElementSibling?.querySelector('.bulk-stock-part input');
+    if(next) next.focus();
+  }
+},true);
 </script>
 </body>
 </html>
