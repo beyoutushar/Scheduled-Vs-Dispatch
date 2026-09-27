@@ -2995,18 +2995,41 @@ function initStockEntryUnit(){
 function initStockFilters() {
   const sel = document.getElementById('stock-unit-filter');
   if (!sel) return;
+
   const role = String(SESSION?.role || '').trim().toLowerCase();
   const assigned = String(SESSION?.unit || '').trim();
-  const units = ['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const units = data.units || ['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const isOwner = typeof isOwnerUI === 'function' ? isOwnerUI() : role.split(/[+,|&\/]+/).map(x=>x.trim()).includes('owner');
+  const current = String(sel.value || '');
 
-  if (assigned && role !== 'owner') {
-    sel.innerHTML = `<option value="${esc(assigned)}">${esc(assigned)}</option>`;
-    sel.value = assigned;
+  // IMPORTANT: this function is called from renderStockTable().
+  // Never rebuild the <select> on every render, otherwise the user's
+  // selected Unit is reset to "All Units" before renderStockTable reads it.
+  if (!isOwner && assigned) {
+    if (sel.dataset.filterUnit !== assigned || sel.dataset.filterMode !== 'assigned') {
+      sel.innerHTML = `<option value="${esc(assigned)}">${esc(assigned)}</option>`;
+      sel.value = assigned;
+      sel.dataset.filterUnit = assigned;
+      sel.dataset.filterMode = 'assigned';
+    } else if (sel.value !== assigned) {
+      sel.value = assigned;
+    }
     sel.disabled = true;
-  } else {
-    sel.disabled = false;
-    sel.innerHTML = '<option value="">All Units</option>' + units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    return;
   }
+
+  const signature = units.join('|');
+  if (sel.dataset.filterMode !== 'owner' || sel.dataset.filterUnits !== signature) {
+    sel.innerHTML = '<option value="">All Units</option>' +
+      units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    sel.dataset.filterMode = 'owner';
+    sel.dataset.filterUnits = signature;
+    sel.value = units.includes(current) ? current : '';
+  } else if (sel.value !== current) {
+    sel.value = current;
+  }
+
+  sel.disabled = false;
 }
 
 function clearStockFilters() {
