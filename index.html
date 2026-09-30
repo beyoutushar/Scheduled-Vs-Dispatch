@@ -1320,7 +1320,7 @@ body {
         <select id="f-part" onchange="renderTable()"><option value="">All part codes</option></select>
         <select id="f-unit" onchange="renderTable()">
           <option value="">All units</option>
-          <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
+          <option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option>
         </select>
         <select id="f-status" onchange="renderTable()">
           <option value="">All statuses</option>
@@ -1399,7 +1399,7 @@ body {
         <div class="field"><label>Order Type</label><select id="n-order-type" onchange="toggleOrderType()"><option value="STANDARD">Standard Article</option><option value="SET">Customer Set</option></select></div>
         <div class="field combo" id="n-part-field"><label>Part Code</label><input id="n-part" list="dl-parts" placeholder="Select or type new" oninput="showStock()"><datalist id="dl-parts"></datalist></div>
         <div class="field combo" id="n-set-field" style="display:none"><label>Set Code</label><select id="n-set"><option value="">— Select Set —</option></select></div>
-        <div class="field"><label>Unit</label><select id="n-unit" onchange="showStock()"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+        <div class="field"><label>Unit</label><select id="n-unit" onchange="showStock()"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option></select></div>
         <div class="field"><label>Order Quantity</label><input id="n-qty" type="number" min="1" placeholder="1000" oninput="showStock()"></div>
         <div class="field" id="n-uom-field"><label>UOM</label><select id="n-uom"></select></div>
         <div class="field"><label>Priority Level</label><select id="n-priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
@@ -1472,7 +1472,7 @@ body {
           <label>Dispatching Unit</label>
           <select id="d-unit">
             <option value="">— Select —</option>
-            <option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option>
+            <option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option>
           </select>
         </div>
         <div class="field combo" id="d-shipto-field">
@@ -1575,7 +1575,7 @@ body {
         <div class="bulk-action-fields">
           <div class="bulk-action-field">
             <label>Dispatching Unit</label>
-            <select id="bulk-d-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select>
+            <select id="bulk-d-unit"><option value="">— Select —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option></select>
           </div>
           <div class="bulk-action-field">
             <label>Dispatch Date</label>
@@ -1654,7 +1654,7 @@ body {
         <button class="btn-primary btn-block" onclick="assignAdminUserRole()">Save Role</button>
         <div class="status-msg" id="admin-user-status"></div>
         <div class="grid" style="margin-top:10px;">
-          <div class="field"><label>Assigned Unit</label><select id="admin-user-unit"><option value="">— Global / No specific unit —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+          <div class="field"><label>Assigned Unit</label><select id="admin-user-unit"><option value="">— Global / No specific unit —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option></select></div>
           <div class="field"><label>Assigned Customer / Department</label><input id="admin-user-customer" placeholder="BAJAJ / WHIRLPOOL / IKEA"></div>
         </div>
         <button class="btn-ghost btn-block" onclick="assignAdminUserScope()">Save Work Scope</button>
@@ -1669,7 +1669,7 @@ body {
           <div class="field"><label>Employee Name</label><input id="u-new-displayname" placeholder="Example: Rahul Kumar"></div>
           <div class="field"><label>Temporary Password</label><input id="u-new-password" type="password" placeholder="Minimum 4 characters"></div>
           <div class="field"><label>Job Role</label><select id="u-new-role"></select></div>
-          <div class="field"><label>Work Unit</label><select id="u-new-unit"><option value="">— Global / No specific unit —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+          <div class="field"><label>Work Unit</label><select id="u-new-unit"><option value="">— Global / No specific unit —</option><option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option></select></div>
           <div class="field"><label>Assigned Customer / Department</label><input id="u-new-customer" placeholder="e.g. BAJAJ / WHIRLPOOL / IKEA"></div>
         </div>
         <div class="admin-tip"><b>Example:</b> PPC + Unit 1 + BAJAJ means this person sees and works only with BAJAJ orders in Unit 1. Leave customer blank if they should handle all customers in their assigned unit.</div>
@@ -1851,7 +1851,7 @@ body {
       <div class="field"><label>Customer Name</label><input id="e-customer"></div>
       <div class="field"><label>Customer Location</label><input id="e-location"></div>
       <div class="field"><label>Part Code</label><input id="e-part"></div>
-      <div class="field"><label>Unit</label><select id="e-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+      <div class="field"><label>Unit</label><select id="e-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option></select></div>
       <div class="field"><label>Order Quantity</label><input id="e-qty" type="number" min="1"></div>
       <div class="field"><label>UOM</label><select id="e-uom"></select></div>
       <div class="field"><label>Priority</label><select id="e-priority"><option>High</option><option>Medium</option><option>Low</option></select></div>
@@ -1879,7 +1879,7 @@ body {
       <div class="field"><label>Ship To Party</label><input id="de-shipto"></div>
       <div class="field"><label>Dispatched Quantity</label><input id="de-qty" type="number" min="1"></div>
       <div class="field"><label>UOM</label><select id="de-uom" disabled></select></div>
-      <div class="field"><label>Dispatch Unit</label><select id="de-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 5</option><option>Unit Delta</option></select></div>
+      <div class="field"><label>Dispatch Unit</label><select id="de-unit"><option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 5</option><option>Unit Delta</option></select></div>
       <div class="field"><label>Dispatched Date</label><input id="de-date" type="date"></div>
       <div class="field"><label>Pending Department (if balance remains)</label><select id="de-dept"></select></div>
       <div class="field"><label>Pending Reason (if balance remains)</label><input id="de-reason"></div>
@@ -2273,7 +2273,7 @@ function applyRoleUI() {
 function initAllOrdersUnitFilter(){
   const el = document.getElementById('f-unit');
   if (!el) return;
-  const units = ['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const units = ['Unit 1','Unit 2','Unit 3','Unit 5','Unit Delta'];
   const roleTokens = rolesUI_(SESSION?.role);
   const isOwner = roleTokens.includes('owner');
   const assigned = String(SESSION?.unit || '').trim();
@@ -2826,7 +2826,7 @@ function renderBulkStockRows(){
   const tb=document.querySelector('#bulk-stock-table tbody');
   if(!tb)return;
   const rows=window.bulkStockRows||[];
-  const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const units=data.units||['Unit 1','Unit 2','Unit 3','Unit 5','Unit Delta'];
   const roleTokens=rolesUI_(SESSION?.role);
   const assigned=String(SESSION?.unit||'').trim();
   const isOwner=roleTokens.includes('owner');
@@ -2984,7 +2984,7 @@ function initStockEntryUnit(){
     el.innerHTML=`<option value="${esc(assigned)}" selected>${esc(assigned)}</option>`;
     el.value=assigned; el.disabled=true; el.title='Locked to your assigned unit';
   }else{
-    const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
+    const units=data.units||['Unit 1','Unit 2','Unit 3','Unit 5','Unit Delta'];
     const cur=el.value;
     el.innerHTML='<option value="">— Select —</option>'+units.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
     el.value=units.includes(cur)?cur:(assigned||''); el.disabled=false; el.title='';
@@ -2998,7 +2998,7 @@ function initStockFilters() {
 
   const role = String(SESSION?.role || '').trim().toLowerCase();
   const assigned = String(SESSION?.unit || '').trim();
-  const units = data.units || ['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const units = data.units || ['Unit 1','Unit 2','Unit 3','Unit 5','Unit Delta'];
   const isOwner = typeof isOwnerUI === 'function' ? isOwnerUI() : role.split(/[+,|&\/]+/).map(x=>x.trim()).includes('owner');
   const current = String(sel.value || '');
 
@@ -3541,7 +3541,7 @@ function initDispatchHistoryFilters() {
     unitEl.disabled = true;
     unitEl.title = 'Locked to your assigned unit';
   } else {
-    const units = [...new Set((data.units || ['Unit 1','Unit 2','Unit 5','Unit Delta']).filter(Boolean))];
+    const units = [...new Set((data.units || ['Unit 1','Unit 2','Unit 3','Unit 5','Unit Delta']).filter(Boolean))];
     unitEl.innerHTML = '<option value="">All Units</option>' + units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     unitEl.value = units.includes(currentUnit) ? currentUnit : '';
     unitEl.disabled = false;
@@ -4283,7 +4283,7 @@ function clearSetBuilder(){
 function renderSetBuilder(){
   const tb=document.querySelector('#set-component-table tbody'); if(!tb)return;
   if(!setBuilderRows.length)setBuilderRows=[defaultSetComponent()];
-  const units=data.units||['Unit 1','Unit 2','Unit 5','Unit Delta'];
+  const units=data.units||['Unit 1','Unit 2','Unit 3','Unit 5','Unit Delta'];
   tb.innerHTML=setBuilderRows.map((r,i)=>`<tr>
     <td class="row-no">${i+1}</td>
     <td><input data-sb="partCode" data-i="${i}" list="dl-parts" value="${esc(r.partCode)}" placeholder="Select / type part code" autocomplete="off"></td>
