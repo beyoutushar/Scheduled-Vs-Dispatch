@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="application-version" content="2026.10.06-V8-MOBILE-STABLE">
 <title>Schedule vs Dispatch — MIS</title>
 <style>
   :root {
@@ -2321,280 +2320,252 @@ html{scroll-padding-top:calc(var(--gp-header-h,72px) + 16px)!important;}
 }
 </style>
 
-
-<style id="gp-mobile-performance-fix">
+<style id="gp-boot-style">
+html.has-session #login-screen{display:none!important}
+html.gp-booting #main-app{visibility:hidden!important}
+html.gp-booting #boot-splash{display:flex!important}
+#boot-splash{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:#08070d;color:#9a92ad;z-index:5000;font:13px system-ui}
+@media(max-width:900px){.card,.stat,.modal,.conn,.login-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}body{background-attachment:scroll!important}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script>
+try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.add('has-session');}catch(e){}
+document.documentElement.classList.add('gp-booting');
+</script>
+<style id="greenpack-theme-v2">
 /* =========================================================
-   GreenPack MIS — Mobile UX / Performance layer
-   This layer intentionally overrides only mobile behaviour.
+   GREENPACK MIS — THEME V2
+   Deep professional dark + clean plant/MIS light theme.
    ========================================================= */
-@media (max-width: 700px){
-  html, body{
-    width:100%;
-    max-width:100%;
-    overflow-x:hidden;
-  }
 
-  body{
-    padding:10px 10px 34px;
-    background-attachment:scroll;
-  }
-
-  /* Compact top area */
-  .topbar{
-    gap:8px;
-    margin-bottom:12px;
-    align-items:center;
-  }
-  .topbar h1{font-size:17px}
-  .topbar .sub{font-size:11px}
-  .topbar > div:last-child{
-    width:100%;
-    display:grid;
-    grid-template-columns:minmax(0,1fr) auto auto;
-    gap:6px;
-    align-items:center;
-  }
-  #role-badge{
-    min-width:0;
-    max-width:100%;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-  #conn{
-    min-width:0;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  .stats{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:7px;
-    margin-bottom:10px;
-  }
-  .stat{
-    padding:10px 11px;
-    border-radius:11px;
-  }
-  .stat .n{font-size:19px}
-  .stat .l{font-size:9px}
-
-  .tabs{
-    gap:4px;
-    margin:0 -10px 10px;
-    padding:0 10px;
-  }
-  .tab{
-    font-size:12px;
-    padding:8px 3px;
-    margin-right:9px;
-  }
-
-  .card{
-    padding:12px;
-    border-radius:12px;
-    margin-bottom:10px;
-  }
-  .card h2{font-size:13px;margin-bottom:10px}
-
-  /* Orders filter toolbar: search stays visible; filters collapse. */
-  #tab-orders .toolbar{
-    display:grid;
-    grid-template-columns:minmax(0,1fr) auto;
-    gap:7px;
-    margin-bottom:8px;
-    align-items:center;
-  }
-  #tab-orders .search-wrap{
-    grid-column:1 / -1;
-    min-width:0;
-  }
-  #tab-orders .search-wrap input{
-    min-width:0;
-    height:42px;
-    font-size:13px;
-  }
-  #tab-orders .toolbar > select,
-  #tab-orders .date-filter-group{
-    display:none;
-  }
-  #tab-orders .toolbar.gp-filters-open > select,
-  #tab-orders .toolbar.gp-filters-open > .date-filter-group{
-    display:block;
-    grid-column:1 / -1;
-  }
-  #tab-orders .toolbar > .spacer{
-    display:none;
-  }
-
-  /* Add a compact filter toggle without changing the existing HTML. */
-  #tab-orders .gp-mobile-filter-toggle{
-    display:flex;
-    grid-column:1;
-    grid-row:2;
-    min-height:36px;
-    align-items:center;
-    justify-content:center;
-    padding:8px 10px;
-    border:1px solid var(--border);
-    border-radius:9px;
-    background:var(--panel-2);
-    color:var(--text);
-    font-size:12px;
-    font-weight:600;
-  }
-
-  #tab-orders .toolbar > button{
-    min-height:36px;
-    margin:0;
-  }
-  #tab-orders .toolbar > #csv-btn{
-    grid-column:1;
-    grid-row:auto;
-    display:none !important;
-  }
-  #tab-orders .toolbar > button[onclick="refreshData()"]{
-    grid-column:2;
-    grid-row:2;
-  }
-
-  /* When filters are opened, action buttons move below them. */
-  #tab-orders .toolbar.gp-filters-open .gp-mobile-filter-toggle{
-    background:var(--panel-3);
-    border-color:var(--accent);
-  }
-
-  .search-hint{
-    margin:4px 0 8px;
-    font-size:10px;
-    line-height:1.35;
-  }
-
-  .bulkbar{
-    padding:8px;
-    gap:6px;
-    margin:0 0 8px;
-  }
-  .bulkbar button,.bulkbar select{font-size:11px}
-
-  /* Never squeeze the Orders table. Scroll the table itself horizontally. */
-  #tab-orders .table-scroll{
-    width:100%;
-    max-width:100%;
-    overflow-x:auto;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    border:1px solid var(--border);
-    border-radius:10px;
-  }
-  #tab-orders #orders-table{
-    min-width:1050px;
-    width:max-content;
-    font-size:11px;
-  }
-  #tab-orders #orders-table th,
-  #tab-orders #orders-table td{
-    padding:8px 9px;
-    white-space:nowrap;
-  }
-  #tab-orders #orders-table th{
-    font-size:9px;
-  }
-  #tab-orders #orders-table th:first-child,
-  #tab-orders #orders-table td:first-child{
-    width:38px;
-    min-width:38px;
-    max-width:38px;
-    text-align:center;
-  }
-
-  /* Keep the first column sticky, but do not let it cover other cells. */
-  #tab-orders #orders-table td:first-child{
-    position:sticky;
-    left:0;
-    z-index:4;
-    background:var(--panel);
-  }
-  #tab-orders #orders-table th:first-child{
-    position:sticky;
-    left:0;
-    z-index:24;
-  }
-
-  /* Inputs/buttons are touch friendly but not oversized. */
-  input,select,textarea{
-    min-height:40px;
-    font-size:13px;
-  }
-  button{
-    min-height:38px;
-  }
-  .btn-small{
-    min-height:34px;
-    padding:7px 10px;
-    font-size:11px;
-  }
-
-  .grid{
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-
-  .modal-backdrop{padding:8px}
-  .modal{
-    width:100%;
-    max-height:94vh;
-    padding:14px;
-    border-radius:13px;
-  }
-
-  .set-help{gap:6px}
-  .set-help-item{padding:8px}
-  .set-builder{padding:11px}
-  .set-component-table{min-width:620px}
-
-  .history-row{grid-template-columns:1fr}
-  .admin-grid{grid-template-columns:1fr}
-
-  /* Tally/Excel import controls */
-  .import-toolbar{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:7px;
-  }
-  .import-toolbar>div{
-    width:100%;
-  }
-  .import-toolbar button,
-  .import-toolbar input{
-    width:100%;
-  }
-  .import-hero{
-    padding:13px;
-    gap:8px;
-  }
-
-  /* Prevent long usernames/role strings from widening the viewport. */
-  .gp-head-brand,
-  .gp-head-user,
-  .gp-it,
-  .gp-nav{
-    min-width:0;
-  }
+/* ---------- DARK ---------- */
+:root[data-theme="dark"] body.gp-on{
+  --gp-bg:#080b0f;
+  --gp-surface:#10151b;
+  --gp-surface-2:#151c23;
+  --gp-surface-3:#1b242d;
+  --gp-line:#26313b;
+  --gp-line-strong:#34414c;
+  --gp-text:#f4f7f9;
+  --gp-muted:#9aa8b5;
+  --gp-green:#18a957;
+  --gp-green-strong:#0d7f3b;
+  --gp-green-soft:rgba(24,169,87,.14);
+  --gp-blue:#5b9cf6;
+  --gp-shadow:0 12px 32px rgba(0,0,0,.32);
+  background:
+    radial-gradient(900px 500px at 0% -10%,rgba(24,169,87,.10),transparent 62%),
+    radial-gradient(900px 500px at 100% 0%,rgba(91,156,246,.08),transparent 58%),
+    #080b0f!important;
+  color:var(--gp-text)!important;
+}
+:root[data-theme="dark"] body.gp-on #gp-top{
+  background:rgba(12,17,22,.94)!important;
+  border-bottom:1px solid var(--gp-line)!important;
+  box-shadow:0 6px 22px rgba(0,0,0,.22)!important;
+  backdrop-filter:blur(14px);
+}
+:root[data-theme="dark"] body.gp-on #gp-side{
+  background:linear-gradient(180deg,#0b1015 0%,#0a0f13 100%)!important;
+  border-right:1px solid var(--gp-line)!important;
+}
+:root[data-theme="dark"] body.gp-on .card,
+:root[data-theme="dark"] body.gp-on .set-builder,
+:root[data-theme="dark"] body.gp-on .import-hero{
+  background:linear-gradient(180deg,#11171d,#0e1419)!important;
+  border-color:var(--gp-line)!important;
+  box-shadow:var(--gp-shadow)!important;
+}
+:root[data-theme="dark"] body.gp-on .gp-it{
+  color:#aebbc6!important;
+}
+:root[data-theme="dark"] body.gp-on .gp-it:hover{
+  background:#121b22!important;
+  color:#fff!important;
+  border-color:#22322b!important;
+}
+:root[data-theme="dark"] body.gp-on .gp-it.on{
+  background:linear-gradient(90deg,#08762f,#0d8a3b)!important;
+  color:#fff!important;
+  border-color:#159447!important;
+  box-shadow:inset 3px 0 0 #42e584,0 4px 14px rgba(13,138,59,.20)!important;
+}
+:root[data-theme="dark"] body.gp-on input,
+:root[data-theme="dark"] body.gp-on select,
+:root[data-theme="dark"] body.gp-on textarea{
+  background:#0d1318!important;
+  color:#edf2f5!important;
+  border-color:#2a3640!important;
+}
+:root[data-theme="dark"] body.gp-on input:focus,
+:root[data-theme="dark"] body.gp-on select:focus,
+:root[data-theme="dark"] body.gp-on textarea:focus{
+  border-color:#2ab96a!important;
+  box-shadow:0 0 0 3px rgba(42,185,106,.13)!important;
+}
+:root[data-theme="dark"] body.gp-on .btn-ghost,
+:root[data-theme="dark"] body.gp-on .gp-lang,
+:root[data-theme="dark"] body.gp-on .gp-theme,
+:root[data-theme="dark"] body.gp-on .gp-logout{
+  background:#11181e!important;
+  color:#dce5ea!important;
+  border-color:#2b3741!important;
+}
+:root[data-theme="dark"] body.gp-on .btn-ghost:hover,
+:root[data-theme="dark"] body.gp-on .gp-theme:hover,
+:root[data-theme="dark"] body.gp-on .gp-logout:hover{
+  background:#182129!important;
+  border-color:#3a4a56!important;
+}
+:root[data-theme="dark"] body.gp-on .btn-primary{
+  background:linear-gradient(135deg,#0c8b3e,#16a654)!important;
+  border-color:#16a654!important;
+  box-shadow:0 5px 16px rgba(22,166,84,.22)!important;
+}
+:root[data-theme="dark"] body.gp-on .import-note{
+  background:rgba(24,169,87,.08)!important;
+  border-color:rgba(24,169,87,.25)!important;
+}
+:root[data-theme="dark"] body.gp-on .import-badge{
+  background:#123a25!important;
+  color:#74e7a2!important;
+  border-color:#1b7041!important;
 }
 
-/* Very small phones */
-@media (max-width: 380px){
-  body{padding-left:7px;padding-right:7px}
-  .stats{grid-template-columns:1fr 1fr}
-  .stat .n{font-size:17px}
-  .topbar > div:last-child{grid-template-columns:minmax(0,1fr) auto}
-  #conn{display:none}
+/* ---------- LIGHT ---------- */
+:root[data-theme="light"] body.gp-on{
+  --gp-bg:#f3f6f8;
+  --gp-surface:#ffffff;
+  --gp-surface-2:#f8fafb;
+  --gp-surface-3:#eef3f0;
+  --gp-line:#dce4e0;
+  --gp-line-strong:#c7d3cd;
+  --gp-text:#17221d;
+  --gp-muted:#66756e;
+  --gp-green:#087a32;
+  --gp-green-strong:#056326;
+  --gp-green-soft:#eaf7ef;
+  --gp-blue:#2563eb;
+  --gp-shadow:0 8px 26px rgba(21,50,37,.08);
+  background:
+    radial-gradient(1000px 500px at 0% -15%,rgba(15,143,70,.08),transparent 62%),
+    #f3f6f8!important;
+  color:var(--gp-text)!important;
+}
+:root[data-theme="light"] body.gp-on #gp-top{
+  background:rgba(255,255,255,.96)!important;
+  border-bottom:1px solid #dbe4df!important;
+  box-shadow:0 4px 18px rgba(20,50,35,.07)!important;
+  backdrop-filter:blur(14px);
+}
+:root[data-theme="light"] body.gp-on #gp-side{
+  background:#ffffff!important;
+  border-right:1px solid #dce4e0!important;
+  box-shadow:4px 0 18px rgba(21,50,37,.035)!important;
+}
+:root[data-theme="light"] body.gp-on .gp-it{
+  color:#506158!important;
+}
+:root[data-theme="light"] body.gp-on .gp-it:hover{
+  background:#f1f7f3!important;
+  color:#173b27!important;
+  border-color:#d9e9df!important;
+}
+:root[data-theme="light"] body.gp-on .gp-it.on{
+  background:linear-gradient(90deg,#087a32,#0a913d)!important;
+  color:#fff!important;
+  border-color:#159447!important;
+  box-shadow:inset 3px 0 0 #42d878,0 4px 14px rgba(8,122,50,.13)!important;
+}
+:root[data-theme="light"] body.gp-on .card,
+:root[data-theme="light"] body.gp-on .set-builder,
+:root[data-theme="light"] body.gp-on .import-hero{
+  background:#ffffff!important;
+  border-color:#dce5e0!important;
+  box-shadow:var(--gp-shadow)!important;
+}
+:root[data-theme="light"] body.gp-on input,
+:root[data-theme="light"] body.gp-on select,
+:root[data-theme="light"] body.gp-on textarea{
+  background:#fff!important;
+  color:#17221d!important;
+  border-color:#cfdad4!important;
+}
+:root[data-theme="light"] body.gp-on input:focus,
+:root[data-theme="light"] body.gp-on select:focus,
+:root[data-theme="light"] body.gp-on textarea:focus{
+  border-color:#168a43!important;
+  box-shadow:0 0 0 3px rgba(22,138,67,.10)!important;
+}
+:root[data-theme="light"] body.gp-on .btn-ghost,
+:root[data-theme="light"] body.gp-on .gp-lang,
+:root[data-theme="light"] body.gp-on .gp-theme,
+:root[data-theme="light"] body.gp-on .gp-logout{
+  background:#fff!important;
+  color:#34443c!important;
+  border-color:#cfdad4!important;
+}
+:root[data-theme="light"] body.gp-on .btn-ghost:hover,
+:root[data-theme="light"] body.gp-on .gp-theme:hover,
+:root[data-theme="light"] body.gp-on .gp-logout:hover{
+  background:#f4f8f5!important;
+  border-color:#aebfb5!important;
+}
+:root[data-theme="light"] body.gp-on .btn-primary{
+  background:linear-gradient(135deg,#087a32,#0b9540)!important;
+  border-color:#087a32!important;
+  box-shadow:0 5px 16px rgba(8,122,50,.16)!important;
+}
+:root[data-theme="light"] body.gp-on .import-note{
+  background:#f0f8f3!important;
+  border-color:#cfe6d7!important;
+}
+:root[data-theme="light"] body.gp-on .import-badge{
+  background:#e8f6ed!important;
+  color:#087a32!important;
+  border-color:#c7e5d1!important;
+}
+
+/* ---------- BOTH THEMES: better readability for import screens ---------- */
+.import-hero{
+  border-radius:16px!important;
+  padding:20px 22px!important;
+  margin-bottom:14px!important;
+}
+.import-kicker{
+  letter-spacing:.12em!important;
+  font-weight:800!important;
+  font-size:10px!important;
+  margin-bottom:6px!important;
+}
+.import-hero h2{margin:0 0 7px!important;font-size:22px!important;}
+.import-note{
+  border-radius:12px!important;
+  padding:12px 14px!important;
+  line-height:1.6!important;
+}
+.import-summary{
+  border-radius:11px!important;
+  padding:11px 13px!important;
+  margin:12px 0!important;
+}
+.import-table-wrap{
+  border-radius:12px!important;
+  overflow:auto!important;
+}
+#ppc-import-table,#fg-import-table{min-width:900px!important;}
+#ppc-import-table th,#fg-import-table th{
+  position:sticky!important;top:0!important;z-index:5!important;
+}
+@media(max-width:900px){
+  .import-hero{padding:16px!important;}
+  .import-hero h2{font-size:18px!important;}
+  .import-toolbar{gap:8px!important;}
 }
 </style>
-
 </head>
+<body>
+<div id="boot-splash">Loading MIS…</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen" class="login-wrap">
@@ -2868,7 +2839,7 @@ html{scroll-padding-top:calc(var(--gp-header-h,72px) + 16px)!important;}
   </div>
 
   <!-- MULTIPLE ORDERS TAB -->
-  <div id="tab-multiple" class="tab-panel">
+  <div id="tab-multiple" style="display:none;" class="tab-panel">
     <div class="card" id="ppc-multiple-card">
       <h2>PPC — Multiple Order Creation</h2>
       <div class="sub" style="margin-bottom:10px;">Create many customer orders in one save. Ship To Party is registered here and will automatically appear at Dispatch.</div>
@@ -2957,7 +2928,7 @@ html{scroll-padding-top:calc(var(--gp-header-h,72px) + 16px)!important;}
   </div>
 
   <!-- DISPATCH HISTORY TAB -->
-  <div id="tab-dispatch-history" class="tab-panel">
+  <div id="tab-dispatch-history" style="display:none;" class="tab-panel">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div>
@@ -3543,7 +3514,7 @@ function translateInterface(){
     if(dict[key]) el.textContent=dict[key];
   });
   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){
-    if(!n.nodeValue.trim() || n.parentElement?.closest('script,style')) return NodeFilter.FILTER_REJECT;
+    if(!n.nodeValue.trim() || n.parentElement?.closest('script,style,#orders-table tbody,#stock-table tbody,#dispatch-history-table tbody,#bulk-dispatch-table tbody,#stock-movement-table tbody')) return NodeFilter.FILTER_REJECT;
     return NodeFilter.FILTER_ACCEPT;
   }});
   const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
@@ -3592,13 +3563,19 @@ function toggleTheme(){
 }
 (function initUIPreferences(){
   applyTheme();
-  window.addEventListener('DOMContentLoaded',()=>translateInterface());
-  const observer=new MutationObserver(()=>{
-    if(window.__i18nBusy)return;
-    window.__i18nBusy=true;
-    requestAnimationFrame(()=>{try{translateInterface()}finally{window.__i18nBusy=false}});
+  window.addEventListener('DOMContentLoaded',()=>{
+    translateInterface();
+    let timer=null,busy=false;
+    const observer=new MutationObserver(()=>{
+      if(busy || currentAppLanguage()==='en') return;
+      clearTimeout(timer);
+      timer=setTimeout(()=>{
+        busy=true; observer.disconnect();
+        try{translateInterface()}finally{busy=false;observer.observe(document.body,{childList:true,subtree:true});}
+      },250);
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
   });
-  window.addEventListener('DOMContentLoaded',()=>observer.observe(document.body,{childList:true,subtree:true}));
 })();
 
 const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyq77xCl55WruPeXGqB5k-hBwI-j_qsDP9zhRSlZ_vMfHNaI_JMyjr2Y9FwmEDVV086/exec';
@@ -3609,68 +3586,64 @@ let APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
 // older URL stored by a previous GitHub build from silently taking over.
 localStorage.setItem('svd_url', APPS_SCRIPT_URL);
 
-async function fetchAppScriptJson_(url, options={}, retries=3){
-  // Centralized network wrapper:
-  // - aborts genuinely stuck requests
-  // - retries transient Apps Script / mobile-network failures
-  // - keeps GET requests cache-busted
-  // - never overlaps the same dashboard load (loadData handles that separately)
-  const MAX_RETRIES = Math.max(0, Number(retries) || 0);
-  const TIMEOUT_MS = 25000;
+async function fetchAppScriptJson_(url, options={}, retries=2){
   let lastErr;
-
-  for(let attempt=0; attempt<=MAX_RETRIES; attempt++){
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
+  for(let attempt=0; attempt<=retries; attempt++){
     try{
-      const requestUrl = String(url).includes('_=')
-        ? String(url)
-        : String(url) + (String(url).includes('?') ? '&' : '?') + '_=' + Date.now();
-
-      const res = await fetch(requestUrl, {
-        cache: 'no-store',
-        redirect: 'follow',
-        credentials: 'omit',
-        signal: controller.signal,
+      const res = await fetch(url, {
+        cache:'no-store',
+        redirect:'follow',
         ...options
       });
-
       const raw = await res.text();
-
       if(!res.ok){
-        const transient = [408,429,500,502,503,504].includes(res.status);
-        if(transient && attempt < MAX_RETRIES){
-          await new Promise(r => setTimeout(r, 700 * Math.pow(2, attempt)));
+        if([408,429,500,502,503,504].includes(res.status) && attempt<retries){
+          await new Promise(r=>setTimeout(r, 700*(attempt+1)));
           continue;
         }
-        throw new Error('HTTP ' + res.status + (raw ? ': ' + raw.slice(0,180) : ''));
+        throw new Error('HTTP '+res.status+(raw ? ': '+raw.slice(0,180) : ''));
       }
-
-      try{
-        return JSON.parse(raw);
-      }catch(e){
-        throw new Error('Apps Script returned a non-JSON response.');
-      }
+      try { return JSON.parse(raw); }
+      catch(e){ throw new Error('Apps Script returned non-JSON response'); }
     }catch(e){
-      lastErr = e && e.name === 'AbortError'
-        ? new Error('Request timed out while contacting Apps Script.')
-        : e;
-
-      if(attempt < MAX_RETRIES){
-        await new Promise(r => setTimeout(r, 700 * Math.pow(2, attempt)));
+      lastErr=e;
+      if(attempt<retries){
+        await new Promise(r=>setTimeout(r, 700*(attempt+1)));
       }
-    }finally{
-      clearTimeout(timer);
     }
   }
-
-  throw lastErr || new Error('Unable to reach Apps Script.');
+  throw lastErr || new Error('Unable to reach Apps Script');
 }
 
 let TOKEN = sessionStorage.getItem('svd_token') || '';
 let SESSION = JSON.parse(sessionStorage.getItem('svd_session') || 'null');
 let data = { orders: [], logs: [], customers: [], partCodes: [], locations: [], shipToParties: [], sets: [], setOrders: [], departments: [], stock: [], stockMovements: [], uoms: ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'], discussion: [], complaints: [], complaintComments: [], v2: {permissions:[],roles:[],fields:[],dropdowns:[],plans:{},additional:{}} };
+// Lightweight local cache: paint the last successful dataset immediately on reload.
+const IDB={_db:null,open(){return this._db ||= new Promise((res,rej)=>{const r=indexedDB.open('gp-mis',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},async get(k){try{const db=await this.open();return await new Promise(res=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null);});}catch(e){return null;}},async set(k,v){try{const db=await this.open();return await new Promise(res=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=res;t.onerror=res;});}catch(e){}},async clear(){try{const db=await this.open();db.transaction('kv','readwrite').objectStore('kv').clear();}catch(e){}}};
+let _cacheTimer=null;
+function saveCoreCache_(json){
+  if(!SESSION || Number(json.orderOffset||0)>0) return;
+  clearTimeout(_cacheTimer);
+  _cacheTimer=setTimeout(()=>IDB.set('core:'+SESSION.username,{v:dataVersion,payload:json}),1200);
+}
+function buildLogShipToIndex_(){
+  logShipToIndex={};
+  (data.logs||[]).forEach(l=>{const id=String(l.OrderID||'');if(id)(logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
+}
+let logShipToIndex = {};
+async function hydrateFromCache(){
+  if(!SESSION)return false;
+  const c=await IDB.get('core:'+SESSION.username);
+  if(!c?.payload)return false;
+  data={...data,...c.payload};
+  dataVersion=Number(c.v||0);
+  hasLoadedData=true;
+  rebuildStockIndex_();buildLogShipToIndex_();
+  populateDropdowns();renderStats();renderCurrent_();applyRoleUI();showStock();
+  if(typeof window.renderDash==='function')window.renderDash();
+  setConn('ok','Cached · syncing…');
+  return true;
+}
 let stockByPartUnit = Object.create(null);
 let stockActorByPartUnit = Object.create(null);
 let dispatchActorByOrder = Object.create(null);
@@ -3766,15 +3739,36 @@ async function doLogin() {
   setLoginLoading(true);
 
   try {
-    const result = await fetchAppScriptJson_(APPS_SCRIPT_URL, {
+    const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'login',
         username: username,
         password: password
-      })
-    }, 3);
+      }),
+      redirect: 'follow',
+      cache: 'no-store'
+    });
+
+    const raw = await res.text();
+
+    if (!res.ok) {
+      statusEl.textContent = 'Server returned HTTP ' + res.status + '. Check Apps Script deployment.';
+      statusEl.className = 'status-msg err';
+      console.error('Login HTTP error:', res.status, raw);
+      return;
+    }
+
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch (parseErr) {
+      statusEl.textContent = 'Apps Script did not return JSON. Redeploy the Web App and try again.';
+      statusEl.className = 'status-msg err';
+      console.error('Login non-JSON response:', raw);
+      return;
+    }
 
     if (result.error) {
       statusEl.textContent = result.error;
@@ -3823,6 +3817,9 @@ function doLogout() {
   stopAutoRefresh();
   sessionStorage.removeItem('svd_token');
   sessionStorage.removeItem('svd_session');
+  sessionStorage.removeItem('svd_active_tab');
+  document.documentElement.classList.remove('has-session','gp-booting');
+  IDB.clear();
   TOKEN = ''; SESSION = null;
   document.body.classList.remove('gp-on','gp-hide','gp-col');
   localStorage.gpHide='0';
@@ -3961,7 +3958,7 @@ function showApp() {
   // Apply immediately using role fallback, then load V2 permissions and apply
   // again. This prevents a race where Admin/Dispatch appear only after data loads.
   applyRoleUI();
-  loadData();
+  hydrateFromCache().then(h=>loadData(!!h));
   startAutoRefresh();
 }
 
@@ -3969,55 +3966,31 @@ function showApp() {
    LIVE AUTO-REFRESH
    Fetches fresh MIS data without reloading the webpage.
    ========================================================= */
-const AUTO_REFRESH_MS = 10000;
+const AUTO_REFRESH_MS = 60000;
 let autoRefreshTimer = null;
 
-function startAutoRefresh() {
+let pollFails=0;
+function startAutoRefresh(){
   stopAutoRefresh();
-  if (!TOKEN || !SESSION) return;
-
-  autoRefreshTimer = setInterval(() => {
-    if (document.visibilityState !== 'visible') return;
-    if (!TOKEN || !SESSION) return;
-    const force = forceNextSync;
-    forceNextSync = false;
-    loadData(true, force);
-  }, AUTO_REFRESH_MS);
+  if(!TOKEN||!SESSION)return;
+  const tick=async()=>{
+    if(TOKEN&&SESSION&&document.visibilityState==='visible'&&navigator.onLine){
+      const force=forceNextSync;forceNextSync=false;
+      const ok=await loadData(true,force);pollFails=ok?0:Math.min(pollFails+1,5);
+    }
+    autoRefreshTimer=setTimeout(tick,AUTO_REFRESH_MS*(1+pollFails));
+  };
+  autoRefreshTimer=setTimeout(tick,AUTO_REFRESH_MS);
 }
+function stopAutoRefresh(){clearTimeout(autoRefreshTimer);autoRefreshTimer=null;}
 
-function stopAutoRefresh() {
-  if (autoRefreshTimer) {
-    clearInterval(autoRefreshTimer);
-    autoRefreshTimer = null;
-  }
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && TOKEN && SESSION) {
-    loadData(true);
-  }
-});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&TOKEN&&SESSION)loadData(true);});
+window.addEventListener('online',()=>{pollFails=0;if(TOKEN&&SESSION)loadData(true,true);});
 
 function setConn(state, msg) {
   const el = document.getElementById('conn');
-  if(!el) return;
-  el.className = 'conn ' + (state || '');
-  el.textContent = msg || '';
-  el.title = msg || '';
-}
-
-function setConnectionHealthy_(count){
-  setConn('ok', 'Live — connected' + (Number.isFinite(Number(count)) ? ' · ' + count + ' orders' : ''));
-}
-
-function setConnectionSoftError_(message){
-  // Do not immediately paint the whole dashboard red for one flaky mobile
-  // request. Existing data remains usable while the network wrapper retries.
-  if(hasLoadedData){
-    setConn('ok', 'Live · retrying connection…');
-  }else{
-    setConn('err', message || 'Unable to connect. Retrying…');
-  }
+  el.className = 'conn ' + state;
+  el.textContent = msg;
 }
 
 let loadInFlight = null;
@@ -4053,7 +4026,7 @@ async function loadOlderOrders(){
     data.orderLimit=limit;
     data.hasMoreOrders=Boolean(json.hasMoreOrders);
     rebuildStockIndex_();
-    populateDropdowns(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory();
+    populateDropdowns(); renderStats(); renderCurrent_();
   }catch(e){alert('Could not load older orders: '+e.message);}
   finally{
     if(btn){btn.disabled=false;btn.textContent='Load older';btn.style.display=data.hasMoreOrders?'inline-flex':'none';}
@@ -4078,7 +4051,7 @@ async function loadData(silent=false,force=false) {
         return false;
       }
       if (json.error) {
-        setConnectionSoftError_(json.error);
+        if (!silent || !hasLoadedData) setConn('err', json.error);
         return false;
       }
 
@@ -4109,19 +4082,18 @@ async function loadData(silent=false,force=false) {
       if(olderBtn) olderBtn.style.display=data.hasMoreOrders?'inline-flex':'none';
       dataVersion = Number(json.version || dataVersion || 0);
       hasLoadedData = true;
-      logShipToIndex={};
-      (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(!id)return; (logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
+      saveCoreCache_(json);
+      buildLogShipToIndex_();
       const count = Array.isArray(data.orders) ? data.orders.length : 0;
       setConn('ok', 'Live — connected · ' + count + ' orders');
-      populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderTable(); populateDispatchOrderSelect(); renderBulkDispatchRows(); renderPPCPendingRows(); renderDispatchHistory(); applyRoleUI(); showStock();
+      populateDropdowns(); toggleOrderType(); toggleDispatchItemType(); renderStats(); renderCurrent_(); applyRoleUI(); showStock();
       // Control Center dashboard: the original app calls renderStats() lexically,
       // so explicitly refresh the dashboard after the data payload is ready.
       if (typeof window.renderDash === 'function') window.renderDash();
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
     } catch (e) {
-      console.warn('Dashboard sync failed:', e);
-      setConnectionSoftError_(e && e.message ? e.message : 'Connection temporarily unavailable');
+      if (!silent || !hasLoadedData) setConn('err', 'Connection failed — data not lost.');
       return false;
     }
     finally { loadInFlight=null; }
@@ -4152,7 +4124,21 @@ async function loadAux(mode){
   try{const json=await fetchAppScriptJson_(APPS_SCRIPT_URL+'?mode='+mode+'&token='+encodeURIComponent(TOKEN));if(json.error)return;if(mode==='complaints'){data.complaints=json.complaints||[];data.complaintComments=json.complaintComments||[];renderComplaints();}else{data.discussion=json.discussion||[];renderDiscussion();}auxLoaded[mode]=true;}catch(e){}
 }
 
+const TAB_RENDER={
+  orders:()=>renderTable(),
+  new:()=>populateDispatchOrderSelect(),
+  multiple:()=>{if(isDispatchUI()&&!isPPCUI())renderBulkDispatchRows();else renderPPCBulkRows();},
+  'dispatch-history':()=>renderDispatchHistory(),
+  stock:()=>{renderStockTable();renderStockMovementTable();}
+};
+function renderCurrent_(){
+  const t=sessionStorage.getItem('svd_active_tab')||'dashboard';
+  if(t==='dashboard'&&typeof window.renderDash==='function'){window.renderDash();return;}
+  (TAB_RENDER[t]||(()=>{}))();
+}
+
 function switchTab(name) {
+  try{sessionStorage.setItem('svd_active_tab',name);}catch(e){}
   ['multiple','sets','orders','new','stock','dispatch-history','ppc-import','fg-import','complaints','discussion','admin'].forEach(t => {
     const panel = document.getElementById('tab-' + t);
     const tab = document.querySelector(`.tab[data-tab="${t}"]`);
@@ -4177,6 +4163,7 @@ function switchTab(name) {
 }
 
 function populateDropdowns() {
+  const keep=['f-customer','f-part','f-dept','f-status','f-unit'].map(id=>[id,document.getElementById(id)?.value||'']);
   const uoms = (data.uoms && data.uoms.length) ? data.uoms : ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'];
   ['n-uom','e-uom','d-uom','de-uom'].forEach(id => {
     const el = document.getElementById(id);
@@ -4212,7 +4199,7 @@ function populateDropdowns() {
 
   const fc = document.getElementById('f-customer');
   fc.innerHTML = '<option value="">All customers</option>' + data.customers.map(c => `<option>${esc(c)}</option>`).join('');
-  if (String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer) fc.value=SESSION.assignedCustomer;
+  if (String(SESSION?.role||'').toLowerCase()==='ppc' && SESSION?.assignedCustomer && !fc.value) fc.value=SESSION.assignedCustomer;
   const fp = document.getElementById('f-part');
   fp.innerHTML = '<option value="">All part codes</option>' + data.partCodes.map(p => `<option>${esc(p)}</option>`).join('');
   const fd = document.getElementById('f-dept');
@@ -5201,9 +5188,10 @@ function renderDispatchHistory() {
   const selectedUnit = document.getElementById('dh-unit')?.value || '';
   const selectedUom = document.getElementById('dh-uom')?.value || '';
 
-  // Build rows by joining each DispatchLog record to its order.
+  // Build one order map instead of scanning all orders for every log row.
+  const ordMap=new Map((data.orders||[]).map(o=>[String(o.OrderID),o]));
   let rows = (data.logs || []).map(l => {
-    const o = data.orders.find(x => String(x.OrderID) === String(l.OrderID)) || {};
+    const o = ordMap.get(String(l.OrderID)) || {};
     return {
       log: l,
       order: o,
@@ -6056,25 +6044,14 @@ function exportCSV() {
   a.click();
 }
 
-function fmtDate(v) {
-  if (!v) return '—';
-  const s=String(v).trim();
-  // Date-only values must never pass through UTC conversion.
-  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m && !/[T ]/.test(s)) return `${m[1]}-${m[2]}-${m[3]}`;
-  // Google Sheets may serialize an India-midnight date as the previous UTC day
-  // (for example 20/09/2026 -> 2026-09-19T18:30:00.000Z). Always render
-  // Schedule/Dispatch dates in the plant's Asia/Kolkata calendar.
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return s;
-  try {
-    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
-    const out={}; parts.forEach(x=>{if(x.type!=='literal')out[x.type]=x.value;});
-    return `${out.year}-${out.month}-${out.day}`;
-  } catch(e) {
-    const pad=n=>String(n).padStart(2,'0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
+const _kolFmt=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'});
+const _fdCache=new Map();
+function fmtDate(v){
+  if(!v)return '—';const s=String(v).trim();const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m&&!/[T ]/.test(s))return `${m[1]}-${m[2]}-${m[3]}`;
+  const hit=_fdCache.get(s);if(hit)return hit;const d=new Date(v);if(isNaN(d.getTime()))return s;
+  const o={};_kolFmt.formatToParts(d).forEach(x=>{if(x.type!=='literal')o[x.type]=x.value;});
+  const out=`${o.year}-${o.month}-${o.day}`;if(_fdCache.size>5000)_fdCache.clear();_fdCache.set(s,out);return out;
 }
 function esc(s) {
   return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -6089,15 +6066,11 @@ document.getElementById('d-date').valueAsDate = new Date();
 if(document.getElementById('n-order-type')) toggleOrderType();
 if(document.getElementById('d-dispatch-type')) toggleDispatchItemType();
 document.addEventListener('click', e => { if(!e.target.closest('.searchable-order-field')) document.querySelectorAll('.order-search-results').forEach(x=>x.classList.remove('open')); });
-// Startup is intentionally deferred until ALL enhancement scripts below have loaded.
-// This prevents a refresh from opening the legacy Multiple Orders shell before the
-// Control Center / Tally / mobile wrappers are installed.
-window.__GREENPACK_BOOT_PENDING__ = true;
 </script>
 
 <!-- GREENPACK CONTROL CENTER — dashboard libraries and shell -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js" defer></script>
 <script>
 
 /* ============ GREENPACK CONTROL CENTER — APP SHELL + DASHBOARD ============ */
@@ -6105,9 +6078,7 @@ window.__GREENPACK_BOOT_PENDING__ = true;
 const $=id=>document.getElementById(id),N=v=>Number(v)||0,F=n=>N(n).toLocaleString('en-IN');
 const COL=['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#14b8a6','#eab308','#64748b'];
 const PANELS=['multiple','sets','orders','new','stock','dispatch-history','ppc-import','fg-import','complaints','discussion','admin'];
-const VALID_TABS=[...PANELS,'tally'];
-let range='7',flt={},charts={},cur=(sessionStorage.getItem('svd_active_tab')||localStorage.getItem('svd_active_tab')||'dashboard'),built=false;
-if(!VALID_TABS.includes(cur) && cur!=='dashboard') cur='dashboard';
+let range='7',flt={},charts={},cur='dashboard',built=false;
 const NAV=[['','Dashboard','layout-dashboard','dashboard'],['ORDERS'],['All Orders','list','orders'],['New Order / Dispatch Entry','plus-square','new'],['Multiple Orders','layers','multiple'],['PPC Excel Import','file-spreadsheet','ppc-import'],['Customer Sets','boxes','sets'],
 ['DISPATCH'],['Dispatch History','truck','dispatch-history'],['STOCK'],['FG Stock & Movement','package','stock'],['FG Excel Import','file-up','fg-import'],['WORKSPACE'],['Complaints','alert-triangle','complaints'],['Discussion','message-square','discussion'],['Administration','settings','admin']];
 const today=()=>fmtDate(new Date());
@@ -6182,10 +6153,7 @@ function navOn(){document.querySelectorAll('#gp-nav .gp-it').forEach(i=>i.classL
 
 /* ---------- WRAP EXISTING FUNCTIONS (no rewrites) ---------- */
 const _sw=switchTab,_stats=renderStats,_role=applyRoleUI,_show=showApp,_out=doLogout,_th=toggleTheme;
-window.switchTab=function(n){
- cur=n;
- if(n==='dashboard' || VALID_TABS.includes(n)){ try{sessionStorage.setItem('svd_active_tab',n);localStorage.setItem('svd_active_tab',n);}catch(e){} }
- const d=$('tab-dashboard');
+window.switchTab=function(n){cur=n;const d=$('tab-dashboard');
  if(n==='dashboard'){PANELS.forEach(t=>{const p=$('tab-'+t);if(p)p.style.display='none'});document.querySelectorAll('.tab.active').forEach(t=>t.classList.remove('active'));if(d)d.style.display='block';renderDash()}
  else{if(d)d.style.display='none';_sw(n)}navOn()};
 window.renderStats=function(){_stats();if(cur==='dashboard'&&built)renderDash()};
@@ -6198,12 +6166,9 @@ window.showApp=function(){
   if(side) side.style.display='flex';
   if(top) top.style.display='flex';
   if(reopen) reopen.style.display='';
-  window.scrollTo(0,0);
   navVis();
-  // Restore the page the user was on before refresh instead of forcing Dashboard.
-  const savedTab = sessionStorage.getItem('svd_active_tab') || localStorage.getItem('svd_active_tab') || 'dashboard';
-  const restoreTab = (savedTab === 'dashboard' || VALID_TABS.includes(savedTab)) ? savedTab : 'dashboard';
-  switchTab(restoreTab);
+  const wanted=sessionStorage.getItem('svd_active_tab')||'dashboard';
+  requestAnimationFrame(()=>{requestAnimationFrame(()=>{switchTab(wanted);document.documentElement.classList.remove('gp-booting');});});
 };
 window.doLogout=function(){
   _out();
@@ -6367,7 +6332,7 @@ document.addEventListener('keydown',function(e){
     return '';
   }
   function readExcel(file){
-    return file.arrayBuffer().then(buf=>{
+    return ensureXLSX().then(()=>file.arrayBuffer()).then(buf=>{
       const wb=XLSX.read(buf,{type:'array',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
       return XLSX.utils.sheet_to_json(ws,{defval:''});
@@ -6517,14 +6482,16 @@ document.addEventListener('keydown',function(e){
     $('fg-import-apply').disabled=true;setStatus('fg-import-status','','');
   }
 
-  function downloadPPCTemplate(){
+  async function downloadPPCTemplate(){
+    await ensureXLSX();
     const wb=XLSX.utils.book_new();
     const headers=['Customer Name','Customer Location','Order Type','Part Code','Set Code','Order Quantity','UOM','Production Unit','Priority Level','Scheduled Date','Ship To Party','Ship-to Address'];
     const ws=XLSX.utils.aoa_to_sheet([headers]);
     XLSX.utils.book_append_sheet(wb,ws,'Import');
     XLSX.writeFile(wb,'Greenpack_PPC_Order_Import.xlsx');
   }
-  function downloadFGTemplate(){
+  async function downloadFGTemplate(){
+    await ensureXLSX();
     const wb=XLSX.utils.book_new();
     const headers=['Part Code','Customer Name','Production Unit','Available Quantity','UOM','Stock Date','Remarks'];
     const ws=XLSX.utils.aoa_to_sheet([headers]);
@@ -6545,7 +6512,9 @@ document.addEventListener('keydown',function(e){
 </script>
 
 <!-- TALLY DISPATCH IMPORT — added after Greenpack Control Center dashboard patch -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+window.ensureXLSX=window.ensureXLSX||(()=>{if(window.XLSX)return Promise.resolve();if(window.__xlsxPromise)return window.__xlsxPromise;window.__xlsxPromise=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});return window.__xlsxPromise;});
+</script>
 <script>
 /* ============ TALLY DISPATCH IMPORT ============ */
 (function(){
@@ -6639,14 +6608,11 @@ window.tyApply=async function(){
 /* hook into shell */
 const _ty_sw=window.switchTab,_ty_show=window.showApp,_ty_role=window.applyRoleUI;
 window.switchTab=function(n){const t=$('tab-tally');
- if(n==='tally'){
-  cur='tally';
-  try{sessionStorage.setItem('svd_active_tab','tally');localStorage.setItem('svd_active_tab','tally')}catch(e){}
-  ALL.forEach(x=>{const p=$('tab-'+x);if(p)p.style.display='none'});document.querySelectorAll('.tab.active').forEach(e=>e.classList.remove('active'));
+ if(n==='tally'){ALL.forEach(x=>{const p=$('tab-'+x);if(p)p.style.display='none'});document.querySelectorAll('.tab.active').forEach(e=>e.classList.remove('active'));
   if(!t)mount();
   const tt=$('tab-tally');if(tt)tt.style.display='block';document.querySelectorAll('#gp-nav .gp-it').forEach(i=>i.classList.toggle('on',i.dataset.t==='tally'));loadState()}
  else{if(t)t.style.display='none';if(_ty_sw)_ty_sw(n)}};
-window.showApp=function(){if(_ty_show)_ty_show();mount();gate()};
+window.showApp=function(){if(_ty_show)_ty_show();mount();gate();setTimeout(()=>{const wanted=sessionStorage.getItem('svd_active_tab')||'dashboard';if(typeof window.switchTab==='function')window.switchTab(wanted);document.documentElement.classList.remove('gp-booting');},0)};
 window.applyRoleUI=function(){if(_ty_role)_ty_role();gate()};
 
 /* If the dashboard shell was already initialized before this patch loaded,
@@ -6802,318 +6768,17 @@ if(document.readyState!=='loading' && document.getElementById('main-app')) mount
     highlightDailyUploadButtons();
   }
 
-  new MutationObserver(highlightDailyUploadButtons)
-    .observe(document.body,{childList:true,subtree:true});
+
 })();
 </script>
 
-
-<script id="gp-mobile-performance-js">
+<script id="gp-final-boot">
 (function(){
-  function setupMobileOrdersUI(){
-    const toolbar=document.querySelector('#tab-orders .toolbar');
-    if(!toolbar) return;
-
-    let toggle=toolbar.querySelector('.gp-mobile-filter-toggle');
-    if(!toggle){
-      toggle=document.createElement('button');
-      toggle.type='button';
-      toggle.className='gp-mobile-filter-toggle';
-      toggle.textContent='Filters';
-      toggle.setAttribute('aria-expanded','false');
-      const search=toolbar.querySelector('.search-wrap');
-      if(search) search.insertAdjacentElement('afterend',toggle);
-      else toolbar.prepend(toggle);
-
-      toggle.addEventListener('click',function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        const open=toolbar.classList.toggle('gp-filters-open');
-        toggle.textContent=open?'Hide Filters':'Filters';
-        toggle.setAttribute('aria-expanded',String(open));
-      });
-    }
-
-    if(window.innerWidth>700){
-      toolbar.classList.remove('gp-filters-open');
-      toggle.textContent='Filters';
-      toggle.setAttribute('aria-expanded','false');
-    }
-  }
-
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',setupMobileOrdersUI,{once:true});
-  }else{
-    setupMobileOrdersUI();
-  }
-
-  window.addEventListener('resize',setupMobileOrdersUI,{passive:true});
-
-  // The app creates some panels dynamically, so only watch additions.
-  new MutationObserver(function(mutations){
-    for(const m of mutations){
-      if(m.addedNodes && m.addedNodes.length){
-        setupMobileOrdersUI();
-        break;
-      }
-    }
-  }).observe(document.body,{childList:true,subtree:true});
+  let booted=false;
+  function boot(){if(booted)return;booted=true;setTimeout(()=>{try{init();}catch(e){console.error('Greenpack startup failed',e);document.documentElement.classList.remove('gp-booting');}},0);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
-
-<script id="greenpack-final-bootstrap">
-(function(){
-  // Run startup only after every later script has installed its wrappers.
-  // The old version called init() before the Control Center script loaded, which
-  // is why a hard refresh could open the legacy Multiple Orders interface.
-  function boot(){
-    try{
-      if(window.__GREENPACK_BOOT_PENDING__){
-        window.__GREENPACK_BOOT_PENDING__=false;
-        init();
-      }
-    }catch(err){
-      console.error('Greenpack startup failed:',err);
-      const status=document.getElementById('login-status');
-      if(status){status.textContent='Application startup failed. Please refresh once.';status.className='status-msg err';}
-    }
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true});
-  else boot();
-})();
-</script>
-
 </body>
 </html>
 
-<style id="greenpack-theme-v2">
-/* =========================================================
-   GREENPACK MIS — THEME V2
-   Deep professional dark + clean plant/MIS light theme.
-   ========================================================= */
-
-/* ---------- DARK ---------- */
-:root[data-theme="dark"] body.gp-on{
-  --gp-bg:#080b0f;
-  --gp-surface:#10151b;
-  --gp-surface-2:#151c23;
-  --gp-surface-3:#1b242d;
-  --gp-line:#26313b;
-  --gp-line-strong:#34414c;
-  --gp-text:#f4f7f9;
-  --gp-muted:#9aa8b5;
-  --gp-green:#18a957;
-  --gp-green-strong:#0d7f3b;
-  --gp-green-soft:rgba(24,169,87,.14);
-  --gp-blue:#5b9cf6;
-  --gp-shadow:0 12px 32px rgba(0,0,0,.32);
-  background:
-    radial-gradient(900px 500px at 0% -10%,rgba(24,169,87,.10),transparent 62%),
-    radial-gradient(900px 500px at 100% 0%,rgba(91,156,246,.08),transparent 58%),
-    #080b0f!important;
-  color:var(--gp-text)!important;
-}
-:root[data-theme="dark"] body.gp-on #gp-top{
-  background:rgba(12,17,22,.94)!important;
-  border-bottom:1px solid var(--gp-line)!important;
-  box-shadow:0 6px 22px rgba(0,0,0,.22)!important;
-  backdrop-filter:blur(14px);
-}
-:root[data-theme="dark"] body.gp-on #gp-side{
-  background:linear-gradient(180deg,#0b1015 0%,#0a0f13 100%)!important;
-  border-right:1px solid var(--gp-line)!important;
-}
-:root[data-theme="dark"] body.gp-on .card,
-:root[data-theme="dark"] body.gp-on .set-builder,
-:root[data-theme="dark"] body.gp-on .import-hero{
-  background:linear-gradient(180deg,#11171d,#0e1419)!important;
-  border-color:var(--gp-line)!important;
-  box-shadow:var(--gp-shadow)!important;
-}
-:root[data-theme="dark"] body.gp-on .gp-it{
-  color:#aebbc6!important;
-}
-:root[data-theme="dark"] body.gp-on .gp-it:hover{
-  background:#121b22!important;
-  color:#fff!important;
-  border-color:#22322b!important;
-}
-:root[data-theme="dark"] body.gp-on .gp-it.on{
-  background:linear-gradient(90deg,#08762f,#0d8a3b)!important;
-  color:#fff!important;
-  border-color:#159447!important;
-  box-shadow:inset 3px 0 0 #42e584,0 4px 14px rgba(13,138,59,.20)!important;
-}
-:root[data-theme="dark"] body.gp-on input,
-:root[data-theme="dark"] body.gp-on select,
-:root[data-theme="dark"] body.gp-on textarea{
-  background:#0d1318!important;
-  color:#edf2f5!important;
-  border-color:#2a3640!important;
-}
-:root[data-theme="dark"] body.gp-on input:focus,
-:root[data-theme="dark"] body.gp-on select:focus,
-:root[data-theme="dark"] body.gp-on textarea:focus{
-  border-color:#2ab96a!important;
-  box-shadow:0 0 0 3px rgba(42,185,106,.13)!important;
-}
-:root[data-theme="dark"] body.gp-on .btn-ghost,
-:root[data-theme="dark"] body.gp-on .gp-lang,
-:root[data-theme="dark"] body.gp-on .gp-theme,
-:root[data-theme="dark"] body.gp-on .gp-logout{
-  background:#11181e!important;
-  color:#dce5ea!important;
-  border-color:#2b3741!important;
-}
-:root[data-theme="dark"] body.gp-on .btn-ghost:hover,
-:root[data-theme="dark"] body.gp-on .gp-theme:hover,
-:root[data-theme="dark"] body.gp-on .gp-logout:hover{
-  background:#182129!important;
-  border-color:#3a4a56!important;
-}
-:root[data-theme="dark"] body.gp-on .btn-primary{
-  background:linear-gradient(135deg,#0c8b3e,#16a654)!important;
-  border-color:#16a654!important;
-  box-shadow:0 5px 16px rgba(22,166,84,.22)!important;
-}
-:root[data-theme="dark"] body.gp-on .import-note{
-  background:rgba(24,169,87,.08)!important;
-  border-color:rgba(24,169,87,.25)!important;
-}
-:root[data-theme="dark"] body.gp-on .import-badge{
-  background:#123a25!important;
-  color:#74e7a2!important;
-  border-color:#1b7041!important;
-}
-
-/* ---------- LIGHT ---------- */
-:root[data-theme="light"] body.gp-on{
-  --gp-bg:#f3f6f8;
-  --gp-surface:#ffffff;
-  --gp-surface-2:#f8fafb;
-  --gp-surface-3:#eef3f0;
-  --gp-line:#dce4e0;
-  --gp-line-strong:#c7d3cd;
-  --gp-text:#17221d;
-  --gp-muted:#66756e;
-  --gp-green:#087a32;
-  --gp-green-strong:#056326;
-  --gp-green-soft:#eaf7ef;
-  --gp-blue:#2563eb;
-  --gp-shadow:0 8px 26px rgba(21,50,37,.08);
-  background:
-    radial-gradient(1000px 500px at 0% -15%,rgba(15,143,70,.08),transparent 62%),
-    #f3f6f8!important;
-  color:var(--gp-text)!important;
-}
-:root[data-theme="light"] body.gp-on #gp-top{
-  background:rgba(255,255,255,.96)!important;
-  border-bottom:1px solid #dbe4df!important;
-  box-shadow:0 4px 18px rgba(20,50,35,.07)!important;
-  backdrop-filter:blur(14px);
-}
-:root[data-theme="light"] body.gp-on #gp-side{
-  background:#ffffff!important;
-  border-right:1px solid #dce4e0!important;
-  box-shadow:4px 0 18px rgba(21,50,37,.035)!important;
-}
-:root[data-theme="light"] body.gp-on .gp-it{
-  color:#506158!important;
-}
-:root[data-theme="light"] body.gp-on .gp-it:hover{
-  background:#f1f7f3!important;
-  color:#173b27!important;
-  border-color:#d9e9df!important;
-}
-:root[data-theme="light"] body.gp-on .gp-it.on{
-  background:linear-gradient(90deg,#087a32,#0a913d)!important;
-  color:#fff!important;
-  border-color:#159447!important;
-  box-shadow:inset 3px 0 0 #42d878,0 4px 14px rgba(8,122,50,.13)!important;
-}
-:root[data-theme="light"] body.gp-on .card,
-:root[data-theme="light"] body.gp-on .set-builder,
-:root[data-theme="light"] body.gp-on .import-hero{
-  background:#ffffff!important;
-  border-color:#dce5e0!important;
-  box-shadow:var(--gp-shadow)!important;
-}
-:root[data-theme="light"] body.gp-on input,
-:root[data-theme="light"] body.gp-on select,
-:root[data-theme="light"] body.gp-on textarea{
-  background:#fff!important;
-  color:#17221d!important;
-  border-color:#cfdad4!important;
-}
-:root[data-theme="light"] body.gp-on input:focus,
-:root[data-theme="light"] body.gp-on select:focus,
-:root[data-theme="light"] body.gp-on textarea:focus{
-  border-color:#168a43!important;
-  box-shadow:0 0 0 3px rgba(22,138,67,.10)!important;
-}
-:root[data-theme="light"] body.gp-on .btn-ghost,
-:root[data-theme="light"] body.gp-on .gp-lang,
-:root[data-theme="light"] body.gp-on .gp-theme,
-:root[data-theme="light"] body.gp-on .gp-logout{
-  background:#fff!important;
-  color:#34443c!important;
-  border-color:#cfdad4!important;
-}
-:root[data-theme="light"] body.gp-on .btn-ghost:hover,
-:root[data-theme="light"] body.gp-on .gp-theme:hover,
-:root[data-theme="light"] body.gp-on .gp-logout:hover{
-  background:#f4f8f5!important;
-  border-color:#aebfb5!important;
-}
-:root[data-theme="light"] body.gp-on .btn-primary{
-  background:linear-gradient(135deg,#087a32,#0b9540)!important;
-  border-color:#087a32!important;
-  box-shadow:0 5px 16px rgba(8,122,50,.16)!important;
-}
-:root[data-theme="light"] body.gp-on .import-note{
-  background:#f0f8f3!important;
-  border-color:#cfe6d7!important;
-}
-:root[data-theme="light"] body.gp-on .import-badge{
-  background:#e8f6ed!important;
-  color:#087a32!important;
-  border-color:#c7e5d1!important;
-}
-
-/* ---------- BOTH THEMES: better readability for import screens ---------- */
-.import-hero{
-  border-radius:16px!important;
-  padding:20px 22px!important;
-  margin-bottom:14px!important;
-}
-.import-kicker{
-  letter-spacing:.12em!important;
-  font-weight:800!important;
-  font-size:10px!important;
-  margin-bottom:6px!important;
-}
-.import-hero h2{margin:0 0 7px!important;font-size:22px!important;}
-.import-note{
-  border-radius:12px!important;
-  padding:12px 14px!important;
-  line-height:1.6!important;
-}
-.import-summary{
-  border-radius:11px!important;
-  padding:11px 13px!important;
-  margin:12px 0!important;
-}
-.import-table-wrap{
-  border-radius:12px!important;
-  overflow:auto!important;
-}
-#ppc-import-table,#fg-import-table{min-width:900px!important;}
-#ppc-import-table th,#fg-import-table th{
-  position:sticky!important;top:0!important;z-index:5!important;
-}
-@media(max-width:900px){
-  .import-hero{padding:16px!important;}
-  .import-hero h2{font-size:18px!important;}
-  .import-toolbar{gap:8px!important;}
-}
-</style>
