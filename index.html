@@ -2,23 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap">
-<link rel="preload" as="image" href="GREENPACK-LATEST-LOGO.png">
-<script>try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.add('has-session');}catch(e){}</script>
-<style>
-html.has-session #login-screen{display:none!important}
-#boot-splash{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:#08070d;color:#9a92ad;z-index:5000;font:13px system-ui}
-html.has-session body:not(.gp-on) #boot-splash{display:flex}
-@media (max-width:900px){
-  .card,.stat,.modal,.conn,.login-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-  .login-wrap::before,.login-wrap::after{animation:none!important;filter:blur(60px)}
-  body{background-attachment:scroll!important}
-}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-</style>
-
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Schedule vs Dispatch — MIS</title>
 <style>
@@ -157,6 +140,7 @@ html.has-session body:not(.gp-on) #boot-splash{display:flex}
   .status-msg.err { color:var(--danger); }
 
   /* ===== LOGIN ===== */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
 
 .login-wrap {
   min-height: 100vh;
@@ -709,7 +693,7 @@ input[type="checkbox"] { accent-color: #8b5cf6; }
 /* ===== BAR-FILL (progress) — violet to teal gradient ===== */
 .bar-fill { background: linear-gradient(90deg, #8b5cf6, #34d399); }
 
-</style>
+</style></style>
 
 
 <style>
@@ -2338,15 +2322,14 @@ html{scroll-padding-top:calc(var(--gp-header-h,72px) + 16px)!important;}
 
 <style id="gp-boot-style">
 html.has-session #login-screen{display:none!important}
-html.gp-booting #main-app{visibility:hidden!important}
-html.gp-booting #boot-splash{display:flex!important}
-#boot-splash{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:#08070d;color:#9a92ad;z-index:5000;font:13px system-ui}
+html.gp-booting #boot-splash{display:none!important}
+#boot-splash{display:none!important}
 @media(max-width:900px){.card,.stat,.modal,.conn,.login-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}body{background-attachment:scroll!important}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script>
 try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.add('has-session');}catch(e){}
-document.documentElement.classList.add('gp-booting');
+
 </script>
 <style id="greenpack-theme-v2">
 /* =========================================================
@@ -2582,8 +2565,6 @@ document.documentElement.classList.add('gp-booting');
 </head>
 <body>
 <div id="boot-splash">Loading MIS…</div>
-<body>
-<div id="boot-splash">Loading MIS…</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen" class="login-wrap">
@@ -2768,7 +2749,7 @@ document.documentElement.classList.add('gp-booting');
           </table>
         </div>
       </div>
-      <div class="sub stock-live-info" id="n-stock-info">Enter a Part Code to see current FG stock.</div>
+      <div class="sub" id="n-stock-info" class="stock-live-info">Enter a Part Code to see current FG stock.</div>
       <button class="btn-primary btn-block" onclick="submitOrder()">Create Order</button>
       <div class="status-msg" id="new-status"></div>
     </div>
@@ -3832,7 +3813,7 @@ async function doLogin() {
 });
 
 function doLogout() {
-  stopAutoRefresh(); IDB.clear(); document.documentElement.classList.remove('has-session');
+  stopAutoRefresh();
   sessionStorage.removeItem('svd_token');
   sessionStorage.removeItem('svd_session');
   sessionStorage.removeItem('svd_active_tab');
@@ -4011,52 +3992,6 @@ function setConn(state, msg) {
   el.textContent = msg;
 }
 
-
-let logShipToIndex = {};
-const IDB = {
-  _db:null,
-  open(){ return this._db ||= new Promise((res,rej)=>{const r=indexedDB.open('gp-mis',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}); },
-  async get(k){ try{const db=await this.open();return await new Promise(res=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null);});}catch(e){return null;} },
-  async set(k,v){ try{const db=await this.open();return await new Promise(res=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=res;t.onerror=res;});}catch(e){} },
-  async clear(){ try{const db=await this.open();db.transaction('kv','readwrite').objectStore('kv').clear();}catch(e){} }
-};
-let _cacheT;
-function saveCoreCache_(json){
-  if (Number(json.orderOffset||0) > 0 || !SESSION) return;
-  clearTimeout(_cacheT);
-  _cacheT = setTimeout(()=>IDB.set('core:'+SESSION.username,{v:dataVersion,payload:json}), 1500);
-}
-function buildLogShipToIndex_(){
-  logShipToIndex = {};
-  (data.logs||[]).forEach(l=>{const id=String(l.OrderID||''); if(id)(logShipToIndex[id] ||= []).push(String(l.ShipToParty||''));});
-}
-const TAB_RENDER = {
-  orders: () => renderTable(),
-  new: () => populateDispatchOrderSelect(),
-  multiple: () => { const c=document.getElementById('dispatch-multiple-card'); if (c && c.style.display!=='none') renderBulkDispatchRows(); },
-  'dispatch-history': () => renderDispatchHistory(),
-  stock: () => { renderStockTable(); renderStockMovementTable(); }
-};
-function renderCurrent_(){
-  const t = sessionStorage.getItem('svd_active_tab') || 'dashboard';
-  (TAB_RENDER[t] || (()=>{}))();
-}
-async function hydrateFromCache(){
-  if (!SESSION) return false;
-  const c = await IDB.get('core:'+SESSION.username);
-  if (!c || !c.payload) return false;
-  data = {...data, ...c.payload};
-  dataVersion = Number(c.v||0);
-  hasLoadedData = true;
-  rebuildStockIndex_(); buildLogShipToIndex_();
-  populateDropdowns(); renderStats(); renderCurrent_(); applyRoleUI();
-  if (typeof window.renderDash==='function') window.renderDash();
-  setConn('ok','Cached · syncing…');
-  return true;
-}
-const loadScript = src => new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});
-let _xl; const ensureXLSX = () => window.XLSX ? Promise.resolve() : (_xl ||= loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'));
-
 let loadInFlight = null;
 let hasLoadedData = false;
 let dataVersion = 0;
@@ -4227,7 +4162,6 @@ function switchTab(name) {
 }
 
 function populateDropdowns() {
-  const keep = ['f-customer','f-part','f-dept','f-status','f-unit'].map(id=>[id,document.getElementById(id)?.value]);
   const keep=['f-customer','f-part','f-dept','f-status','f-unit'].map(id=>[id,document.getElementById(id)?.value||'']);
   const uoms = (data.uoms && data.uoms.length) ? data.uoms : ['Nos','Pcs','Kg','Box','Sheet','Set','Meter'];
   ['n-uom','e-uom','d-uom','de-uom'].forEach(id => {
@@ -4269,7 +4203,6 @@ function populateDropdowns() {
   fp.innerHTML = '<option value="">All part codes</option>' + data.partCodes.map(p => `<option>${esc(p)}</option>`).join('');
   const fd = document.getElementById('f-dept');
   fd.innerHTML = '<option value="">All departments</option>' + data.departments.map(d => `<option>${esc(d)}</option>`).join('');
-  keep.forEach(([id,v])=>{const el=document.getElementById(id); if(el && v && [...el.options].some(o=>o.value===v||o.text===v)) el.value=v;});
 }
 
 function renderStats() {
@@ -6272,7 +6205,7 @@ window.gpOrder=id=>{const o=data.orders.find(x=>String(x.OrderID)===String(id));
 window.$=$;
 
 /* ---------- CHART HELPER ---------- */
-function ch(id,cfg,click,empty){const c=$(id);if(!c)return;if(charts[id])charts[id].destroy();const nd=c.nextElementSibling;
+function ch(id,cfg,click,empty){const c=$(id);if(!c)return;if(!window.Chart)return;if(charts[id])charts[id].destroy();const nd=c.nextElementSibling;
  nd.style.display=empty?'flex':'none';c.style.visibility=empty?'hidden':'visible';if(empty)return;
  const cs=getComputedStyle(document.documentElement);Chart.defaults.color=cs.getPropertyValue('--muted').trim()||'#888';Chart.defaults.borderColor=cs.getPropertyValue('--border').trim()||'#333';
  cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:250},onClick:click?(e,el)=>el.length&&click(el[0]):undefined,onHover:(e,el)=>{e.native.target.style.cursor=el.length&&click?'pointer':'default'}},cfg.options||{});
@@ -6548,7 +6481,7 @@ document.addEventListener('keydown',function(e){
     $('fg-import-apply').disabled=true;setStatus('fg-import-status','','');
   }
 
-  async async function downloadPPCTemplate(){ await ensureXLSX();
+  async function downloadPPCTemplate(){
     await ensureXLSX();
     const wb=XLSX.utils.book_new();
     const headers=['Customer Name','Customer Location','Order Type','Part Code','Set Code','Order Quantity','UOM','Production Unit','Priority Level','Scheduled Date','Ship To Party','Ship-to Address'];
@@ -6556,7 +6489,7 @@ document.addEventListener('keydown',function(e){
     XLSX.utils.book_append_sheet(wb,ws,'Import');
     XLSX.writeFile(wb,'Greenpack_PPC_Order_Import.xlsx');
   }
-  async async function downloadFGTemplate(){ await ensureXLSX();
+  async function downloadFGTemplate(){
     await ensureXLSX();
     const wb=XLSX.utils.book_new();
     const headers=['Part Code','Customer Name','Production Unit','Available Quantity','UOM','Stock Date','Remarks'];
@@ -6614,7 +6547,7 @@ async function loadState(){try{const j=await fetchAppScriptJson_(APPS_SCRIPT_URL
 async function onFile(f){
  const st=$('ty-st');st.textContent='Reading file…';st.className='status-msg';
  try{
-  await ensureXLSX();const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true}),j=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+  const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true}),j=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
   const seen={},out=[];let bad=0,scrap=0;
   j.forEach(r=>{const inv=String(r['Invoice No']).trim(),part=String(r['Part No.']).trim(),qty=N(r['Quantity']),dt=r['Date'],um=String(r['Voucher Type']).match(/unit[\s-]*(\d+|delta)/i);
    if(!inv||!part||qty<=0||!(dt instanceof Date)||!um){bad++;return}
@@ -6678,7 +6611,7 @@ window.switchTab=function(n){const t=$('tab-tally');
   if(!t)mount();
   const tt=$('tab-tally');if(tt)tt.style.display='block';document.querySelectorAll('#gp-nav .gp-it').forEach(i=>i.classList.toggle('on',i.dataset.t==='tally'));loadState()}
  else{if(t)t.style.display='none';if(_ty_sw)_ty_sw(n)}};
-window.showApp=function(){if(_ty_show)_ty_show();mount();gate();setTimeout(()=>{const wanted=sessionStorage.getItem('svd_active_tab')||'dashboard';if(typeof window.switchTab==='function')window.switchTab(wanted);document.documentElement.classList.remove('gp-booting');},0)};
+window.showApp=function(){if(_ty_show)_ty_show();mount();gate();const wanted=sessionStorage.getItem('svd_active_tab')||'dashboard';try{if(typeof window.switchTab==='function')window.switchTab(wanted);}catch(e){console.error('tab restore',e)}document.documentElement.classList.remove('gp-booting');if(window.lucide&&typeof window.lucide.createIcons==='function')window.lucide.createIcons();};
 window.applyRoleUI=function(){if(_ty_role)_ty_role();gate()};
 
 /* If the dashboard shell was already initialized before this patch loaded,
@@ -6841,8 +6774,26 @@ if(document.readyState!=='loading' && document.getElementById('main-app')) mount
 <script id="gp-final-boot">
 (function(){
   let booted=false;
-  function boot(){if(booted)return;booted=true;setTimeout(()=>{try{init();}catch(e){console.error('Greenpack startup failed',e);document.documentElement.classList.remove('gp-booting');}},0);}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+  function boot(){
+    if(booted)return;
+    booted=true;
+    try{init();}
+    catch(e){
+      console.error('Greenpack startup failed',e);
+      document.documentElement.classList.remove('gp-booting');
+      const login=document.getElementById('login-screen');
+      if(!TOKEN && login) login.style.display='flex';
+    }
+  }
+  // This script is the last script in <body>, so the required DOM already exists.
+  // Start immediately instead of waiting for DOMContentLoaded.
+  boot();
+  window.addEventListener('load',()=>{
+    try{
+      if(window.lucide&&typeof window.lucide.createIcons==='function')window.lucide.createIcons();
+      if(typeof window.renderDash==='function' && window.Chart && typeof window.cur!=='undefined') window.renderDash();
+    }catch(e){}
+  },{once:true});
 })();
 </script>
 </body>
