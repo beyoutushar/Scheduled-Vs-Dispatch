@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="application-version" content="2026.10.06-V8-MOBILE-STABLE">
 <title>Schedule vs Dispatch — MIS</title>
 <style>
   :root {
@@ -2320,6 +2321,279 @@ html{scroll-padding-top:calc(var(--gp-header-h,72px) + 16px)!important;}
 }
 </style>
 
+
+<style id="gp-mobile-performance-fix">
+/* =========================================================
+   GreenPack MIS — Mobile UX / Performance layer
+   This layer intentionally overrides only mobile behaviour.
+   ========================================================= */
+@media (max-width: 700px){
+  html, body{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+
+  body{
+    padding:10px 10px 34px;
+    background-attachment:scroll;
+  }
+
+  /* Compact top area */
+  .topbar{
+    gap:8px;
+    margin-bottom:12px;
+    align-items:center;
+  }
+  .topbar h1{font-size:17px}
+  .topbar .sub{font-size:11px}
+  .topbar > div:last-child{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    gap:6px;
+    align-items:center;
+  }
+  #role-badge{
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #conn{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .stats{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+    margin-bottom:10px;
+  }
+  .stat{
+    padding:10px 11px;
+    border-radius:11px;
+  }
+  .stat .n{font-size:19px}
+  .stat .l{font-size:9px}
+
+  .tabs{
+    gap:4px;
+    margin:0 -10px 10px;
+    padding:0 10px;
+  }
+  .tab{
+    font-size:12px;
+    padding:8px 3px;
+    margin-right:9px;
+  }
+
+  .card{
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:10px;
+  }
+  .card h2{font-size:13px;margin-bottom:10px}
+
+  /* Orders filter toolbar: search stays visible; filters collapse. */
+  #tab-orders .toolbar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px;
+    margin-bottom:8px;
+    align-items:center;
+  }
+  #tab-orders .search-wrap{
+    grid-column:1 / -1;
+    min-width:0;
+  }
+  #tab-orders .search-wrap input{
+    min-width:0;
+    height:42px;
+    font-size:13px;
+  }
+  #tab-orders .toolbar > select,
+  #tab-orders .date-filter-group{
+    display:none;
+  }
+  #tab-orders .toolbar.gp-filters-open > select,
+  #tab-orders .toolbar.gp-filters-open > .date-filter-group{
+    display:block;
+    grid-column:1 / -1;
+  }
+  #tab-orders .toolbar > .spacer{
+    display:none;
+  }
+
+  /* Add a compact filter toggle without changing the existing HTML. */
+  #tab-orders .gp-mobile-filter-toggle{
+    display:flex;
+    grid-column:1;
+    grid-row:2;
+    min-height:36px;
+    align-items:center;
+    justify-content:center;
+    padding:8px 10px;
+    border:1px solid var(--border);
+    border-radius:9px;
+    background:var(--panel-2);
+    color:var(--text);
+    font-size:12px;
+    font-weight:600;
+  }
+
+  #tab-orders .toolbar > button{
+    min-height:36px;
+    margin:0;
+  }
+  #tab-orders .toolbar > #csv-btn{
+    grid-column:1;
+    grid-row:auto;
+    display:none !important;
+  }
+  #tab-orders .toolbar > button[onclick="refreshData()"]{
+    grid-column:2;
+    grid-row:2;
+  }
+
+  /* When filters are opened, action buttons move below them. */
+  #tab-orders .toolbar.gp-filters-open .gp-mobile-filter-toggle{
+    background:var(--panel-3);
+    border-color:var(--accent);
+  }
+
+  .search-hint{
+    margin:4px 0 8px;
+    font-size:10px;
+    line-height:1.35;
+  }
+
+  .bulkbar{
+    padding:8px;
+    gap:6px;
+    margin:0 0 8px;
+  }
+  .bulkbar button,.bulkbar select{font-size:11px}
+
+  /* Never squeeze the Orders table. Scroll the table itself horizontally. */
+  #tab-orders .table-scroll{
+    width:100%;
+    max-width:100%;
+    overflow-x:auto;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    border:1px solid var(--border);
+    border-radius:10px;
+  }
+  #tab-orders #orders-table{
+    min-width:1050px;
+    width:max-content;
+    font-size:11px;
+  }
+  #tab-orders #orders-table th,
+  #tab-orders #orders-table td{
+    padding:8px 9px;
+    white-space:nowrap;
+  }
+  #tab-orders #orders-table th{
+    font-size:9px;
+  }
+  #tab-orders #orders-table th:first-child,
+  #tab-orders #orders-table td:first-child{
+    width:38px;
+    min-width:38px;
+    max-width:38px;
+    text-align:center;
+  }
+
+  /* Keep the first column sticky, but do not let it cover other cells. */
+  #tab-orders #orders-table td:first-child{
+    position:sticky;
+    left:0;
+    z-index:4;
+    background:var(--panel);
+  }
+  #tab-orders #orders-table th:first-child{
+    position:sticky;
+    left:0;
+    z-index:24;
+  }
+
+  /* Inputs/buttons are touch friendly but not oversized. */
+  input,select,textarea{
+    min-height:40px;
+    font-size:13px;
+  }
+  button{
+    min-height:38px;
+  }
+  .btn-small{
+    min-height:34px;
+    padding:7px 10px;
+    font-size:11px;
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+
+  .modal-backdrop{padding:8px}
+  .modal{
+    width:100%;
+    max-height:94vh;
+    padding:14px;
+    border-radius:13px;
+  }
+
+  .set-help{gap:6px}
+  .set-help-item{padding:8px}
+  .set-builder{padding:11px}
+  .set-component-table{min-width:620px}
+
+  .history-row{grid-template-columns:1fr}
+  .admin-grid{grid-template-columns:1fr}
+
+  /* Tally/Excel import controls */
+  .import-toolbar{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:7px;
+  }
+  .import-toolbar>div{
+    width:100%;
+  }
+  .import-toolbar button,
+  .import-toolbar input{
+    width:100%;
+  }
+  .import-hero{
+    padding:13px;
+    gap:8px;
+  }
+
+  /* Prevent long usernames/role strings from widening the viewport. */
+  .gp-head-brand,
+  .gp-head-user,
+  .gp-it,
+  .gp-nav{
+    min-width:0;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px){
+  body{padding-left:7px;padding-right:7px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat .n{font-size:17px}
+  .topbar > div:last-child{grid-template-columns:minmax(0,1fr) auto}
+  #conn{display:none}
+}
+</style>
+
 </head>
 
 <!-- LOGIN SCREEN -->
@@ -3335,33 +3609,63 @@ let APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
 // older URL stored by a previous GitHub build from silently taking over.
 localStorage.setItem('svd_url', APPS_SCRIPT_URL);
 
-async function fetchAppScriptJson_(url, options={}, retries=2){
+async function fetchAppScriptJson_(url, options={}, retries=3){
+  // Centralized network wrapper:
+  // - aborts genuinely stuck requests
+  // - retries transient Apps Script / mobile-network failures
+  // - keeps GET requests cache-busted
+  // - never overlaps the same dashboard load (loadData handles that separately)
+  const MAX_RETRIES = Math.max(0, Number(retries) || 0);
+  const TIMEOUT_MS = 25000;
   let lastErr;
-  for(let attempt=0; attempt<=retries; attempt++){
+
+  for(let attempt=0; attempt<=MAX_RETRIES; attempt++){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
     try{
-      const res = await fetch(url, {
-        cache:'no-store',
-        redirect:'follow',
+      const requestUrl = String(url).includes('_=')
+        ? String(url)
+        : String(url) + (String(url).includes('?') ? '&' : '?') + '_=' + Date.now();
+
+      const res = await fetch(requestUrl, {
+        cache: 'no-store',
+        redirect: 'follow',
+        credentials: 'omit',
+        signal: controller.signal,
         ...options
       });
+
       const raw = await res.text();
+
       if(!res.ok){
-        if([408,429,500,502,503,504].includes(res.status) && attempt<retries){
-          await new Promise(r=>setTimeout(r, 700*(attempt+1)));
+        const transient = [408,429,500,502,503,504].includes(res.status);
+        if(transient && attempt < MAX_RETRIES){
+          await new Promise(r => setTimeout(r, 700 * Math.pow(2, attempt)));
           continue;
         }
-        throw new Error('HTTP '+res.status+(raw ? ': '+raw.slice(0,180) : ''));
+        throw new Error('HTTP ' + res.status + (raw ? ': ' + raw.slice(0,180) : ''));
       }
-      try { return JSON.parse(raw); }
-      catch(e){ throw new Error('Apps Script returned non-JSON response'); }
+
+      try{
+        return JSON.parse(raw);
+      }catch(e){
+        throw new Error('Apps Script returned a non-JSON response.');
+      }
     }catch(e){
-      lastErr=e;
-      if(attempt<retries){
-        await new Promise(r=>setTimeout(r, 700*(attempt+1)));
+      lastErr = e && e.name === 'AbortError'
+        ? new Error('Request timed out while contacting Apps Script.')
+        : e;
+
+      if(attempt < MAX_RETRIES){
+        await new Promise(r => setTimeout(r, 700 * Math.pow(2, attempt)));
       }
+    }finally{
+      clearTimeout(timer);
     }
   }
-  throw lastErr || new Error('Unable to reach Apps Script');
+
+  throw lastErr || new Error('Unable to reach Apps Script.');
 }
 
 let TOKEN = sessionStorage.getItem('svd_token') || '';
@@ -3462,36 +3766,15 @@ async function doLogin() {
   setLoginLoading(true);
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
+    const result = await fetchAppScriptJson_(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'login',
         username: username,
         password: password
-      }),
-      redirect: 'follow',
-      cache: 'no-store'
-    });
-
-    const raw = await res.text();
-
-    if (!res.ok) {
-      statusEl.textContent = 'Server returned HTTP ' + res.status + '. Check Apps Script deployment.';
-      statusEl.className = 'status-msg err';
-      console.error('Login HTTP error:', res.status, raw);
-      return;
-    }
-
-    let result;
-    try {
-      result = JSON.parse(raw);
-    } catch (parseErr) {
-      statusEl.textContent = 'Apps Script did not return JSON. Redeploy the Web App and try again.';
-      statusEl.className = 'status-msg err';
-      console.error('Login non-JSON response:', raw);
-      return;
-    }
+      })
+    }, 3);
 
     if (result.error) {
       statusEl.textContent = result.error;
@@ -3717,8 +4000,24 @@ document.addEventListener('visibilitychange', () => {
 
 function setConn(state, msg) {
   const el = document.getElementById('conn');
-  el.className = 'conn ' + state;
-  el.textContent = msg;
+  if(!el) return;
+  el.className = 'conn ' + (state || '');
+  el.textContent = msg || '';
+  el.title = msg || '';
+}
+
+function setConnectionHealthy_(count){
+  setConn('ok', 'Live — connected' + (Number.isFinite(Number(count)) ? ' · ' + count + ' orders' : ''));
+}
+
+function setConnectionSoftError_(message){
+  // Do not immediately paint the whole dashboard red for one flaky mobile
+  // request. Existing data remains usable while the network wrapper retries.
+  if(hasLoadedData){
+    setConn('ok', 'Live · retrying connection…');
+  }else{
+    setConn('err', message || 'Unable to connect. Retrying…');
+  }
 }
 
 let loadInFlight = null;
@@ -3779,7 +4078,7 @@ async function loadData(silent=false,force=false) {
         return false;
       }
       if (json.error) {
-        if (!silent || !hasLoadedData) setConn('err', json.error);
+        setConnectionSoftError_(json.error);
         return false;
       }
 
@@ -3821,7 +4120,8 @@ async function loadData(silent=false,force=false) {
       if (document.querySelector('.tab.active')?.dataset.tab === 'admin') loadV2();
       return true;
     } catch (e) {
-      if (!silent || !hasLoadedData) setConn('err', 'Connection failed — data not lost.');
+      console.warn('Dashboard sync failed:', e);
+      setConnectionSoftError_(e && e.message ? e.message : 'Connection temporarily unavailable');
       return false;
     }
     finally { loadInFlight=null; }
@@ -6490,6 +6790,60 @@ if(document.readyState!=='loading' && document.getElementById('main-app')) mount
 
   new MutationObserver(highlightDailyUploadButtons)
     .observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="gp-mobile-performance-js">
+(function(){
+  function setupMobileOrdersUI(){
+    const toolbar=document.querySelector('#tab-orders .toolbar');
+    if(!toolbar) return;
+
+    let toggle=toolbar.querySelector('.gp-mobile-filter-toggle');
+    if(!toggle){
+      toggle=document.createElement('button');
+      toggle.type='button';
+      toggle.className='gp-mobile-filter-toggle';
+      toggle.textContent='Filters';
+      toggle.setAttribute('aria-expanded','false');
+      const search=toolbar.querySelector('.search-wrap');
+      if(search) search.insertAdjacentElement('afterend',toggle);
+      else toolbar.prepend(toggle);
+
+      toggle.addEventListener('click',function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        const open=toolbar.classList.toggle('gp-filters-open');
+        toggle.textContent=open?'Hide Filters':'Filters';
+        toggle.setAttribute('aria-expanded',String(open));
+      });
+    }
+
+    if(window.innerWidth>700){
+      toolbar.classList.remove('gp-filters-open');
+      toggle.textContent='Filters';
+      toggle.setAttribute('aria-expanded','false');
+    }
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',setupMobileOrdersUI,{once:true});
+  }else{
+    setupMobileOrdersUI();
+  }
+
+  window.addEventListener('resize',setupMobileOrdersUI,{passive:true});
+
+  // The app creates some panels dynamically, so only watch additions.
+  new MutationObserver(function(mutations){
+    for(const m of mutations){
+      if(m.addedNodes && m.addedNodes.length){
+        setupMobileOrdersUI();
+        break;
+      }
+    }
+  }).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 
