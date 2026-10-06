@@ -3844,7 +3844,7 @@ function applyRoleUI() {
   const isOwner = hasRole('owner'), isPPC = hasRole('ppc'), isDispatch = hasRole('dispatch'), isAdmin = hasRole('admin');
   const perms = new Set((data?.v2 && data.v2.permissions) || []);
   const can = p => isOwner || perms.has(p);
-  const allowed = new Set(['orders','stock','complaints','discussion']);
+  const allowed = new Set(['orders','stock','complaints','discussion','tally']);
   if (isOwner || isDispatch || can('view_dispatch')) allowed.add('dispatch-history');
   if (isOwner || isPPC || isAdmin || can('create_orders')) { allowed.add('multiple'); allowed.add('new'); allowed.add('ppc-import'); }
   if (isOwner || isPPC) allowed.add('sets');
@@ -6079,7 +6079,7 @@ const COL=['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#14b8a6','#eab308'
 const PANELS=['multiple','sets','orders','new','stock','dispatch-history','ppc-import','fg-import','complaints','discussion','admin'];
 let range='7',flt={},charts={},cur='dashboard',built=false;
 const NAV=[['','Dashboard','layout-dashboard','dashboard'],['ORDERS'],['All Orders','list','orders'],['New Order / Dispatch Entry','plus-square','new'],['Multiple Orders','layers','multiple'],['PPC Excel Import','file-spreadsheet','ppc-import'],['Customer Sets','boxes','sets'],
-['DISPATCH'],['Dispatch History','truck','dispatch-history'],['STOCK'],['FG Stock & Movement','package','stock'],['FG Excel Import','file-up','fg-import'],['WORKSPACE'],['Complaints','alert-triangle','complaints'],['Discussion','message-square','discussion'],['Administration','settings','admin']];
+['DISPATCH'],['Dispatch History','truck','dispatch-history'],['Tally Import','file-up','tally'],['STOCK'],['FG Stock & Movement','package','stock'],['FG Excel Import','file-up','fg-import'],['WORKSPACE'],['Complaints','alert-triangle','complaints'],['Discussion','message-square','discussion'],['Administration','settings','admin']];
 const today=()=>fmtDate(new Date());
 function rng(){const p=n=>String(n).padStart(2,'0'),k=d=>d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()),t=new Date();let a=new Date(t),b=new Date(t);
  if(range==='y'){a.setDate(a.getDate()-1);b=new Date(a)}else if(range==='m')a=new Date(t.getFullYear(),t.getMonth(),1);else a.setDate(a.getDate()-(+range-1));
@@ -6535,12 +6535,20 @@ function mount(){
  $('main-app').appendChild(d);
  $('ty-file').onchange=e=>e.target.files[0]&&onFile(e.target.files[0]);
  const nav=document.querySelector('#gp-nav');
- if(nav&&!nav.querySelector('[data-t="tally"]')){const it=document.createElement('div');it.className='gp-it';it.dataset.t='tally';it.title='Tally Import';
+ if(nav&&!nav.querySelector('[data-t="tally"]')){
+  const it=document.createElement('div');it.className='gp-it';it.dataset.t='tally';it.title='Tally Import';
   it.innerHTML='<i data-lucide="file-up"></i><span>Tally Import</span>';
-  const ref=nav.querySelector('[data-t="dispatch-history"]');ref?ref.after(it):nav.appendChild(it);if(window.lucide)lucide.createIcons();}
+  const ref=nav.querySelector('[data-t="dispatch-history"]');ref?ref.after(it):nav.appendChild(it);
+  if(window.lucide)lucide.createIcons();
+}
  gate();
 }
-function gate(){const it=document.querySelector('#gp-nav [data-t="tally"]');if(it)it.style.display=(typeof isOwnerUI==='function'&&isOwnerUI() || typeof isDispatchUI==='function'&&isDispatchUI())?'':'none'}
+function gate(){
+ const it=document.querySelector('#gp-nav [data-t="tally"]');
+ if(!it)return;
+ const allowed=(typeof isOwnerUI==='function'&&isOwnerUI()) || (typeof isDispatchUI==='function'&&isDispatchUI());
+ it.style.display=allowed?'':'none';
+}
 async function loadState(){try{const j=await fetchAppScriptJson_(APPS_SCRIPT_URL+'?mode=tallymap&token='+encodeURIComponent(TOKEN)+'&_='+Date.now());
  if(j.tally){map=j.tally.map||{};dup=new Set(j.tally.keys||[]);if(rows.length){fill();run();render()}}}catch(e){}}
 
