@@ -6779,6 +6779,472 @@ if(document.readyState!=='loading' && document.getElementById('main-app')) mount
 })();
 </script>
 
+
+<style id="greenpack-final-mobile-fix">
+/* =========================================================
+   GREENPACK — FINAL MOBILE UI FIX
+   Keeps desktop untouched. Mobile <= 700px only.
+   ========================================================= */
+@media (max-width:700px){
+
+  html, body{
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:hidden!important;
+  }
+
+  /* ---------- MOBILE HEADER ---------- */
+  body.gp-on #gp-top{
+    position:fixed!important;
+    top:0!important;
+    left:0!important;
+    right:0!important;
+    width:100%!important;
+    min-height:58px!important;
+    height:58px!important;
+    padding:7px 8px 7px 50px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:6px!important;
+    z-index:9000!important;
+    box-sizing:border-box!important;
+  }
+
+  body.gp-on .gp-head-brand{
+    min-width:0!important;
+    flex:1 1 auto!important;
+    overflow:hidden!important;
+  }
+
+  body.gp-on .gp-head-copy{
+    min-width:0!important;
+    max-width:100%!important;
+  }
+
+  body.gp-on .gp-head-title{
+    font-size:13px!important;
+    line-height:16px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  body.gp-on .gp-head-sub{
+    font-size:8.5px!important;
+    line-height:11px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  body.gp-on .gp-head-actions{
+    flex:0 0 auto!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:5px!important;
+  }
+
+  body.gp-on #gp-top .gp-lang{
+    width:58px!important;
+    min-width:58px!important;
+    height:32px!important;
+    min-height:32px!important;
+    padding:0 5px!important;
+    font-size:10px!important;
+  }
+
+  body.gp-on #gp-top .gp-theme,
+  body.gp-on #gp-top .gp-logout{
+    width:32px!important;
+    min-width:32px!important;
+    height:32px!important;
+    min-height:32px!important;
+    padding:0!important;
+  }
+
+  body.gp-on .gp-role,
+  body.gp-on .gp-conn,
+  body.gp-on .gp-user-pill{
+    display:none!important;
+  }
+
+  /* ---------- SIDE MENU ---------- */
+  body.gp-on #gp-side{
+    position:fixed!important;
+    top:0!important;
+    left:0!important;
+    bottom:0!important;
+    width:250px!important;
+    max-width:86vw!important;
+    height:100dvh!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    z-index:10001!important;
+    -webkit-overflow-scrolling:touch!important;
+    box-shadow:18px 0 45px rgba(0,0,0,.42)!important;
+  }
+
+  body.gp-on #gp-side .gp-brand{
+    position:sticky!important;
+    top:0!important;
+    z-index:5!important;
+    height:54px!important;
+    min-height:54px!important;
+    background:var(--panel)!important;
+  }
+
+  body.gp-on #gp-nav{
+    padding-bottom:10px!important;
+  }
+
+  body.gp-on #gp-nav .gp-grp{
+    padding:12px 14px 5px!important;
+    font-size:9px!important;
+    letter-spacing:.12em!important;
+  }
+
+  body.gp-on #gp-nav .gp-it{
+    min-height:42px!important;
+    height:42px!important;
+    margin:2px 8px!important;
+    padding:0 11px!important;
+    border-radius:9px!important;
+    font-size:12px!important;
+    gap:10px!important;
+  }
+
+  body.gp-on #gp-nav .gp-it svg{
+    width:16px!important;
+    height:16px!important;
+    flex:0 0 16px!important;
+  }
+
+  /* ---------- MAIN AREA ---------- */
+  body.gp-on #main-app{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:68px 8px 24px!important;
+    overflow-x:hidden!important;
+  }
+
+  body.gp-on .card{
+    width:100%!important;
+    max-width:100%!important;
+    padding:11px!important;
+    margin:0 0 10px!important;
+    border-radius:11px!important;
+  }
+
+  body.gp-on .toolbar{
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:7px!important;
+    margin-bottom:10px!important;
+  }
+
+  body.gp-on .toolbar > *{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+
+  body.gp-on .toolbar .spacer{
+    display:none!important;
+  }
+
+  body.gp-on .search-wrap,
+  body.gp-on .search-wrap input{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+
+  /* ---------- DASHBOARD ---------- */
+  body.gp-on .stats{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    margin-bottom:10px!important;
+  }
+
+  body.gp-on .stat{
+    min-width:0!important;
+    padding:10px!important;
+    border-radius:10px!important;
+  }
+
+  body.gp-on .stat .n,
+  body.gp-on .stat .num{
+    font-size:18px!important;
+    line-height:22px!important;
+  }
+
+  body.gp-on .stat .l{
+    font-size:8.5px!important;
+    line-height:11px!important;
+  }
+
+  /* Dashboard chart cards: one column on phone */
+  body.gp-on .dash-grid,
+  body.gp-on .dashboard-grid,
+  body.gp-on .chart-grid{
+    grid-template-columns:1fr!important;
+    width:100%!important;
+    gap:9px!important;
+  }
+
+  body.gp-on canvas{
+    max-width:100%!important;
+  }
+
+  /* ---------- FORMS ---------- */
+  body.gp-on .grid{
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+
+  body.gp-on .field{
+    width:100%!important;
+    min-width:0!important;
+    margin-bottom:8px!important;
+  }
+
+  body.gp-on input,
+  body.gp-on select,
+  body.gp-on textarea{
+    max-width:100%!important;
+    min-width:0!important;
+    font-size:12px!important;
+  }
+
+  body.gp-on button{
+    min-height:36px!important;
+    font-size:11.5px!important;
+  }
+
+  /* ---------- TABLES ----------
+     Keep wide tables inside horizontal scroll containers.
+     Never squeeze the entire page to fit a desktop table.
+  */
+  body.gp-on .table-scroll{
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    display:block!important;
+    -webkit-overflow-scrolling:touch!important;
+    scrollbar-width:thin!important;
+  }
+
+  body.gp-on .table-scroll table{
+    width:max-content!important;
+    min-width:680px!important;
+    max-width:none!important;
+    table-layout:auto!important;
+  }
+
+  body.gp-on th,
+  body.gp-on td{
+    white-space:nowrap!important;
+    padding:7px 8px!important;
+    font-size:10px!important;
+    margin:0!important;
+  }
+
+  /* ---------- BULK DISPATCH ---------- */
+  body.gp-on .bulk-dispatch-card{
+    padding:10px!important;
+  }
+
+  body.gp-on .bulk-dispatch-head{
+    flex-direction:column!important;
+    gap:7px!important;
+  }
+
+  body.gp-on .bulk-dispatch-toolbar{
+    display:block!important;
+    width:100%!important;
+  }
+
+  body.gp-on .bulk-search-box{
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  body.gp-on .bulk-dispatch-summary{
+    font-size:10px!important;
+    gap:5px!important;
+  }
+
+  body.gp-on .bulk-dispatch-list{
+    width:100%!important;
+    max-width:100%!important;
+    max-height:52vh!important;
+    overflow:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+
+  body.gp-on .bulk-dispatch-list table{
+    min-width:980px!important;
+    width:max-content!important;
+  }
+
+  body.gp-on .bulk-dispatch-actionbar{
+    margin-left:-10px!important;
+    margin-right:-10px!important;
+    padding:9px 10px!important;
+  }
+
+  body.gp-on .bulk-action-fields{
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+  }
+
+  body.gp-on .bulk-submit-area{
+    flex-direction:column!important;
+    align-items:stretch!important;
+  }
+
+  body.gp-on .bulk-submit-btn{
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  /* ---------- PPC IMPORT / FG IMPORT / TALLY ---------- */
+  body.gp-on #tab-ppc-import .card,
+  body.gp-on #tab-fg-import .card,
+  body.gp-on #tab-tally .card{
+    padding:10px!important;
+  }
+
+  body.gp-on #tab-ppc-import .table-scroll table,
+  body.gp-on #tab-fg-import .table-scroll table,
+  body.gp-on #tab-tally .table-scroll table{
+    min-width:760px!important;
+  }
+
+  body.gp-on #ty-file,
+  body.gp-on #ppc-file,
+  body.gp-on #fg-file{
+    width:100%!important;
+    max-width:100%!important;
+    font-size:11px!important;
+  }
+
+  /* ---------- PPC ORDER TABLE ---------- */
+  body.gp-on #ppc-order-bulk-table{
+    min-width:1080px!important;
+    width:max-content!important;
+  }
+
+  /* ---------- SET BUILDER ---------- */
+  body.gp-on .set-builder{
+    padding:10px!important;
+    overflow:hidden!important;
+  }
+
+  body.gp-on .set-help{
+    grid-template-columns:1fr!important;
+    gap:6px!important;
+  }
+
+  body.gp-on .set-builder-head{
+    flex-direction:column!important;
+    gap:7px!important;
+  }
+
+  body.gp-on .set-component-table{
+    min-width:620px!important;
+  }
+
+  /* ---------- MODALS ---------- */
+  body.gp-on .modal-backdrop{
+    padding:8px!important;
+  }
+
+  body.gp-on .modal{
+    width:100%!important;
+    max-width:100%!important;
+    max-height:94dvh!important;
+    padding:13px!important;
+    border-radius:12px!important;
+  }
+
+  body.gp-on .modal-actions{
+    flex-wrap:wrap!important;
+  }
+
+  body.gp-on .modal-actions button{
+    flex:1 1 120px!important;
+  }
+
+  /* ---------- CHAT / COMPLAINTS ---------- */
+  body.gp-on .chat-box{
+    max-height:55vh!important;
+  }
+
+  body.gp-on .chat-text{
+    max-width:96%!important;
+    font-size:12px!important;
+  }
+
+  /* ---------- ADMIN ---------- */
+  body.gp-on .admin-grid{
+    grid-template-columns:1fr!important;
+    gap:9px!important;
+  }
+
+  body.gp-on .admin-panel{
+    padding:11px!important;
+  }
+
+  /* ---------- PREVENT ACCIDENTAL HORIZONTAL PAGE SCROLL ---------- */
+  body.gp-on .topbar,
+  body.gp-on .tabs,
+  body.gp-on .card,
+  body.gp-on .tab-panel{
+    max-width:100%!important;
+  }
+
+  body.gp-on .tabs{
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+}
+
+/* Small phones */
+@media(max-width:390px){
+  body.gp-on #main-app{
+    padding-left:6px!important;
+    padding-right:6px!important;
+  }
+
+  body.gp-on #gp-top{
+    padding-left:48px!important;
+  }
+
+  body.gp-on #gp-top .gp-lang{
+    width:52px!important;
+    min-width:52px!important;
+    font-size:9px!important;
+  }
+
+  body.gp-on .stats{
+    gap:6px!important;
+  }
+
+  body.gp-on .stat{
+    padding:8px!important;
+  }
+
+  body.gp-on .stat .n,
+  body.gp-on .stat .num{
+    font-size:16px!important;
+  }
+}
+</style>
+
 <script id="gp-final-boot">
 (function(){
   let booted=false;
