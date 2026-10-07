@@ -3585,13 +3585,16 @@ let APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
 // older URL stored by a previous GitHub build from silently taking over.
 localStorage.setItem('svd_url', APPS_SCRIPT_URL);
 
-async function fetchAppScriptJson_(url, options={}, retries=2){
+async function fetchAppScriptJson_(url, options={}, retries=1){
   let lastErr;
   for(let attempt=0; attempt<=retries; attempt++){
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 30000);
     try{
       const res = await fetch(url, {
         cache:'no-store',
         redirect:'follow',
+        signal:controller.signal,
         ...options
       });
       const raw = await res.text();
@@ -3605,10 +3608,14 @@ async function fetchAppScriptJson_(url, options={}, retries=2){
       try { return JSON.parse(raw); }
       catch(e){ throw new Error('Apps Script returned non-JSON response'); }
     }catch(e){
-      lastErr=e;
+      lastErr = e && e.name === 'AbortError'
+        ? new Error('Apps Script connection timed out after 30 seconds.')
+        : e;
       if(attempt<retries){
-        await new Promise(r=>setTimeout(r, 700*(attempt+1)));
+        await new Promise(r=>setTimeout(r, 350*(attempt+1)));
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   throw lastErr || new Error('Unable to reach Apps Script');
@@ -7382,6 +7389,21 @@ if(document.readyState!=='loading' && document.getElementById('main-app')) mount
   mq.addEventListener('change',()=>{side()?.classList.remove('open');sync();});
 })();
 </script>
+
+<style id="gp-mobile-header-fix">
+@media (max-width:900px){
+  body.gp-on #gp-top .gp-head-brand{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important;flex:1 1 auto!important;overflow:hidden!important}
+  body.gp-on #gp-top .gp-head-logo{display:block!important;width:104px!important;height:38px!important;object-fit:contain!important;object-position:left center!important;flex:none!important}
+  body.gp-on #gp-top .gp-head-copy{display:block!important;min-width:0!important}
+  body.gp-on #gp-top .gp-head-title{display:block!important;font-size:13px!important;line-height:16px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  body.gp-on #gp-top .gp-head-sub{display:none!important}
+  body.gp-on #gp-top .gp-logout{display:none!important}
+}
+@media (max-width:520px){
+  body.gp-on #gp-top .gp-head-copy{display:none!important}
+  body.gp-on #gp-top .gp-head-logo{width:124px!important;height:42px!important}
+}
+</style>
+
 </body>
 </html>
-
