@@ -209,7 +209,7 @@
   width: 380px;
   max-width: 92vw;
   box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(124,58,237,.08) inset;
-  opacity: 0;
+  opacity: 1;
   animation: cardRise .6s cubic-bezier(.16,1,.3,1) .15s forwards;
 }
 @keyframes cardRise {
@@ -226,7 +226,7 @@
   border-radius: 10px;
   display: block;
   box-shadow: 0 6px 18px rgba(0,0,0,.3);
-  opacity: 0;
+  opacity: 1;
   animation: logoRise .5s cubic-bezier(.16,1,.3,1) .05s forwards;
 }
 @keyframes logoRise {
@@ -2325,7 +2325,11 @@ html.has-session #login-screen{display:none!important}
 html.gp-booting #boot-splash{display:none!important}
 #boot-splash{display:none!important}
 @media(max-width:900px){.card,.stat,.modal,.conn,.login-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}body{background-attachment:scroll!important}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .login-card{opacity:1!important;transform:none!important}
+  .login-card .brand-logo{opacity:1!important;transform:none!important}
+}
 </style>
 <script>
 try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.add('has-session');}catch(e){}
@@ -4213,12 +4217,13 @@ function populateDropdowns() {
 }
 
 function renderStats() {
-  const orders = data.orders;
-  const pending = orders.filter(o => o.Status === 'Pending');
-  const completed = orders.filter(o => o.Status === 'Completed');
+  const orders = data.orders || [];
+  const pendingQtyOf = o => Math.max(0, Number(o.OrderQty||0) - Number(o.DispatchedQty||0));
+  const pending = orders.filter(o => pendingQtyOf(o) > 0);
+  const completed = orders.filter(o => Number(o.OrderQty||0) > 0 && pendingQtyOf(o) <= 0);
   const totalOrderQty = orders.reduce((s,o) => s + Number(o.OrderQty||0), 0);
-  const totalDispatched = orders.reduce((s,o) => s + Number(o.DispatchedQty||0), 0);
-  const totalPendingQty = orders.reduce((s,o) => s + Number(o.PendingQty||0), 0);
+  const totalDispatched = orders.reduce((s,o) => s + Math.max(0,Number(o.DispatchedQty||0)), 0);
+  const totalPendingQty = orders.reduce((s,o) => s + pendingQtyOf(o), 0);
   const custPending = new Set(pending.map(o => o.Customer)).size;
 
   document.getElementById('stats').innerHTML = `
@@ -6096,7 +6101,9 @@ const inR=(d,a,b)=>d>=a&&d<=b;
 const reason=o=>String(o.PendingReason||'—').replace(/\d[\d,]*/g,'N');
 function age(o){const s=fmtDate(o.ScheduledDate);if(s==='—')return null;const d=Math.floor((new Date(today())-new Date(s))/864e5);return d<0?null:d<=1?'0–1 Days':d<=3?'2–3 Days':d<=7?'4–7 Days':d<=15?'8–15 Days':'15+ Days'}
 const okF=o=>(!flt.unit||o.Unit===flt.unit)&&(!flt.cust||o.Customer===flt.cust)&&(!flt.reason||reason(o)===flt.reason)&&(!flt.age||age(o)===flt.age);
-const isOpen=o=>String(o.Status)==='Pending'&&N(o.PendingQty)>0;
+const dashPendingQty=o=>Math.max(0,N(o.OrderQty)-N(o.DispatchedQty));
+const dashIsCompleted=o=>N(o.OrderQty)>0&&dashPendingQty(o)<=0;
+const isOpen=o=>String(o.Status)==='Pending'&&dashPendingQty(o)>0;
 
 /* ---------- SHELL ---------- */
 function build(){
@@ -6225,15 +6232,60 @@ const dlt=(a,b)=>{if(!b&&!a)return'<i class="nu">—</i>';const p=b?((a-b)/b*100
 /* ---------- DASHBOARD ---------- */
 function renderDash(){
  const root=$('tab-dashboard');if(!root||!built||!data.orders)return;
- const R=rng(),all=data.orders,orders=all.filter(okF),open=orders.filter(isOpen),logs=data.logs||[];
+ const R=rng(),all=data.orders,orders=all.filter(okF),open=orders.filter(o=>dashPendingQty(o)>0),logs=data.logs||[];
  const oById={};all.forEach(o=>oById[String(o.OrderID)]=o);
  const sc=orders.filter(o=>inR(fmtDate(o.ScheduledDate),R.from,R.to)),sp=orders.filter(o=>inR(fmtDate(o.ScheduledDate),R.pf,R.pt));
  const lg=a=>logs.filter(l=>oById[String(l.OrderID)]&&okF(oById[String(l.OrderID)])&&inR(fmtDate(l.DispatchedDate),a[0],a[1]));
  const lc=lg([R.from,R.to]),lp=lg([R.pf,R.pt]);
+
+ /* ---------- KPI quantities: always derive remaining qty from Order - Dispatched ---------- */
+ const orderQty=sum(sc,o=>o.OrderQty);
+ const dispatchedQty=sum(lc,l=>Math.max(0,N(l.DispatchedQty)));
+ const pendingQty=sum(sc,o=>dashPendingQty(o));
+ const completedCount=sc.filter(dashIsCompleted).length;
+ const pendingCount=sc.filter(o=>dashPendingQty(o)>0).length;
+
+ /* ---------- Dispatch achievement ---------- */
+ const periodDispatchPct=orderQty>0?Math.min(100,(dispatchedQty/orderQty)*100):null;
+
+ /* Yesterday = scheduled quantity for yesterday vs quantity dispatched by end of yesterday.
+    This avoids showing >100% and avoids counting today's dispatch against yesterday. */
+ const yDate=new Date();
+ yDate.setDate(yDate.getDate()-1);
+ const yday=fmtDate(yDate);
+ const yOrders=all.filter(o=>okF(o)&&fmtDate(o.ScheduledDate)===yday);
+ const yOrderIds=new Set(yOrders.map(o=>String(o.OrderID)));
+ const yScheduledQty=sum(yOrders,o=>o.OrderQty);
+ const yDispatchLogs=logs.filter(l=>yOrderIds.has(String(l.OrderID))&&fmtDate(l.DispatchedDate)<=yday);
+ const yDispatchedQty=Math.min(yScheduledQty,
+   yDispatchLogs.length
+     ? sum(yDispatchLogs,l=>Math.max(0,N(l.DispatchedQty)))
+     : sum(yOrders,o=>Math.max(0,N(o.DispatchedQty)))
+ );
+ const yPct=yScheduledQty>0?Math.min(100,(yDispatchedQty/yScheduledQty)*100):null;
+ const yDone=yPct!==null&&yPct>=99.999;
+
  const fg=sum(data.stock||[],s=>s.AvailableQty),cp=new Set(open.map(o=>o.Customer)).size;
- const K=[['Total Orders',sc.length,dlt(sc.length,sp.length),{'f-status':''}],['Completed',sc.filter(o=>o.Status==='Completed').length,'<i class="nu">in period</i>',{'f-status':'Completed'}],['Pending Orders',open.length,'<i class="nu">open now</i>',{'f-status':'Pending'}],
- ['Order Qty',F(sum(sc,o=>o.OrderQty)),dlt(sum(sc,o=>o.OrderQty),sum(sp,o=>o.OrderQty)),{}],['Dispatched Qty',F(sum(lc,l=>l.DispatchedQty)),dlt(sum(lc,l=>l.DispatchedQty),sum(lp,l=>l.DispatchedQty)),{}],
- ['Pending Qty',F(sum(open,o=>o.PendingQty)),'<i class="nu">open now</i>',{'f-status':'Pending'}],['FG Stock',F(fg),'<i class="nu">current</i>','stock'],['Customers Pending',cp,'<i class="nu">open now</i>',{'f-status':'Pending'}]];
+
+ const pctText=periodDispatchPct===null?'—':periodDispatchPct.toFixed(1)+'%';
+ const yPctText=yPct===null?'No scheduled dispatch':yPct.toFixed(1)+'%';
+ const ySub=yPct===null
+   ? '<i class="nu">no scheduled qty yesterday</i>'
+   : `<i class="${yDone?'up':'dn'}">${yDone?'✓ Done':'⚠ '+F(yScheduledQty-yDispatchedQty)+' pending'} <span class="nu">yesterday</span></i>`;
+
+ const K=[
+   ['Total Orders',sc.length,dlt(sc.length,sp.length),{'f-status':''}],
+   ['Completed',completedCount,'<i class="nu">in period</i>',{'f-status':'Completed'}],
+   ['Pending Orders',pendingCount,'<i class="nu">in selected period</i>',{'f-status':'Pending'}],
+   ['Order Qty',F(orderQty),dlt(orderQty,sum(sp,o=>o.OrderQty)),{}],
+   ['Dispatched Qty',F(dispatchedQty),dlt(dispatchedQty,sum(lp,l=>l.DispatchedQty)),{}],
+   ['Pending Qty',F(pendingQty),'<i class="nu">Order Qty − Dispatched Qty</i>',{'f-status':'Pending'}],
+   ['Dispatch %',pctText,`<i class="${periodDispatchPct!==null&&periodDispatchPct>=100?'up':'nu'}">${periodDispatchPct!==null&&periodDispatchPct>=100?'✓ 100% done':'achievement for selected period'}</i>`,{}],
+   ['Yesterday Dispatch',yPctText,ySub,{}],
+   ['FG Stock',F(fg),'<i class="nu">current</i>','stock'],
+   ['Customers Pending',cp,'<i class="nu">open now</i>',{'f-status':'Pending'}]
+ ];
+
  const chips=Object.entries(flt).map(([k,v])=>`<span class="gp-chip" onclick="gpClear('${k}')">${k}: ${esc(v)} ✕</span>`).join('');
  root.innerHTML=`${chips?`<div>${chips}<span class="gp-chip" onclick="gpClear()">Clear all</span></div>`:''}
  <div class="gp-kpis">${K.map((k,i)=>`<div class="gp-k" data-k="${i}"><small>${k[0]}</small><b>${k[1]}</b>${k[2]}</div>`).join('')}</div>
@@ -6242,44 +6294,71 @@ function renderDash(){
  ${card('c-age','Pending Aging (by scheduled date)')}${card('c-fg','FG Stock Health (stock vs open demand)','w4')}${card('c-mix','Customer Dispatch Mix','w4')}
  ${card('c-sc','Order vs Dispatch (each dot = order)','w12')}
  <div class="gp-c" id="gp-att"></div><div class="gp-c" id="gp-rec"></div><div class="gp-c w12" id="gp-tl"></div></div>`;
- root.querySelectorAll('.gp-k').forEach(e=>e.onclick=()=>{const k=K[e.dataset.k][3];k==='stock'?switchTab('stock'):gpGo('orders',k)});
+
+ root.querySelectorAll('.gp-k').forEach(e=>e.onclick=()=>{
+   const k=K[e.dataset.k][3];
+   k==='stock'?switchTab('stock'):gpGo('orders',k)
+ });
+
  /* trend */
  const pd={},dd={},od={};R.days.forEach(d=>{pd[d]=0;dd[d]=0;od[d]=0});
- sc.forEach(o=>{const d=fmtDate(o.ScheduledDate);od[d]+=N(o.OrderQty);pd[d]+=N(o.PendingQty)});lc.forEach(l=>dd[fmtDate(l.DispatchedDate)]+=N(l.DispatchedQty));
+ sc.forEach(o=>{const d=fmtDate(o.ScheduledDate);od[d]+=N(o.OrderQty);pd[d]+=dashPendingQty(o)});
+ lc.forEach(l=>dd[fmtDate(l.DispatchedDate)]+=Math.max(0,N(l.DispatchedQty)));
  ch('c-trend',{type:'line',data:{labels:R.days.map(d=>d.slice(8)+'/'+d.slice(5,7)),datasets:[['Orders',od,COL[1]],['Dispatch',dd,COL[0]],['Pending',pd,COL[2]]].map(s=>({label:s[0],data:R.days.map(d=>s[1][d]),borderColor:s[2],backgroundColor:s[2]+'22',fill:true,tension:.3}))}},null,!sc.length&&!lc.length);
+
  /* reasons */
- const rs=grp(open,reason,o=>o.PendingQty).slice(0,7),rt=sum(rs,r=>r[1]);
+ const rs=grp(open,reason,o=>dashPendingQty(o)).slice(0,7),rt=sum(rs,r=>r[1]);
  ch('c-reason',{type:'doughnut',data:{labels:rs.map(r=>r[0]),datasets:[{data:rs.map(r=>r[1]),backgroundColor:COL}]},options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.label.slice(0,40)+': '+F(c.raw)+' ('+(c.raw/rt*100).toFixed(1)+'%)'}}}}},e=>gpSet('reason',rs[e.index][0]),!rs.length);
+
  /* unit */
- const us=(data.units||[]).map(u=>{const x=orders.filter(o=>o.Unit===u);return[u,sum(x,o=>o.OrderQty),sum(x,o=>o.DispatchedQty),sum(x,o=>o.PendingQty)]}).filter(u=>u[1]);
+ const us=(data.units||[]).map(u=>{const x=orders.filter(o=>o.Unit===u);return[u,sum(x,o=>o.OrderQty),sum(x,o=>Math.max(0,N(o.DispatchedQty))),sum(x,o=>dashPendingQty(o))]}).filter(u=>u[1]);
  ch('c-unit',{type:'bar',data:{labels:us.map(u=>u[0]),datasets:[['Order Qty',1,COL[1]],['Dispatch Qty',2,COL[0]],['Pending Qty',3,COL[2]]].map(s=>({label:s[0],data:us.map(u=>u[s[1]]),backgroundColor:s[2]}))}},e=>gpSet('unit',us[e.index][0]),!us.length);
+
  /* customer pending */
- const cs=grp(open,o=>o.Customer,o=>o.PendingQty).slice(0,10);
+ const cs=grp(open,o=>o.Customer,o=>dashPendingQty(o)).slice(0,10);
  ch('c-cust',{type:'bar',data:{labels:cs.map(c=>c[0]),datasets:[{label:'Pending Qty',data:cs.map(c=>c[1]),backgroundColor:COL[2]}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}},e=>gpSet('cust',cs[e.index][0]),!cs.length);
+
  /* aging */
- const B=['0–1 Days','2–3 Days','4–7 Days','8–15 Days','15+ Days'],P=['High','Medium','Low'],ac={};open.forEach(o=>{const b=age(o);if(b){ac[b]=ac[b]||{};ac[b][o.Priority]=(ac[b][o.Priority]||0)+1}});
+ const B=['0–1 Days','2–3 Days','4–7 Days','8–15 Days','15+ Days'],P=['High','Medium','Low'],ac={};
+ open.forEach(o=>{const b=age(o);if(b){ac[b]=ac[b]||{};ac[b][o.Priority]=(ac[b][o.Priority]||0)+1}});
  ch('c-age',{type:'bar',data:{labels:B,datasets:P.map((p,i)=>({label:p+' priority',data:B.map(b=>(ac[b]||{})[p]||0),backgroundColor:[COL[3],COL[2],COL[7]][i]}))},options:{scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'Orders'}}}}},e=>gpSet('age',B[e.index]),!Object.keys(ac).length);
+
  /* FG health: stock vs open pending demand per part+unit */
- const dm={};open.forEach(o=>{const k=o.PartCode+'|'+o.Unit;dm[k]=(dm[k]||0)+N(o.PendingQty)});
- const hc={'Healthy':0,'Low Stock':0,'Critical':0,'No Stock':0};Object.keys(dm).forEach(k=>{const [p,u]=k.split('|'),s=getStockFor(p,u),r=s/dm[k];hc[s<=0?'No Stock':r<.5?'Critical':r<1?'Low Stock':'Healthy']++});
+ const dm={};open.forEach(o=>{const k=o.PartCode+'|'+o.Unit;dm[k]=(dm[k]||0)+dashPendingQty(o)});
+ const hc={'Healthy':0,'Low Stock':0,'Critical':0,'No Stock':0};
+ Object.keys(dm).forEach(k=>{const [p,u]=k.split('|'),s=getStockFor(p,u),r=s/dm[k];hc[r>=1?'Healthy':r>=.5?'Low Stock':r>0?'Critical':'No Stock']++});
  ch('c-fg',{type:'doughnut',data:{labels:Object.keys(hc),datasets:[{data:Object.values(hc),backgroundColor:[COL[0],COL[2],COL[3],'#7f1d1d']}]},options:{cutout:'65%',plugins:{legend:{position:'bottom',labels:{boxWidth:10}}}}},()=>switchTab('stock'),!Object.keys(dm).length);
+
  /* dispatch mix */
  const mx=grp(lc,l=>(oById[String(l.OrderID)]||{}).Customer,l=>l.DispatchedQty),top=mx.slice(0,6),oth=sum(mx.slice(6),m=>m[1]);if(oth)top.push(['Other',oth]);
  ch('c-mix',{type:'doughnut',data:{labels:top.map(t=>t[0]),datasets:[{data:top.map(t=>t[1]),backgroundColor:COL}]},options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}},e=>top[e.index][0]!=='Other'&&gpSet('cust',top[e.index][0]),!top.length);
+
  /* scatter */
  const pts=orders.filter(o=>N(o.OrderQty)>0).slice(0,600).map(o=>({x:N(o.OrderQty),y:N(o.DispatchedQty),o}));
- ch('c-sc',{type:'scatter',data:{datasets:[{label:'Orders',data:pts,backgroundColor:pts.map(p=>p.o.Status==='Completed'?COL[0]:COL[2])}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const o=c.raw.o;return[o.OrderID+' · '+o.Customer,o.PartCode+' · '+o.Unit,'Order '+F(o.OrderQty)+' / Disp '+F(o.DispatchedQty)+' / Pend '+F(o.PendingQty)]}}}},scales:{x:{title:{display:true,text:'Order Quantity'}},y:{title:{display:true,text:'Dispatched Quantity'}}}}},e=>gpOrder(pts[e.index].o.OrderID),!pts.length);
+ ch('c-sc',{type:'scatter',data:{datasets:[{label:'Orders',data:pts,backgroundColor:pts.map(p=>dashIsCompleted(p.o)?COL[0]:COL[2])}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const o=c.raw.o;return[o.OrderID+' · '+o.Customer,o.PartCode+' · '+o.Unit,'Order '+F(o.OrderQty)+' / Disp '+F(o.DispatchedQty)+' / Pend '+F(dashPendingQty(o))]}}}},scales:{x:{title:{display:true,text:'Order Quantity'}},y:{title:{display:true,text:'Dispatched Quantity'}}}}},e=>gpOrder(pts[e.index].o.OrderID),!pts.length);
+
  /* attention */
  const td=today(),over=open.filter(o=>{const s=fmtDate(o.ScheduledDate);return s!=='—'&&s<td}),A=[];
- grp(open,o=>o.Customer,o=>o.PendingQty).slice(0,3).forEach(([c,q])=>{const x=open.filter(o=>o.Customer===c),ov=x.filter(o=>over.includes(o)).length;A.push([ov?'c':'w',`<b>${esc(c)}</b><br><small>${F(q)} qty pending · ${x.length} orders · ${ov} overdue</small>`,`gpSet('cust','${esc(c).replace(/'/g,"\\'")}')`,'View'])});
- grp(open,o=>o.Unit,()=>1).slice(0,1).forEach(([u,n])=>A.push(['w',`<b>${esc(u)}</b><br><small>${n} pending orders</small>`,`gpSet('unit','${esc(u)}')`,'View Orders']));
- Object.keys(dm).filter(k=>getStockFor(...k.split('|'))<=0).sort((a,b)=>dm[b]-dm[a]).slice(0,3).forEach(k=>A.push(['c',`<b>${esc(k.split('|')[0])}</b> · ${esc(k.split('|')[1])}<br><small>No FG stock · ${F(dm[k])} qty needed</small>`,`gpGo('stock')`,'View Stock']));
- $('gp-att').innerHTML=`<h3>Attention Required <small class="nu">(${over.length} overdue orders)</small></h3>`+(A.map(a=>`<div class="gp-row"><span class="gp-sev ${a[0]}">${a[0]==='c'?'CRITICAL':'WARNING'}</span><span style="flex:1">${a[1]}</span><button class="btn-ghost btn-small" onclick="${a[2]}">${a[3]}</button></div>`).join('')||'<div class="sub">Nothing needs attention 🎉</div>');
+ grp(open,o=>o.Customer,o=>dashPendingQty(o)).slice(0,3).forEach(([c,q])=>{
+   const x=open.filter(o=>o.Customer===c),ov=x.filter(o=>over.includes(o)).length;
+   A.push([ov?"Overdue":"Pending",c,q,ov]);
+ });
+ $('gp-att').innerHTML=`<h3>Attention</h3>${A.map(a=>`<div class="gp-row"><span><b>${a[0]}</b> · ${esc(a[1])}</span><span>${F(a[2])} qty${a[3]?` · ${a[3]} overdue`:''}</span></div>`).join('')||'<div class="sub">No pending attention items</div>'}`;
+
+ /* recommendations */
+ const rec=[];
+ if(yPct!==null&&yPct<100)rec.push(`Yesterday dispatch achievement was ${yPct.toFixed(1)}% — ${F(yScheduledQty-yDispatchedQty)} qty was not dispatched by end of yesterday.`);
+ if(yPct===100)rec.push('Yesterday dispatch achievement was 100% — all scheduled quantity was dispatched.');
+ if(periodDispatchPct!==null&&periodDispatchPct<90)rec.push(`Selected-period dispatch achievement is ${periodDispatchPct.toFixed(1)}%. Review pending orders and dispatch constraints.`);
+ if(pendingQty>0)rec.push(`Current period pending quantity is ${F(pendingQty)} against ${F(orderQty)} ordered quantity.`);
+ $('gp-rec').innerHTML=`<h3>Management Summary</h3>${rec.map(x=>`<div class="gp-row"><span>${esc(x)}</span></div>`).join('')||'<div class="sub">No management exceptions for the selected period.</div>'}`;
+
  /* recent dispatches */
- const rec=[...lc].sort((a,b)=>new Date(b.LoggedAt||0)-new Date(a.LoggedAt||0)).slice(0,8);
- $('gp-rec').innerHTML=`<h3>Recent Dispatches</h3><div class="table-scroll"><table><tr><th>When</th><th>Order</th><th>Customer</th><th>Qty</th><th>By</th></tr>${rec.map(l=>{const o=oById[String(l.OrderID)]||{};return`<tr style="cursor:pointer" onclick="gpOrder('${esc(l.OrderID)}')"><td>${esc(fmtDateTime(l.LoggedAt))}</td><td>${esc(o.PartCode||'')}</td><td>${esc(o.Customer||'')}</td><td>${F(l.DispatchedQty)}</td><td>${esc(actorShortName(l.DispatchedByName||l.DispatchedBy))}</td></tr>`}).join('')||'<tr><td colspan=5 class="empty">No dispatches in this period</td></tr>'}</table></div>`;
+ const recLogs=lc.slice().sort((a,b)=>new Date(b.LoggedAt||b.DispatchedDate||0)-new Date(a.LoggedAt||a.DispatchedDate||0)).slice(0,8);
+ $('gp-rec').insertAdjacentHTML('afterend', '');
  /* timeline */
- const ev=[];lc.forEach(l=>{const o=oById[String(l.OrderID)]||{};ev.push([l.LoggedAt,`<b>Dispatch recorded</b> · ${esc(o.Customer||'')} · ${esc(o.PartCode||'')} · ${F(l.DispatchedQty)} qty · ${esc(l.Unit||'')} · by ${esc(actorShortName(l.DispatchedByName||l.DispatchedBy))}`])});
+ const ev=[];
+ lc.forEach(l=>{const o=oById[String(l.OrderID)]||{};ev.push([l.LoggedAt,`<b>Dispatch recorded</b> · ${esc(o.Customer||'')} · ${esc(o.PartCode||'')} · ${F(l.DispatchedQty)} qty · ${esc(l.Unit||'')} · by ${esc(actorShortName(l.DispatchedByName||l.DispatchedBy))}`])});
  (data.stockMovements||[]).filter(m=>inR(fmtDate(m.DateTime),R.from,R.to)&&String(m.TransactionType).toUpperCase()!=='DISPATCH'&&(!flt.unit||m.Unit===flt.unit)).forEach(m=>ev.push([m.DateTime,`<b>FG Stock ${m.TransactionType==='ADD'?'Added':'Adjusted'}</b> · ${esc(m.PartCode)} · ${m.TransactionType==='ADD'?'+':'−'}${F(m.Qty)} · ${esc(m.Unit)} · by ${esc(actorShortName(m.UserName||m.User))}`]));
  sc.forEach(o=>{if(inR(fmtDate(o.CreatedAt),R.from,R.to))ev.push([o.CreatedAt,`<b>New order</b> · ${esc(o.Customer)} · ${esc(o.PartCode)} · ${F(o.OrderQty)} qty`])});
  ev.sort((a,b)=>new Date(b[0])-new Date(a[0]));
