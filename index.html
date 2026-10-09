@@ -4294,12 +4294,20 @@ function debouncedRenderTable(){clearTimeout(tableRenderTimer);tableRenderTimer=
 
 function actorShortName(name){
   const s=String(name||'').trim();
-  if(!s)return '—';
-  const parts=s.split(/\s+/).filter(Boolean);
+  if(!s || /^(na|n\/a|not available|unknown|—|-|–)$/i.test(s)) return '—';
   const noise=/^(owner|admin|editor|ppc|dispatch|viewonly|greenpack|mis|industries|industry|manager|executive)$/i;
-  const personParts=parts.filter((p,i)=>i===0 || !noise.test(p));
-  if(personParts.length===1)return personParts[0];
-  return personParts[0]+' '+personParts[1].charAt(0).toUpperCase()+'.';
+  const parts=s.split(/\s+/).filter(Boolean).filter(p=>!noise.test(p));
+  if(!parts.length) return '—';
+  if(parts.length===1) return parts[0];
+  return parts[0]+' '+parts[parts.length-1];
+}
+
+function firstActorName(...values){
+  for(const value of values){
+    const s=String(value||'').trim();
+    if(s && !/^(na|n\/a|not available|unknown|—|-|–)$/i.test(s)) return s;
+  }
+  return '';
 }
 
 function getLastDispatchActor(orderId){
@@ -4333,10 +4341,10 @@ function renderTable() {
   tbl.querySelector('tbody').innerHTML = renderRows.map(o => {
     const orderQty=Number(o.OrderQty||0), dispatched=Number(o.DispatchedQty||0);
     const plan=plans[o.OrderID], planned=plan?Number(plan.PlannedQty||0):0, additional=Number(adds[o.OrderID]||0), total=planned+additional;
-    const finalizedPpcActor=(plan && String(plan.Status||'').toLowerCase()==='finalized') ? (plan.FinalizedByName || plan.FinalizedBy || plan.UpdatedByName || '') : '';
-    const draftPpcActor=(plan && String(plan.Status||'').toLowerCase()!=='finalized') ? (plan.UpdatedByName || plan.UpdatedBy || '') : '';
+    const finalizedPpcActor=(plan && String(plan.Status||'').toLowerCase()==='finalized') ? firstActorName(plan.FinalizedByName,plan.FinalizedBy,plan.UpdatedByName,plan.UpdatedBy) : '';
+    const draftPpcActor=(plan && String(plan.Status||'').toLowerCase()!=='finalized') ? firstActorName(plan.UpdatedByName,plan.UpdatedBy) : '';
     const creatorIsPpc=/\bppc\b/i.test(String(o.CreatedByRole||''));
-    const ppcActor=finalizedPpcActor || draftPpcActor || (creatorIsPpc ? (o.CreatedByName || o.CreatedBy || '') : '');
+    const ppcActor=finalizedPpcActor || draftPpcActor || (creatorIsPpc ? firstActorName(o.CreatedByName,o.CreatedBy) : '');
     const fgActor=getFGStockActor(o.PartCode,o.Unit);
     const pct=orderQty?Math.min(100,Math.round(dispatched/orderQty*100)):0;
     const statusPill=o.Status==='Completed'?'pill-completed':'pill-pending';
