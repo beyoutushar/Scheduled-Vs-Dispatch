@@ -4295,11 +4295,11 @@ function debouncedRenderTable(){clearTimeout(tableRenderTimer);tableRenderTimer=
 function actorShortName(name){
   const s=String(name||'').trim();
   if(!s || /^(na|n\/a|not available|unknown|—|-|–)$/i.test(s)) return '—';
-  const noise=/^(owner|admin|editor|ppc|dispatch|viewonly|greenpack|mis|industries|industry|manager|executive)$/i;
-  const parts=s.split(/\s+/).filter(Boolean).filter(p=>!noise.test(p));
+  // DisplayName starts with the person's first and last name; role/unit/company
+  // words after those two tokens must not be used as the surname.
+  const parts=s.split(/\s+/).filter(Boolean);
   if(!parts.length) return '—';
-  if(parts.length===1) return parts[0];
-  return parts[0]+' '+parts[parts.length-1];
+  return parts.slice(0,2).join(' ');
 }
 
 function firstActorName(...values){
