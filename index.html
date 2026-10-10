@@ -6666,33 +6666,51 @@ async function onFile(f){
 function fill(){rows.forEach(r=>{if(!map[r.party]){const s=suggest(r.party);if(s)map[r.party]=s}})}
 function run(){
  const pend={},pools={};
- (data.orders||[]).filter(o=>String(o.Status)==='Pending'&&N(o.PendingQty)>0).sort((a,b)=>String(fmtDate(a.ScheduledDate)).localeCompare(fmtDate(b.ScheduledDate))||new Date(a.CreatedAt)-new Date(b.CreatedAt))
-  .forEach(o=>{pend[o.OrderID]=N(o.PendingQty);const k=[o.Customer,o.PartCode,o.Unit].map(x=>String(x).trim().toLowerCase()).join('|');(pools[k]=pools[k]||[]).push(o)});
- rows.forEach(r=>{r.cust=map[r.party]||'';r.allocs=[];r.got=0;
+ (data.orders||[]).filter(o=>String(o.Status)==='Pending'&&N(o.PendingQty)>0)
+  .sort((a,b)=>String(fmtDate(a.ScheduledDate)).localeCompare(fmtDate(b.ScheduledDate))||new Date(a.CreatedAt)-new Date(b.CreatedAt))
+  .forEach(o=>{
+   pend[o.OrderID]=N(o.PendingQty);
+   const k=[o.Customer,o.PartCode,o.Unit].map(x=>String(x).trim().toLowerCase()).join('|');
+   (pools[k]=pools[k]||[]).push(o);
+  });
+ rows.forEach(r=>{
+  r.cust=map[r.party]||'';r.allocs=[];r.got=0;r.candidates=[];
   if(dup.has(r.key)){r.st='Duplicate';return}
-  if(!r.cust){r.st='No mapping';return}
-  let need=r.qty;(pools[[r.cust,r.part,r.unit].map(x=>String(x).trim().toLowerCase()).join('|')]||[]).forEach(o=>{
-   if(need<=0||pend[o.OrderID]<=0)return;const t=Math.min(pend[o.OrderID],need);pend[o.OrderID]-=t;need-=t;r.allocs.push({orderId:o.OrderID,qty:t})});
-  r.got=r.qty-need;r.st=need===0?'Matched':r.got>0?'Partial':'Unmatched'});
+  if(!r.cust){r.selectedOrderId='';r.st='No mapping';return}
+  const k=[r.cust,r.part,r.unit].map(x=>String(x).trim().toLowerCase()).join('|');
+  r.candidates=(pools[k]||[]).filter(o=>N(o.PendingQty)>0);
+  if(!r.candidates.some(o=>String(o.OrderID)===String(r.selectedOrderId))) r.selectedOrderId='';
+  if(!r.selectedOrderId){r.st=r.candidates.length?'Select order':'Unmatched';return}
+  const selected=r.candidates.find(o=>String(o.OrderID)===String(r.selectedOrderId));
+  const available=Math.max(0,pend[selected.OrderID]||0);
+  if(available<=0){r.st='Order capacity used';return}
+  const take=Math.min(r.qty,available);
+  if(take>0){r.allocs=[{orderId:selected.OrderID,qty:take}];r.got=take;pend[selected.OrderID]=available-take;}
+  r.st=r.got===r.qty?'Matched':r.got>0?'Partial':'Unmatched';
+ });
 }
-const PILL={Matched:'pill-completed',Partial:'pill-pending',Unmatched:'pill-high',Duplicate:'pill-low','No mapping':'pill-high'};
+const PILL={Matched:'pill-completed',Partial:'pill-pending',Unmatched:'pill-high',Duplicate:'pill-low','No mapping':'pill-high','Select order':'pill-pending','Order capacity used':'pill-high'};
 window.tyMap=(p,v)=>{if(v)map[p]=v;else delete map[p];run();render()};
+window.tySelectOrder=(idx,v)=>{const r=rows[idx];if(!r)return;r.selectedOrderId=v||'';run();render()};
 window.tyFilt=v=>{filt=v;render()};
 function render(){
  const c={};rows.forEach(r=>c[r.st]=(c[r.st]||0)+1);
- const ok=rows.filter(r=>r.allocs.length),q=ok.reduce((s,r)=>s+r.got,0),parties=[...new Set(rows.map(r=>r.party))].sort(),unm=parties.filter(p=>!map[p]).length,cs=data.customers||[];
- const list=rows.filter(r=>!filt||r.st===filt).slice(0,400);
- $('ty-out').innerHTML=`<div class="card"><div class="gp-kpis">${['Matched','Partial','Unmatched','No mapping','Duplicate'].map(k=>`<div class="gp-k" onclick="tyFilt('${filt===k?'':k}')"><small>${k}</small><b>${c[k]||0}</b></div>`).join('')}
+ // Only complete, manually selected matches can be applied. Partial lines are deliberately blocked
+ // so the Tally line key is not consumed while some quantity remains unallocated.
+ const ok=rows.filter(r=>r.allocs.length&&r.got===r.qty),q=ok.reduce((s,r)=>s+r.got,0),parties=[...new Set(rows.map(r=>r.party))].sort(),unm=parties.filter(p=>!map[p]).length,cs=data.customers||[];
+ const list=rows.map((r,i)=>({r,i})).filter(x=>!filt||x.r.st===filt).slice(0,400);
+ $('ty-out').innerHTML=`<div class="card"><div class="gp-kpis">${['Matched','Select order','Partial','Unmatched','No mapping','Duplicate'].map(k=>`<div class="gp-k" onclick="tyFilt('${filt===k?'':k}')"><small>${k}</small><b>${c[k]||0}</b></div>`).join('')}
  <div class="gp-k"><small>Qty to dispatch</small><b>${F(q)}</b></div></div>
  <details ${unm?'open':''} style="margin-bottom:12px"><summary><b>Customer mapping</b> ${unm?`<span class="pill pill-high">${unm} unmapped</span>`:''}</summary>
  <div class="table-scroll"><table><tr><th>Tally name</th><th>MIS customer</th></tr>${parties.map(p=>`<tr><td>${esc(p)}</td><td><select onchange="tyMap('${esc(p).replace(/'/g,"\\'")}',this.value)"><option value="">— select —</option>${cs.map(x=>`<option ${map[p]===x?'selected':''}>${esc(x)}</option>`).join('')}</select></td></tr>`).join('')}</table></div></details>
- <div class="table-scroll" style="max-height:420px"><table><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Matched</th><th>Orders hit</th><th>Status</th></tr>
- ${list.map(r=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${r.unit}</td><td>${F(r.qty)}</td><td>${F(r.got)}</td><td>${r.allocs.length}</td><td><span class="pill ${PILL[r.st]}">${r.st}</span></td></tr>`).join('')}</table></div>
- <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. <b>Partial</b> = Tally qty is more than the open order qty; only the open part is applied. Unmatched / Partial leftovers are NOT recorded.</div>
+ <div class="sub" style="margin:8px 0">Select the correct MIS order for each Tally line. The dropdown shows the order ID, scheduled date and current pending quantity. No order is selected automatically.</div>
+ <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Scheduled date · Pending)</th><th>Matched Qty</th><th>Status</th></tr>
+ ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Order ${esc(String(o.OrderID))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Pending ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
+ <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Only lines where the selected order can cover the full Tally quantity are included in Apply. If a line shows <b>Partial</b>, choose an order with enough pending quantity; partial lines are not applied.</div>
  <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
 }
 window.tyApply=async function(){
- const st=$('ty-ap'),ok=rows.filter(r=>r.allocs.length);
+ const st=$('ty-ap'),ok=rows.filter(r=>r.allocs.length&&r.got===r.qty);
  const lines=ok.map(r=>({key:r.key,date:r.date,unit:r.unit,invoice:r.inv,partNo:r.part,customer:r.cust,shipTo:r.ship||r.party,allocs:r.allocs}));
  const pairs=[...new Set(rows.filter(r=>r.cust).map(r=>r.party))].map(p=>({tally:p,mis:map[p]}));
  if(!confirm(`Record ${lines.length} Tally lines as dispatched? Orders will be updated and FG stock deducted.`))return;
