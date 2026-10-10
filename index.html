@@ -6606,7 +6606,7 @@ document.addEventListener('keydown',function(e){
 
 <!-- TALLY DISPATCH IMPORT — added after Greenpack Control Center dashboard patch -->
 <script>
-window.ensureXLSX=window.ensureXLSX||(()=>{if(window.XLSX)return Promise.resolve();if(window.__xlsxPromise)return window.__xlsxPromise;window.__xlsxPromise=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});return window.__xlsxPromise;});
+window.ensureXLSX=window.ensureXLSX||(()=>{if(window.XLSX)return Promise.resolve();if(window.__xlsxPromise)return window.__xlsxPromise;window.__xlsxPromise=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';s.onload=()=>window.XLSX?res():rej(new Error('Excel reader loaded, but XLSX is unavailable.'));s.onerror=()=>rej(new Error('Could not load the Excel reader library. Check internet/CDN access and try again.'));document.head.appendChild(s);});return window.__xlsxPromise;});
 </script>
 <script>
 /* ============ TALLY DISPATCH IMPORT ============ */
@@ -6649,7 +6649,9 @@ async function loadState(){try{const j=await fetchAppScriptJson_(APPS_SCRIPT_URL
 async function onFile(f){
  const st=$('ty-st');st.textContent='Reading file…';st.className='status-msg';
  try{
-  const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true}),j=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+  // Load SheetJS before using XLSX; otherwise upload fails with “XLSX is not defined”.
+  await ensureXLSX();
+  const wb=window.XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true}),j=window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
   const seen={},out=[];let bad=0,scrap=0;
   j.forEach(r=>{const inv=String(r['Invoice No']).trim(),part=String(r['Part No.']).trim(),qty=N(r['Quantity']),dt=r['Date'],um=String(r['Voucher Type']).match(/unit[\s-]*(\d+|delta)/i);
    if(!inv||!part||qty<=0||!(dt instanceof Date)||!um){bad++;return}
