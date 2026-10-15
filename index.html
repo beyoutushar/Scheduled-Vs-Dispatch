@@ -6684,6 +6684,7 @@ window.ensureXLSX=window.ensureXLSX||(()=>{if(window.XLSX)return Promise.resolve
 const $=id=>document.getElementById(id),N=v=>Number(v)||0,F=n=>N(n).toLocaleString('en-IN');
 const ALL=['dashboard','multiple','sets','orders','new','stock','dispatch-history','complaints','discussion','admin'];
 let rows=[],map={},dup=new Set(),filt='';
+const tyFilters={search:'',customer:'',part:'',unit:'',status:''};
 const ymd=d=>{d=new Date(new Date(d).getTime()+432e5);const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};
 const nz=s=>String(s).toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\b(LTD|LIMITED|PVT|PRIVATE|INDIA|CO|COMPANY|AND)\b/g,'').replace(/\s+/g,' ').trim();
 function suggest(t){const a=nz(t);if(!a)return'';const cs=data.customers||[];
@@ -6765,23 +6766,60 @@ function run(){
  });
 }
 const PILL={Matched:'pill-completed',Partial:'pill-pending',Unmatched:'pill-high',Duplicate:'pill-low','No mapping':'pill-high','Select order':'pill-pending','Order capacity used':'pill-high'};
-window.tyMap=(p,v)=>{if(v)map[p]=v;else delete map[p];run();render()};
-window.tySelectOrder=(idx,v)=>{const r=rows[idx];if(!r)return;r.selectedOrderId=v||'';run();render()};
-window.tyFilt=v=>{filt=v;render()};
+function tyRenderPreservingView(focusId, caretStart, caretEnd){
+ const winY=window.scrollY||0;
+ const scrolls=[...document.querySelectorAll('#ty-out .table-scroll')].map((el,i)=>({i,top:el.scrollTop,left:el.scrollLeft}));
+ render();
+ scrolls.forEach(x=>{const el=document.querySelectorAll('#ty-out .table-scroll')[x.i];if(el){el.scrollTop=x.top;el.scrollLeft=x.left;}});
+ window.scrollTo(0,winY);
+ if(focusId){const el=document.getElementById(focusId);if(el){el.focus({preventScroll:true});if(typeof caretStart==='number'&&el.setSelectionRange){try{el.setSelectionRange(caretStart,caretEnd??caretStart)}catch(e){}}}}
+}
+window.tyMap=(p,v)=>{if(v)map[p]=v;else delete map[p];run();tyRenderPreservingView()};
+window.tySelectOrder=(idx,v)=>{const r=rows[idx];if(!r)return;r.selectedOrderId=v||'';run();tyRenderPreservingView()};
+window.tyFilt=v=>{filt=v;tyRenderPreservingView()};
+window.tySetFilter=(key,value,id)=>{
+ tyFilters[key]=value;
+ const el=id?document.getElementById(id):null, a=el&&typeof el.selectionStart==='number'?el.selectionStart:null, b=el&&typeof el.selectionEnd==='number'?el.selectionEnd:null;
+ tyRenderPreservingView(id,a,b);
+};
+window.tyClearFilters=()=>{Object.keys(tyFilters).forEach(k=>tyFilters[k]='');filt='';tyRenderPreservingView()};
 function render(){
  const c={};rows.forEach(r=>c[r.st]=(c[r.st]||0)+1);
  // Only complete, manually selected matches can be applied. Partial lines are deliberately blocked
  // so the Tally line key is not consumed while some quantity remains unallocated.
  const ok=rows.filter(r=>r.allocs.length&&r.got===r.qty),q=ok.reduce((s,r)=>s+r.got,0),parties=[...new Set(rows.map(r=>r.party))].sort(),unm=parties.filter(p=>!map[p]).length,cs=data.customers||[];
- const list=rows.map((r,i)=>({r,i})).filter(x=>!filt||x.r.st===filt).slice(0,400);
+ const search=String(tyFilters.search||'').trim().toLowerCase();
+ const list=rows.map((r,i)=>({r,i})).filter(({r})=>{
+   if(filt&&r.st!==filt)return false;
+   if(tyFilters.status&&r.st!==tyFilters.status)return false;
+   if(tyFilters.customer&&String(r.cust||r.party).toLowerCase()!==tyFilters.customer.toLowerCase())return false;
+   if(tyFilters.part&&String(r.part).toLowerCase()!==tyFilters.part.toLowerCase())return false;
+   if(tyFilters.unit&&String(r.unit).toLowerCase()!==tyFilters.unit.toLowerCase())return false;
+   if(search&&![r.date,r.inv,r.cust,r.party,r.part,r.unit,r.st,r.qty].join(' ').toLowerCase().includes(search))return false;
+   return true;
+ }).slice(0,400);
+ const customers=[...new Set(rows.map(r=>String(r.cust||r.party||'').trim()).filter(Boolean))].sort();
+ const parts=[...new Set(rows.map(r=>String(r.part||'').trim()).filter(Boolean))].sort();
+ const units=[...new Set(rows.map(r=>String(r.unit||'').trim()).filter(Boolean))].sort();
+ const statuses=[...new Set(rows.map(r=>String(r.st||'').trim()).filter(Boolean))].sort();
+ const opts=(values,selected,label)=>`<option value="">All ${label}</option>${values.map(v=>`<option value="${esc(v)}" ${selected===v?'selected':''}>${esc(v)}</option>`).join('')}`;
  $('ty-out').innerHTML=`<div class="card"><div class="gp-kpis">${['Matched','Select order','Partial','Unmatched','No mapping','Duplicate'].map(k=>`<div class="gp-k" onclick="tyFilt('${filt===k?'':k}')"><small>${k}</small><b>${c[k]||0}</b></div>`).join('')}
  <div class="gp-k"><small>Qty to dispatch</small><b>${F(q)}</b></div></div>
  <details ${unm?'open':''} style="margin-bottom:12px"><summary><b>Customer mapping</b> ${unm?`<span class="pill pill-high">${unm} unmapped</span>`:''}</summary>
  <div class="table-scroll"><table><tr><th>Tally name</th><th>MIS customer</th></tr>${parties.map(p=>`<tr><td>${esc(p)}</td><td><select onchange="tyMap('${esc(p).replace(/'/g,"\\'")}',this.value)"><option value="">— select —</option>${cs.map(x=>`<option ${map[p]===x?'selected':''}>${esc(x)}</option>`).join('')}</select></td></tr>`).join('')}</table></div></details>
- <div class="sub" style="margin:8px 0">Select the correct MIS order for each Tally line. The dropdown shows the order ID, scheduled date and current pending quantity. No order is selected automatically.</div>
- <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Scheduled date · Pending)</th><th>Matched Qty</th><th>Status</th></tr>
- ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Order ${esc(String(o.OrderID))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Pending ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
- <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Only lines where the selected order can cover the full Tally quantity are included in Apply. If a line shows <b>Partial</b>, choose an order with enough pending quantity; partial lines are not applied.</div>
+ <div class="sub" style="margin:8px 0">Use the filters to find the right Tally line quickly. Changing an order selection updates the matching results without jumping the page or resetting your scroll position.</div>
+ <div class="ty-filterbar" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin:10px 0 12px;align-items:center">
+ <input id="ty-filter-search" type="search" placeholder="Search invoice, customer, part…" value="${esc(tyFilters.search)}" oninput="tySetFilter('search',this.value,'ty-filter-search')" style="min-width:0;width:100%;box-sizing:border-box" />
+ <select id="ty-filter-customer" onchange="tySetFilter('customer',this.value,'ty-filter-customer')" style="min-width:0;width:100%">${opts(customers,tyFilters.customer,'customer')}</select>
+ <select id="ty-filter-part" onchange="tySetFilter('part',this.value,'ty-filter-part')" style="min-width:0;width:100%">${opts(parts,tyFilters.part,'part code')}</select>
+ <select id="ty-filter-unit" onchange="tySetFilter('unit',this.value,'ty-filter-unit')" style="min-width:0;width:100%">${opts(units,tyFilters.unit,'unit')}</select>
+ <select id="ty-filter-status" onchange="tySetFilter('status',this.value,'ty-filter-status')" style="min-width:0;width:100%">${opts(statuses,tyFilters.status,'status')}</select>
+ <button type="button" class="btn-secondary" onclick="tyClearFilters()">Clear filters</button>
+ </div>
+ <div class="sub" style="margin:8px 0">Select the MIS order using its creation date, scheduled date, ordered quantity and remaining pending quantity. Order IDs are hidden. No order is selected automatically.</div>
+ <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Created · Scheduled · Order Qty · Pending Qty)</th><th>Matched Qty</th><th>Status</th></tr>
+ ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Created ${esc(fmtDate(o.CreatedAt))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Order Qty ${F(N(o.OrderQty))} · Pending Qty ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
+ <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length} lines (maximum 400 displayed). Only lines where the selected order can cover the full Tally quantity are included in Apply. If a line shows <b>Partial</b>, choose an order with enough pending quantity; partial lines are not applied.</div>
  <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
 }
 window.tyApply=async function(){
