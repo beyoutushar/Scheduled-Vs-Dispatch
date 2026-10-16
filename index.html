@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2578,6 +2578,29 @@ try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.ad
 :root[data-theme="light"] .gp-discussion-toast strong{color:#6d28d9}
 </style>
 
+<style>
+/* Compact Google-Sheets-style online collaborators in the top bar */
+.gp-top-presence{position:relative;display:flex;align-items:center;flex-shrink:0}
+.gp-top-presence-btn{display:flex;align-items:center;gap:7px;border:0;background:transparent;padding:3px 5px;border-radius:22px;cursor:pointer;color:inherit;min-height:36px}
+.gp-top-presence-btn:hover,.gp-top-presence-btn[aria-expanded="true"]{background:var(--surface-secondary,#f1f5f9)}
+.gp-top-avatars{display:flex;align-items:center;padding-left:2px}
+.gp-top-avatar{position:relative;width:29px;height:29px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--card,#fff);margin-left:-6px;box-sizing:border-box;box-shadow:0 1px 2px #0002}
+.gp-top-avatar:first-child{margin-left:0}
+.gp-top-avatar::after{content:"";position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border-radius:50%;background:#10b981;border:2px solid var(--card,#fff)}
+.gp-top-avatar-more{background:#e8eef7!important;color:#334155!important;border-color:var(--card,#fff)}
+.gp-top-presence-count{font-size:11px;color:var(--muted,#64748b);white-space:nowrap}
+.gp-top-presence-pop{display:none;position:absolute;right:0;top:calc(100% + 9px);width:285px;max-width:calc(100vw - 24px);max-height:340px;overflow:auto;background:var(--card,#fff);color:var(--text,#0f172a);border:1px solid var(--border,#dbe2ea);border-radius:13px;box-shadow:0 12px 32px #0002;z-index:9999;padding:10px}
+.gp-top-presence-pop.open{display:block}
+.gp-top-presence-head{font-size:12px;font-weight:700;padding:4px 7px 9px;border-bottom:1px solid var(--border,#e2e8f0);margin-bottom:4px}
+.gp-top-presence-user{display:flex;align-items:center;gap:9px;padding:8px 6px;border-radius:8px}
+.gp-top-presence-user:hover{background:var(--surface-secondary,#f8fafc)}
+.gp-top-presence-user .gp-top-avatar{margin:0;flex-shrink:0}
+.gp-top-presence-meta{min-width:0;flex:1;line-height:1.35}
+.gp-top-presence-meta b{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-top-presence-meta small{font-size:10px;color:var(--muted,#64748b)}
+.gp-top-presence-status{font-size:10px;color:#059669;white-space:nowrap}
+@media(max-width:760px){.gp-top-presence-count{display:none}.gp-top-presence-btn{padding:2px}.gp-top-avatar{width:27px;height:27px}}
+</style>
 </head>
 <body>
 <div id="boot-splash">Loading MIS…</div>
@@ -2635,6 +2658,16 @@ try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.ad
         <option value="en">English</option><option value="mr">मराठी</option><option value="hi">हिन्दी</option>
       </select>
       <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme"><span id="theme-icon">☀</span></button>
+    </div>
+    <div class="gp-top-presence" id="gp-top-presence">
+      <button type="button" id="gp-top-presence-btn" class="gp-top-presence-btn" aria-label="Show online collaborators" aria-expanded="false" title="Users online" onclick="toggleTopPresence_()">
+        <span class="gp-top-avatars" id="gp-top-avatars"><span class="gp-top-avatar" style="background:#64748b">…</span></span>
+        <span class="gp-top-presence-count" id="gp-top-presence-count">Checking…</span>
+      </button>
+      <div class="gp-top-presence-pop" id="gp-top-presence-pop" role="dialog" aria-label="Online users">
+        <div class="gp-top-presence-head" id="gp-top-presence-head">Users online</div>
+        <div id="gp-top-presence-list"><small>Checking who's online…</small></div>
+      </div>
     </div>
     <span class="pill pill-role" id="role-badge"></span>
     <div id="conn" class="conn">Connecting…</div>
@@ -6455,9 +6488,40 @@ function renderPresenceActivity_(payload) {
  const online = document.getElementById('gp-presence-content'), daily = document.getElementById('gp-daily-activity-content');
  if(count) count.textContent = String(payload.onlineCount || 0) + ' online';
  if(date) date.textContent = payload.today || '';
- if(online) online.innerHTML = users.filter(u=>u.online).map(u=>`<div class="gp-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:7px"></span><b>${esc(u.displayName)}</b><br><small>${esc(u.role)} · ${esc(u.unit)}</small></span><span><small>Online</small></span></div>`).join('') || '<div class="sub">No users currently online (other than a session that has not sent its first heartbeat yet).</div>';
+ const onlineUsers = users.filter(u=>u.online);
+ const topAvatars = document.getElementById('gp-top-avatars');
+ const topCount = document.getElementById('gp-top-presence-count');
+ const topHead = document.getElementById('gp-top-presence-head');
+ const topList = document.getElementById('gp-top-presence-list');
+ if(topAvatars) {
+   const palette=['#0f766e','#2563eb','#7c3aed','#c2410c','#be185d','#475569','#15803d'];
+   const initials = name => String(name||'?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?';
+   topAvatars.innerHTML = onlineUsers.slice(0,4).map((u,i)=>`<span class="gp-top-avatar" style="background:${palette[i%palette.length]}" title="${esc(u.displayName)} · ${esc(u.role)} · ${esc(u.unit)}">${esc(initials(u.displayName))}</span>`).join('') || '<span class="gp-top-avatar" style="background:#94a3b8" title="No users online">—</span>';
+   if(onlineUsers.length>4) topAvatars.insertAdjacentHTML('beforeend',`<span class="gp-top-avatar gp-top-avatar-more" title="${onlineUsers.length-4} more users">+${onlineUsers.length-4}</span>`);
+ }
+ if(topCount) topCount.textContent = onlineUsers.length ? `${onlineUsers.length} online` : 'No one online';
+ if(topHead) topHead.textContent = `Users online (${onlineUsers.length})`;
+ if(topList) topList.innerHTML = onlineUsers.map((u,i)=>{
+   const palette=['#0f766e','#2563eb','#7c3aed','#c2410c','#be185d','#475569','#15803d'];
+   const initials=String(u.displayName||'?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?';
+   return `<div class="gp-top-presence-user"><span class="gp-top-avatar" style="background:${palette[i%palette.length]}">${esc(initials)}</span><span class="gp-top-presence-meta"><b>${esc(u.displayName)}</b><small>${esc(u.role)} · ${esc(u.unit)}</small></span><span class="gp-top-presence-status">Online</span></div>`;
+ }).join('') || '<div class="sub" style="padding:8px">No users are online right now.</div>';
+ if(online) online.innerHTML = onlineUsers.map(u=>`<div class="gp-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:7px"></span><b>${esc(u.displayName)}</b><br><small>${esc(u.role)} · ${esc(u.unit)}</small></span><span><small>Online</small></span></div>`).join('') || '<div class="sub">No users currently online (other than a session that has not sent its first heartbeat yet).</div>';
  if(daily) daily.innerHTML = users.map(u=>`<div class="gp-row"><span><b>${esc(u.displayName)}</b><br><small>${esc(u.unit)} · ${esc(u.role)}</small><br><small>${esc(u.lastAction||'No entry today')}${u.lastActivityAt?' · '+esc(fmtDateTime(u.lastActivityAt)):''}</small></span><span style="text-align:right"><b>${Number(u.entries)||0}</b><br><small>${u.entries?'entry/entries':'no entry'}</small><br><small style="color:${u.online?'#10b981':'var(--muted)'}">${u.online?'Online':'Offline'}</small></span></div>`).join('') || '<div class="sub">No user activity available.</div>';
 }
+function toggleTopPresence_(){
+ const pop=document.getElementById('gp-top-presence-pop');
+ const btn=document.getElementById('gp-top-presence-btn');
+ if(!pop||!btn)return;
+ const open=!pop.classList.contains('open');
+ pop.classList.toggle('open',open);btn.setAttribute('aria-expanded',open?'true':'false');
+}
+document.addEventListener('click',function(e){
+ const wrap=document.getElementById('gp-top-presence');
+ const pop=document.getElementById('gp-top-presence-pop');
+ const btn=document.getElementById('gp-top-presence-btn');
+ if(wrap&&pop&&!wrap.contains(e.target)){pop.classList.remove('open');if(btn)btn.setAttribute('aria-expanded','false');}
+});
 async function refreshPresenceActivity_() {
  if(gpPresenceBusy_ || !TOKEN || !SESSION) return;
  gpPresenceBusy_ = true;
