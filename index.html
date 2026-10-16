@@ -6540,16 +6540,31 @@ async function refreshPresenceActivity_() {
  catch(e) {} finally { gpPresenceBusy_ = false; }
 }
 function ensureTopPresenceWidget_(){
- const topbar=document.querySelector('.topbar');
+ // The collaborator control is part of the top-right controls beside the role
+ // badge. Re-home an existing widget as well as creating it when missing; the
+ // old implementation only placed it during creation, so an existing node
+ // left elsewhere in the DOM stayed invisible to users.
+ const topbar=document.querySelector('#main-app .topbar, .topbar');
  if(!topbar)return;
  let wrap=document.getElementById('gp-top-presence');
  const role=document.getElementById('role-badge');
  if(!wrap){
-   wrap=document.createElement('div');wrap.className='gp-top-presence';wrap.id='gp-top-presence';
+   wrap=document.createElement('div');wrap.id='gp-top-presence';
    wrap.innerHTML='<button type="button" id="gp-top-presence-btn" class="gp-top-presence-btn" aria-label="Show online collaborators" aria-expanded="false" title="Users online" onclick="toggleTopPresence_()"><span class="gp-top-avatars" id="gp-top-avatars"><span class="gp-top-avatar" style="background:#64748b">…</span></span><span class="gp-top-presence-count" id="gp-top-presence-count">Checking…</span></button><div class="gp-top-presence-pop" id="gp-top-presence-pop" role="dialog" aria-label="Online users"><div class="gp-top-presence-head" id="gp-top-presence-head">Users online</div><div id="gp-top-presence-list"><small>Checking who is online…</small></div></div>';
-   if(role&&role.parentNode===topbar.lastElementChild) role.before(wrap); else if(role) role.before(wrap); else topbar.lastElementChild.appendChild(wrap);
  }
- wrap.style.setProperty('display','flex','important');
+ wrap.classList.add('gp-top-presence');
+ const controls=role&&role.parentElement ? role.parentElement : topbar.lastElementChild;
+ if(controls){
+   if(role&&role.parentElement===controls){
+     if(wrap.parentElement!==controls || wrap.nextElementSibling!==role) role.before(wrap);
+   } else if(wrap.parentElement!==controls){
+     controls.prepend(wrap);
+   }
+ }
+ ['display','visibility','opacity','flex-shrink'].forEach((prop,i)=>{
+   const values=['flex','visible','1','0'];
+   wrap.style.setProperty(prop,values[i],'important');
+ });
 }
 window.gpStartPresence = function(){
  ensureTopPresenceWidget_();
