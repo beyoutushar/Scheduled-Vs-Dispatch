@@ -6258,6 +6258,7 @@ window.showApp=function(){
   if(top) top.style.display='flex';
   if(reopen) reopen.style.display='';
   navVis();
+  if(window.gpStartPresence) window.gpStartPresence();
   const wanted=sessionStorage.getItem('svd_active_tab')||'dashboard';
   requestAnimationFrame(()=>{requestAnimationFrame(()=>{switchTab(wanted);document.documentElement.classList.remove('gp-booting');});});
 };
@@ -6371,7 +6372,8 @@ function renderDash(){
  ${card('c-unit','Unit Performance')}${card('c-cust','Customers with Highest Pending Qty')}
  ${card('c-age','Pending Aging (by scheduled date)')}${card('c-fg','FG Stock Health (stock vs open demand)','w4')}${card('c-mix','Customer Dispatch Mix','w4')}
  ${card('c-sc','Order vs Dispatch (each dot = order)','w12')}
- <div class="gp-c" id="gp-att"></div><div class="gp-c" id="gp-rec"></div><div class="gp-c w12" id="gp-tl"></div></div>`;
+ <div class="gp-c" id="gp-att"></div><div class="gp-c" id="gp-rec"></div><div class="gp-c w12" id="gp-tl"></div></div>
+ <div class="gp-g"><div class="gp-c w6" id="gp-presence-card"><h3>Users Online Now <span id="gp-online-count" class="gp-chip">…</span></h3><div id="gp-presence-content" class="sub">Loading online users…</div></div><div class="gp-c w6" id="gp-daily-activity-card"><h3>Today's User Activity <span id="gp-activity-date" class="gp-chip"></span></h3><div id="gp-daily-activity-content" class="sub">Loading today's activity…</div></div></div>`;
 
  root.querySelectorAll('.gp-k').forEach(e=>e.onclick=()=>{
    const k=K[e.dataset.k][3];
@@ -6443,6 +6445,30 @@ function renderDash(){
  $('gp-tl').innerHTML=`<h3>What Changed (selected period)</h3><div class="gp-tl">${ev.slice(0,15).map(e=>`<div><small>${esc(fmtDateTime(e[0]))}</small><br>${e[1]}</div>`).join('')||'<div class="sub">No activity in this period</div>'}</div>`;
  lucide.createIcons();
 }
+
+// Live online indicator + daily work log. The list is date-scoped on the server,
+// so the visible activity naturally starts fresh each day while history remains auditable.
+let gpPresenceTimer_ = null, gpPresenceBusy_ = false;
+function renderPresenceActivity_(payload) {
+ const users = payload && Array.isArray(payload.users) ? payload.users : [];
+ const count = document.getElementById('gp-online-count'), date = document.getElementById('gp-activity-date');
+ const online = document.getElementById('gp-presence-content'), daily = document.getElementById('gp-daily-activity-content');
+ if(count) count.textContent = String(payload.onlineCount || 0) + ' online';
+ if(date) date.textContent = payload.today || '';
+ if(online) online.innerHTML = users.filter(u=>u.online).map(u=>`<div class="gp-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:7px"></span><b>${esc(u.displayName)}</b><br><small>${esc(u.role)} · ${esc(u.unit)}</small></span><span><small>Online</small></span></div>`).join('') || '<div class="sub">No users currently online (other than a session that has not sent its first heartbeat yet).</div>';
+ if(daily) daily.innerHTML = users.map(u=>`<div class="gp-row"><span><b>${esc(u.displayName)}</b><br><small>${esc(u.unit)} · ${esc(u.role)}</small><br><small>${esc(u.lastAction||'No entry today')}${u.lastActivityAt?' · '+esc(fmtDateTime(u.lastActivityAt)):''}</small></span><span style="text-align:right"><b>${Number(u.entries)||0}</b><br><small>${u.entries?'entry/entries':'no entry'}</small><br><small style="color:${u.online?'#10b981':'var(--muted)'}">${u.online?'Online':'Offline'}</small></span></div>`).join('') || '<div class="sub">No user activity available.</div>';
+}
+async function refreshPresenceActivity_() {
+ if(gpPresenceBusy_ || !TOKEN || !SESSION) return;
+ gpPresenceBusy_ = true;
+ try { const j = await fetchAppScriptJson_(APPS_SCRIPT_URL+'?mode=presence&token='+encodeURIComponent(TOKEN)+'&_='+Date.now()); if(j && j.ok) renderPresenceActivity_(j); }
+ catch(e) {} finally { gpPresenceBusy_ = false; }
+}
+window.gpStartPresence = function(){
+ if(gpPresenceTimer_) return;
+ const beat = async()=>{ if(!TOKEN || !SESSION) return; try { await postAction({action:'pingPresence'}); } catch(e) {} await refreshPresenceActivity_(); };
+ beat(); gpPresenceTimer_ = setInterval(beat, 25000);
+};
 
 // Expose the dashboard renderer for the existing MIS load pipeline.
 window.renderDash = renderDash;
@@ -6817,11 +6843,26 @@ function render(){
  <button type="button" class="btn-secondary" onclick="tyClearFilters()">Clear filters</button>
  </div>
  <div class="sub" style="margin:8px 0">Select the MIS order using its creation date, scheduled date, ordered quantity and remaining pending quantity. Order IDs are hidden. No order is selected automatically.</div>
- <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Created · Scheduled · Order Qty · Pending Qty)</th><th>Matched Qty</th><th>Status</th></tr>
- ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Created ${esc(fmtDate(o.CreatedAt))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Order Qty ${F(N(o.OrderQty))} · Pending Qty ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
+ <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Created · Scheduled · Order Qty · Pending Qty)</th><th>Matched Qty</th><th>Status</th><th>Action</th></tr>
+ ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Created ${esc(fmtDate(o.CreatedAt))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Order Qty ${F(N(o.OrderQty))} · Pending Qty ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td><td>${r.st==='Unmatched'&&r.cust&&!dup.has(r.key)&&!r.candidates.length?`<button type="button" class="btn-secondary btn-small" onclick="tyCreatePlanDispatch(${i})">Create plan + dispatch</button>`:'—'}</td></tr>`).join('')}</table></div>
  <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length} lines (maximum 400 displayed). Only lines where the selected order can cover the full Tally quantity are included in Apply. If a line shows <b>Partial</b>, choose an order with enough pending quantity; partial lines are not applied.</div>
  <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
 }
+window.tyCreatePlanDispatch=async function(i){
+ const r=rows[i]; if(!r || r.st!=='Unmatched' || !r.cust || dup.has(r.key) || (r.candidates||[]).length) return;
+ const msg = `No open PPC order was found for this Tally line.\n\nCustomer: ${r.cust}\nPart: ${r.part}\nUnit: ${r.unit}\nTally quantity: ${F(r.qty)}\nInvoice: ${r.inv}\nTally date: ${r.date}\n\nIf you approve, MIS will create a PPC order with this date and quantity, immediately record the dispatch, deduct FG stock, and mark this invoice line as imported. Continue?`;
+ if(!confirm(msg)) return;
+ const buttons=[...document.querySelectorAll('#ty-out button')]; buttons.forEach(b=>{if(b.getAttribute('onclick')===`tyCreatePlanDispatch(${i})`){b.disabled=true;b.textContent='Processing…';}});
+ const st=document.getElementById('ty-ap')||document.getElementById('ty-st');
+ try{
+   const result=await postAction({action:'tallyCreatePlanDispatch',line:{key:r.key,invoice:r.inv,partNo:r.part,customer:r.cust,unit:r.unit,qty:r.qty,date:r.date,shipTo:r.ship||r.cust}});
+   if(result.error) throw new Error(result.error);
+   dup.add(r.key); r.st='Processed';
+   if(st){st.textContent=`✓ Created plan and dispatched ${F(r.qty)} for ${r.cust} / ${r.part} (${r.unit}).`;st.className='status-msg ok';}
+   await loadData(false,true); await loadState(); run(); render();
+   if(window.refreshPresenceActivity_) window.refreshPresenceActivity_();
+ }catch(e){if(st){st.textContent='Failed: '+e.message;st.className='status-msg err';} tyRenderPreservingView();}
+};
 window.tyApply=async function(){
  const st=$('ty-ap'),ok=rows.filter(r=>r.allocs.length&&r.got===r.qty);
  const lines=ok.map(r=>({key:r.key,date:r.date,unit:r.unit,invoice:r.inv,partNo:r.part,customer:r.cust,shipTo:r.ship||r.party,allocs:r.allocs}));
