@@ -1,4 +1,4 @@
-   <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2600,6 +2600,17 @@ try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.ad
 .gp-top-presence-meta small{font-size:10px;color:var(--muted,#64748b)}
 .gp-top-presence-status{font-size:10px;color:#059669;white-space:nowrap}
 @media(max-width:760px){.gp-top-presence-count{display:none}.gp-top-presence-btn{padding:2px}.gp-top-avatar{width:27px;height:27px}}
+</style>
+
+<style id="gp-top-presence-force-visible">
+/* Keep the Google-Sheets-style online people control visible in the top-right bar. */
+.topbar #gp-top-presence{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;align-items:center!important;flex:0 0 auto!important;order:3!important;z-index:10000!important;min-width:42px!important;}
+.topbar #gp-top-presence-btn{display:flex!important;visibility:visible!important;opacity:1!important;align-items:center!important;justify-content:center!important;min-width:42px!important;min-height:38px!important;padding:4px 8px!important;border:1px solid var(--border,#dbe2ea)!important;border-radius:24px!important;background:var(--card,#fff)!important;color:var(--text,#0f172a)!important;cursor:pointer!important;}
+.topbar #gp-top-avatars{display:flex!important;visibility:visible!important;min-width:30px!important;min-height:30px!important;align-items:center!important;justify-content:center!important;}
+.topbar #gp-top-avatars .gp-top-avatar{display:inline-flex!important;visibility:visible!important;width:30px!important;height:30px!important;flex:0 0 30px!important;}
+.topbar #gp-top-presence-count{display:inline-block!important;visibility:visible!important;white-space:nowrap!important;}
+.topbar #gp-top-presence-pop{z-index:2147483000!important;}
+@media(max-width:760px){.topbar #gp-top-presence{display:flex!important}.topbar #gp-top-presence-count{display:none!important}.topbar #gp-top-presence-btn{min-width:36px!important;padding:2px!important}}
 </style>
 </head>
 <body>
@@ -6528,9 +6539,22 @@ async function refreshPresenceActivity_() {
  try { const j = await fetchAppScriptJson_(APPS_SCRIPT_URL+'?mode=presence&token='+encodeURIComponent(TOKEN)+'&_='+Date.now()); if(j && j.ok) renderPresenceActivity_(j); }
  catch(e) {} finally { gpPresenceBusy_ = false; }
 }
+function ensureTopPresenceWidget_(){
+ const topbar=document.querySelector('.topbar');
+ if(!topbar)return;
+ let wrap=document.getElementById('gp-top-presence');
+ const role=document.getElementById('role-badge');
+ if(!wrap){
+   wrap=document.createElement('div');wrap.className='gp-top-presence';wrap.id='gp-top-presence';
+   wrap.innerHTML='<button type="button" id="gp-top-presence-btn" class="gp-top-presence-btn" aria-label="Show online collaborators" aria-expanded="false" title="Users online" onclick="toggleTopPresence_()"><span class="gp-top-avatars" id="gp-top-avatars"><span class="gp-top-avatar" style="background:#64748b">…</span></span><span class="gp-top-presence-count" id="gp-top-presence-count">Checking…</span></button><div class="gp-top-presence-pop" id="gp-top-presence-pop" role="dialog" aria-label="Online users"><div class="gp-top-presence-head" id="gp-top-presence-head">Users online</div><div id="gp-top-presence-list"><small>Checking who is online…</small></div></div>';
+   if(role&&role.parentNode===topbar.lastElementChild) role.before(wrap); else if(role) role.before(wrap); else topbar.lastElementChild.appendChild(wrap);
+ }
+ wrap.style.setProperty('display','flex','important');
+}
 window.gpStartPresence = function(){
+ ensureTopPresenceWidget_();
  if(gpPresenceTimer_) return;
- const beat = async()=>{ if(!TOKEN || !SESSION) return; try { await postAction({action:'pingPresence'}); } catch(e) {} await refreshPresenceActivity_(); };
+ const beat = async()=>{ if(!TOKEN || !SESSION) return; ensureTopPresenceWidget_(); try { await postAction({action:'pingPresence'}); } catch(e) {} await refreshPresenceActivity_(); };
  beat(); gpPresenceTimer_ = setInterval(beat, 25000);
 };
 
