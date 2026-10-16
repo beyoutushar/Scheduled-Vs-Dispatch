@@ -2578,40 +2578,6 @@ try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.ad
 :root[data-theme="light"] .gp-discussion-toast strong{color:#6d28d9}
 </style>
 
-<style>
-/* Compact Google-Sheets-style online collaborators in the top bar */
-.gp-top-presence{position:relative;display:flex;align-items:center;flex-shrink:0}
-.gp-top-presence-btn{display:flex;align-items:center;gap:7px;border:0;background:transparent;padding:3px 5px;border-radius:22px;cursor:pointer;color:inherit;min-height:36px}
-.gp-top-presence-btn:hover,.gp-top-presence-btn[aria-expanded="true"]{background:var(--surface-secondary,#f1f5f9)}
-.gp-top-avatars{display:flex;align-items:center;padding-left:2px}
-.gp-top-avatar{position:relative;width:29px;height:29px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--card,#fff);margin-left:-6px;box-sizing:border-box;box-shadow:0 1px 2px #0002}
-.gp-top-avatar:first-child{margin-left:0}
-.gp-top-avatar::after{content:"";position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border-radius:50%;background:#10b981;border:2px solid var(--card,#fff)}
-.gp-top-avatar-more{background:#e8eef7!important;color:#334155!important;border-color:var(--card,#fff)}
-.gp-top-presence-count{font-size:11px;color:var(--muted,#64748b);white-space:nowrap}
-.gp-top-presence-pop{display:none;position:absolute;right:0;top:calc(100% + 9px);width:285px;max-width:calc(100vw - 24px);max-height:340px;overflow:auto;background:var(--card,#fff);color:var(--text,#0f172a);border:1px solid var(--border,#dbe2ea);border-radius:13px;box-shadow:0 12px 32px #0002;z-index:9999;padding:10px}
-.gp-top-presence-pop.open{display:block}
-.gp-top-presence-head{font-size:12px;font-weight:700;padding:4px 7px 9px;border-bottom:1px solid var(--border,#e2e8f0);margin-bottom:4px}
-.gp-top-presence-user{display:flex;align-items:center;gap:9px;padding:8px 6px;border-radius:8px}
-.gp-top-presence-user:hover{background:var(--surface-secondary,#f8fafc)}
-.gp-top-presence-user .gp-top-avatar{margin:0;flex-shrink:0}
-.gp-top-presence-meta{min-width:0;flex:1;line-height:1.35}
-.gp-top-presence-meta b{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gp-top-presence-meta small{font-size:10px;color:var(--muted,#64748b)}
-.gp-top-presence-status{font-size:10px;color:#059669;white-space:nowrap}
-@media(max-width:760px){.gp-top-presence-count{display:none}.gp-top-presence-btn{padding:2px}.gp-top-avatar{width:27px;height:27px}}
-</style>
-
-<style id="gp-top-presence-force-visible">
-/* Keep the Google-Sheets-style online people control visible in the top-right bar. */
-.topbar #gp-top-presence{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;align-items:center!important;flex:0 0 auto!important;order:3!important;z-index:10000!important;min-width:42px!important;}
-.topbar #gp-top-presence-btn{display:flex!important;visibility:visible!important;opacity:1!important;align-items:center!important;justify-content:center!important;min-width:42px!important;min-height:38px!important;padding:4px 8px!important;border:1px solid var(--border,#dbe2ea)!important;border-radius:24px!important;background:var(--card,#fff)!important;color:var(--text,#0f172a)!important;cursor:pointer!important;}
-.topbar #gp-top-avatars{display:flex!important;visibility:visible!important;min-width:30px!important;min-height:30px!important;align-items:center!important;justify-content:center!important;}
-.topbar #gp-top-avatars .gp-top-avatar{display:inline-flex!important;visibility:visible!important;width:30px!important;height:30px!important;flex:0 0 30px!important;}
-.topbar #gp-top-presence-count{display:inline-block!important;visibility:visible!important;white-space:nowrap!important;}
-.topbar #gp-top-presence-pop{z-index:2147483000!important;}
-@media(max-width:760px){.topbar #gp-top-presence{display:flex!important}.topbar #gp-top-presence-count{display:none!important}.topbar #gp-top-presence-btn{min-width:36px!important;padding:2px!important}}
-</style>
 </head>
 <body>
 <div id="boot-splash">Loading MIS…</div>
@@ -2669,16 +2635,6 @@ try{if(sessionStorage.getItem('svd_token'))document.documentElement.classList.ad
         <option value="en">English</option><option value="mr">मराठी</option><option value="hi">हिन्दी</option>
       </select>
       <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme"><span id="theme-icon">☀</span></button>
-    </div>
-    <div class="gp-top-presence" id="gp-top-presence">
-      <button type="button" id="gp-top-presence-btn" class="gp-top-presence-btn" aria-label="Show online collaborators" aria-expanded="false" title="Users online" onclick="toggleTopPresence_()">
-        <span class="gp-top-avatars" id="gp-top-avatars"><span class="gp-top-avatar" style="background:#64748b">…</span></span>
-        <span class="gp-top-presence-count" id="gp-top-presence-count">Checking…</span>
-      </button>
-      <div class="gp-top-presence-pop" id="gp-top-presence-pop" role="dialog" aria-label="Online users">
-        <div class="gp-top-presence-head" id="gp-top-presence-head">Users online</div>
-        <div id="gp-top-presence-list"><small>Checking who's online…</small></div>
-      </div>
     </div>
     <span class="pill pill-role" id="role-badge"></span>
     <div id="conn" class="conn">Connecting…</div>
@@ -6302,7 +6258,6 @@ window.showApp=function(){
   if(top) top.style.display='flex';
   if(reopen) reopen.style.display='';
   navVis();
-  if(window.gpStartPresence) window.gpStartPresence();
   const wanted=sessionStorage.getItem('svd_active_tab')||'dashboard';
   requestAnimationFrame(()=>{requestAnimationFrame(()=>{switchTab(wanted);document.documentElement.classList.remove('gp-booting');});});
 };
@@ -6416,8 +6371,7 @@ function renderDash(){
  ${card('c-unit','Unit Performance')}${card('c-cust','Customers with Highest Pending Qty')}
  ${card('c-age','Pending Aging (by scheduled date)')}${card('c-fg','FG Stock Health (stock vs open demand)','w4')}${card('c-mix','Customer Dispatch Mix','w4')}
  ${card('c-sc','Order vs Dispatch (each dot = order)','w12')}
- <div class="gp-c" id="gp-att"></div><div class="gp-c" id="gp-rec"></div><div class="gp-c w12" id="gp-tl"></div></div>
- <div class="gp-g"><div class="gp-c w6" id="gp-presence-card"><h3>Users Online Now <span id="gp-online-count" class="gp-chip">…</span></h3><div id="gp-presence-content" class="sub">Loading online users…</div></div><div class="gp-c w6" id="gp-daily-activity-card"><h3>Today's User Activity <span id="gp-activity-date" class="gp-chip"></span></h3><div id="gp-daily-activity-content" class="sub">Loading today's activity…</div></div></div>`;
+ <div class="gp-c" id="gp-att"></div><div class="gp-c" id="gp-rec"></div><div class="gp-c w12" id="gp-tl"></div></div>`;
 
  root.querySelectorAll('.gp-k').forEach(e=>e.onclick=()=>{
    const k=K[e.dataset.k][3];
@@ -6489,89 +6443,6 @@ function renderDash(){
  $('gp-tl').innerHTML=`<h3>What Changed (selected period)</h3><div class="gp-tl">${ev.slice(0,15).map(e=>`<div><small>${esc(fmtDateTime(e[0]))}</small><br>${e[1]}</div>`).join('')||'<div class="sub">No activity in this period</div>'}</div>`;
  lucide.createIcons();
 }
-
-// Live online indicator + daily work log. The list is date-scoped on the server,
-// so the visible activity naturally starts fresh each day while history remains auditable.
-let gpPresenceTimer_ = null, gpPresenceBusy_ = false;
-function renderPresenceActivity_(payload) {
- const users = payload && Array.isArray(payload.users) ? payload.users : [];
- const count = document.getElementById('gp-online-count'), date = document.getElementById('gp-activity-date');
- const online = document.getElementById('gp-presence-content'), daily = document.getElementById('gp-daily-activity-content');
- if(count) count.textContent = String(payload.onlineCount || 0) + ' online';
- if(date) date.textContent = payload.today || '';
- const onlineUsers = users.filter(u=>u.online);
- const topAvatars = document.getElementById('gp-top-avatars');
- const topCount = document.getElementById('gp-top-presence-count');
- const topHead = document.getElementById('gp-top-presence-head');
- const topList = document.getElementById('gp-top-presence-list');
- if(topAvatars) {
-   const palette=['#0f766e','#2563eb','#7c3aed','#c2410c','#be185d','#475569','#15803d'];
-   const initials = name => String(name||'?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?';
-   topAvatars.innerHTML = onlineUsers.slice(0,4).map((u,i)=>`<span class="gp-top-avatar" style="background:${palette[i%palette.length]}" title="${esc(u.displayName)} · ${esc(u.role)} · ${esc(u.unit)}">${esc(initials(u.displayName))}</span>`).join('') || '<span class="gp-top-avatar" style="background:#94a3b8" title="No users online">—</span>';
-   if(onlineUsers.length>4) topAvatars.insertAdjacentHTML('beforeend',`<span class="gp-top-avatar gp-top-avatar-more" title="${onlineUsers.length-4} more users">+${onlineUsers.length-4}</span>`);
- }
- if(topCount) topCount.textContent = onlineUsers.length ? `${onlineUsers.length} online` : 'No one online';
- if(topHead) topHead.textContent = `Users online (${onlineUsers.length})`;
- if(topList) topList.innerHTML = onlineUsers.map((u,i)=>{
-   const palette=['#0f766e','#2563eb','#7c3aed','#c2410c','#be185d','#475569','#15803d'];
-   const initials=String(u.displayName||'?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?';
-   return `<div class="gp-top-presence-user"><span class="gp-top-avatar" style="background:${palette[i%palette.length]}">${esc(initials)}</span><span class="gp-top-presence-meta"><b>${esc(u.displayName)}</b><small>${esc(u.role)} · ${esc(u.unit)}</small></span><span class="gp-top-presence-status">Online</span></div>`;
- }).join('') || '<div class="sub" style="padding:8px">No users are online right now.</div>';
- if(online) online.innerHTML = onlineUsers.map(u=>`<div class="gp-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:7px"></span><b>${esc(u.displayName)}</b><br><small>${esc(u.role)} · ${esc(u.unit)}</small></span><span><small>Online</small></span></div>`).join('') || '<div class="sub">No users currently online (other than a session that has not sent its first heartbeat yet).</div>';
- if(daily) daily.innerHTML = users.map(u=>`<div class="gp-row"><span><b>${esc(u.displayName)}</b><br><small>${esc(u.unit)} · ${esc(u.role)}</small><br><small>${esc(u.lastAction||'No entry today')}${u.lastActivityAt?' · '+esc(fmtDateTime(u.lastActivityAt)):''}</small></span><span style="text-align:right"><b>${Number(u.entries)||0}</b><br><small>${u.entries?'entry/entries':'no entry'}</small><br><small style="color:${u.online?'#10b981':'var(--muted)'}">${u.online?'Online':'Offline'}</small></span></div>`).join('') || '<div class="sub">No user activity available.</div>';
-}
-function toggleTopPresence_(){
- const pop=document.getElementById('gp-top-presence-pop');
- const btn=document.getElementById('gp-top-presence-btn');
- if(!pop||!btn)return;
- const open=!pop.classList.contains('open');
- pop.classList.toggle('open',open);btn.setAttribute('aria-expanded',open?'true':'false');
-}
-document.addEventListener('click',function(e){
- const wrap=document.getElementById('gp-top-presence');
- const pop=document.getElementById('gp-top-presence-pop');
- const btn=document.getElementById('gp-top-presence-btn');
- if(wrap&&pop&&!wrap.contains(e.target)){pop.classList.remove('open');if(btn)btn.setAttribute('aria-expanded','false');}
-});
-async function refreshPresenceActivity_() {
- if(gpPresenceBusy_ || !TOKEN || !SESSION) return;
- gpPresenceBusy_ = true;
- try { const j = await fetchAppScriptJson_(APPS_SCRIPT_URL+'?mode=presence&token='+encodeURIComponent(TOKEN)+'&_='+Date.now()); if(j && j.ok) renderPresenceActivity_(j); }
- catch(e) {} finally { gpPresenceBusy_ = false; }
-}
-function ensureTopPresenceWidget_(){
- // The collaborator control is part of the top-right controls beside the role
- // badge. Re-home an existing widget as well as creating it when missing; the
- // old implementation only placed it during creation, so an existing node
- // left elsewhere in the DOM stayed invisible to users.
- const topbar=document.querySelector('#main-app .topbar, .topbar');
- if(!topbar)return;
- let wrap=document.getElementById('gp-top-presence');
- const role=document.getElementById('role-badge');
- if(!wrap){
-   wrap=document.createElement('div');wrap.id='gp-top-presence';
-   wrap.innerHTML='<button type="button" id="gp-top-presence-btn" class="gp-top-presence-btn" aria-label="Show online collaborators" aria-expanded="false" title="Users online" onclick="toggleTopPresence_()"><span class="gp-top-avatars" id="gp-top-avatars"><span class="gp-top-avatar" style="background:#64748b">…</span></span><span class="gp-top-presence-count" id="gp-top-presence-count">Checking…</span></button><div class="gp-top-presence-pop" id="gp-top-presence-pop" role="dialog" aria-label="Online users"><div class="gp-top-presence-head" id="gp-top-presence-head">Users online</div><div id="gp-top-presence-list"><small>Checking who is online…</small></div></div>';
- }
- wrap.classList.add('gp-top-presence');
- const controls=role&&role.parentElement ? role.parentElement : topbar.lastElementChild;
- if(controls){
-   if(role&&role.parentElement===controls){
-     if(wrap.parentElement!==controls || wrap.nextElementSibling!==role) role.before(wrap);
-   } else if(wrap.parentElement!==controls){
-     controls.prepend(wrap);
-   }
- }
- ['display','visibility','opacity','flex-shrink'].forEach((prop,i)=>{
-   const values=['flex','visible','1','0'];
-   wrap.style.setProperty(prop,values[i],'important');
- });
-}
-window.gpStartPresence = function(){
- ensureTopPresenceWidget_();
- if(gpPresenceTimer_) return;
- const beat = async()=>{ if(!TOKEN || !SESSION) return; ensureTopPresenceWidget_(); try { await postAction({action:'pingPresence'}); } catch(e) {} await refreshPresenceActivity_(); };
- beat(); gpPresenceTimer_ = setInterval(beat, 25000);
-};
 
 // Expose the dashboard renderer for the existing MIS load pipeline.
 window.renderDash = renderDash;
@@ -6813,7 +6684,6 @@ window.ensureXLSX=window.ensureXLSX||(()=>{if(window.XLSX)return Promise.resolve
 const $=id=>document.getElementById(id),N=v=>Number(v)||0,F=n=>N(n).toLocaleString('en-IN');
 const ALL=['dashboard','multiple','sets','orders','new','stock','dispatch-history','complaints','discussion','admin'];
 let rows=[],map={},dup=new Set(),filt='';
-const tyFilters={search:'',customer:'',part:'',unit:'',status:''};
 const ymd=d=>{d=new Date(new Date(d).getTime()+432e5);const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};
 const nz=s=>String(s).toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\b(LTD|LIMITED|PVT|PRIVATE|INDIA|CO|COMPANY|AND)\b/g,'').replace(/\s+/g,' ').trim();
 function suggest(t){const a=nz(t);if(!a)return'';const cs=data.customers||[];
@@ -6895,77 +6765,25 @@ function run(){
  });
 }
 const PILL={Matched:'pill-completed',Partial:'pill-pending',Unmatched:'pill-high',Duplicate:'pill-low','No mapping':'pill-high','Select order':'pill-pending','Order capacity used':'pill-high'};
-function tyRenderPreservingView(focusId, caretStart, caretEnd){
- const winY=window.scrollY||0;
- const scrolls=[...document.querySelectorAll('#ty-out .table-scroll')].map((el,i)=>({i,top:el.scrollTop,left:el.scrollLeft}));
- render();
- scrolls.forEach(x=>{const el=document.querySelectorAll('#ty-out .table-scroll')[x.i];if(el){el.scrollTop=x.top;el.scrollLeft=x.left;}});
- window.scrollTo(0,winY);
- if(focusId){const el=document.getElementById(focusId);if(el){el.focus({preventScroll:true});if(typeof caretStart==='number'&&el.setSelectionRange){try{el.setSelectionRange(caretStart,caretEnd??caretStart)}catch(e){}}}}
-}
-window.tyMap=(p,v)=>{if(v)map[p]=v;else delete map[p];run();tyRenderPreservingView()};
-window.tySelectOrder=(idx,v)=>{const r=rows[idx];if(!r)return;r.selectedOrderId=v||'';run();tyRenderPreservingView()};
-window.tyFilt=v=>{filt=v;tyRenderPreservingView()};
-window.tySetFilter=(key,value,id)=>{
- tyFilters[key]=value;
- const el=id?document.getElementById(id):null, a=el&&typeof el.selectionStart==='number'?el.selectionStart:null, b=el&&typeof el.selectionEnd==='number'?el.selectionEnd:null;
- tyRenderPreservingView(id,a,b);
-};
-window.tyClearFilters=()=>{Object.keys(tyFilters).forEach(k=>tyFilters[k]='');filt='';tyRenderPreservingView()};
+window.tyMap=(p,v)=>{if(v)map[p]=v;else delete map[p];run();render()};
+window.tySelectOrder=(idx,v)=>{const r=rows[idx];if(!r)return;r.selectedOrderId=v||'';run();render()};
+window.tyFilt=v=>{filt=v;render()};
 function render(){
  const c={};rows.forEach(r=>c[r.st]=(c[r.st]||0)+1);
  // Only complete, manually selected matches can be applied. Partial lines are deliberately blocked
  // so the Tally line key is not consumed while some quantity remains unallocated.
  const ok=rows.filter(r=>r.allocs.length&&r.got===r.qty),q=ok.reduce((s,r)=>s+r.got,0),parties=[...new Set(rows.map(r=>r.party))].sort(),unm=parties.filter(p=>!map[p]).length,cs=data.customers||[];
- const search=String(tyFilters.search||'').trim().toLowerCase();
- const list=rows.map((r,i)=>({r,i})).filter(({r})=>{
-   if(filt&&r.st!==filt)return false;
-   if(tyFilters.status&&r.st!==tyFilters.status)return false;
-   if(tyFilters.customer&&String(r.cust||r.party).toLowerCase()!==tyFilters.customer.toLowerCase())return false;
-   if(tyFilters.part&&String(r.part).toLowerCase()!==tyFilters.part.toLowerCase())return false;
-   if(tyFilters.unit&&String(r.unit).toLowerCase()!==tyFilters.unit.toLowerCase())return false;
-   if(search&&![r.date,r.inv,r.cust,r.party,r.part,r.unit,r.st,r.qty].join(' ').toLowerCase().includes(search))return false;
-   return true;
- }).slice(0,400);
- const customers=[...new Set(rows.map(r=>String(r.cust||r.party||'').trim()).filter(Boolean))].sort();
- const parts=[...new Set(rows.map(r=>String(r.part||'').trim()).filter(Boolean))].sort();
- const units=[...new Set(rows.map(r=>String(r.unit||'').trim()).filter(Boolean))].sort();
- const statuses=[...new Set(rows.map(r=>String(r.st||'').trim()).filter(Boolean))].sort();
- const opts=(values,selected,label)=>`<option value="">All ${label}</option>${values.map(v=>`<option value="${esc(v)}" ${selected===v?'selected':''}>${esc(v)}</option>`).join('')}`;
+ const list=rows.map((r,i)=>({r,i})).filter(x=>!filt||x.r.st===filt).slice(0,400);
  $('ty-out').innerHTML=`<div class="card"><div class="gp-kpis">${['Matched','Select order','Partial','Unmatched','No mapping','Duplicate'].map(k=>`<div class="gp-k" onclick="tyFilt('${filt===k?'':k}')"><small>${k}</small><b>${c[k]||0}</b></div>`).join('')}
  <div class="gp-k"><small>Qty to dispatch</small><b>${F(q)}</b></div></div>
  <details ${unm?'open':''} style="margin-bottom:12px"><summary><b>Customer mapping</b> ${unm?`<span class="pill pill-high">${unm} unmapped</span>`:''}</summary>
  <div class="table-scroll"><table><tr><th>Tally name</th><th>MIS customer</th></tr>${parties.map(p=>`<tr><td>${esc(p)}</td><td><select onchange="tyMap('${esc(p).replace(/'/g,"\\'")}',this.value)"><option value="">— select —</option>${cs.map(x=>`<option ${map[p]===x?'selected':''}>${esc(x)}</option>`).join('')}</select></td></tr>`).join('')}</table></div></details>
- <div class="sub" style="margin:8px 0">Use the filters to find the right Tally line quickly. Changing an order selection updates the matching results without jumping the page or resetting your scroll position.</div>
- <div class="ty-filterbar" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin:10px 0 12px;align-items:center">
- <input id="ty-filter-search" type="search" placeholder="Search invoice, customer, part…" value="${esc(tyFilters.search)}" oninput="tySetFilter('search',this.value,'ty-filter-search')" style="min-width:0;width:100%;box-sizing:border-box" />
- <select id="ty-filter-customer" onchange="tySetFilter('customer',this.value,'ty-filter-customer')" style="min-width:0;width:100%">${opts(customers,tyFilters.customer,'customer')}</select>
- <select id="ty-filter-part" onchange="tySetFilter('part',this.value,'ty-filter-part')" style="min-width:0;width:100%">${opts(parts,tyFilters.part,'part code')}</select>
- <select id="ty-filter-unit" onchange="tySetFilter('unit',this.value,'ty-filter-unit')" style="min-width:0;width:100%">${opts(units,tyFilters.unit,'unit')}</select>
- <select id="ty-filter-status" onchange="tySetFilter('status',this.value,'ty-filter-status')" style="min-width:0;width:100%">${opts(statuses,tyFilters.status,'status')}</select>
- <button type="button" class="btn-secondary" onclick="tyClearFilters()">Clear filters</button>
- </div>
- <div class="sub" style="margin:8px 0">Select the MIS order using its creation date, scheduled date, ordered quantity and remaining pending quantity. Order IDs are hidden. No order is selected automatically.</div>
- <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Created · Scheduled · Order Qty · Pending Qty)</th><th>Matched Qty</th><th>Status</th><th>Action</th></tr>
- ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Created ${esc(fmtDate(o.CreatedAt))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Order Qty ${F(N(o.OrderQty))} · Pending Qty ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td><td>${r.st==='Unmatched'&&r.cust&&!dup.has(r.key)&&!r.candidates.length?`<button type="button" class="btn-secondary btn-small" onclick="tyCreatePlanDispatch(${i})">Create plan + dispatch</button>`:'—'}</td></tr>`).join('')}</table></div>
- <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length} lines (maximum 400 displayed). Only lines where the selected order can cover the full Tally quantity are included in Apply. If a line shows <b>Partial</b>, choose an order with enough pending quantity; partial lines are not applied.</div>
+ <div class="sub" style="margin:8px 0">Select the correct MIS order for each Tally line. The dropdown shows the order ID, scheduled date and current pending quantity. No order is selected automatically.</div>
+ <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Scheduled date · Pending)</th><th>Matched Qty</th><th>Status</th></tr>
+ ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Order ${esc(String(o.OrderID))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Pending ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
+ <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Only lines where the selected order can cover the full Tally quantity are included in Apply. If a line shows <b>Partial</b>, choose an order with enough pending quantity; partial lines are not applied.</div>
  <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
 }
-window.tyCreatePlanDispatch=async function(i){
- const r=rows[i]; if(!r || r.st!=='Unmatched' || !r.cust || dup.has(r.key) || (r.candidates||[]).length) return;
- const msg = `No open PPC order was found for this Tally line.\n\nCustomer: ${r.cust}\nPart: ${r.part}\nUnit: ${r.unit}\nTally quantity: ${F(r.qty)}\nInvoice: ${r.inv}\nTally date: ${r.date}\n\nIf you approve, MIS will create a PPC order with this date and quantity, immediately record the dispatch, deduct FG stock, and mark this invoice line as imported. Continue?`;
- if(!confirm(msg)) return;
- const buttons=[...document.querySelectorAll('#ty-out button')]; buttons.forEach(b=>{if(b.getAttribute('onclick')===`tyCreatePlanDispatch(${i})`){b.disabled=true;b.textContent='Processing…';}});
- const st=document.getElementById('ty-ap')||document.getElementById('ty-st');
- try{
-   const result=await postAction({action:'tallyCreatePlanDispatch',line:{key:r.key,invoice:r.inv,partNo:r.part,customer:r.cust,unit:r.unit,qty:r.qty,date:r.date,shipTo:r.ship||r.cust}});
-   if(result.error) throw new Error(result.error);
-   dup.add(r.key); r.st='Processed';
-   if(st){st.textContent=`✓ Created plan and dispatched ${F(r.qty)} for ${r.cust} / ${r.part} (${r.unit}).`;st.className='status-msg ok';}
-   await loadData(false,true); await loadState(); run(); render();
-   if(window.refreshPresenceActivity_) window.refreshPresenceActivity_();
- }catch(e){if(st){st.textContent='Failed: '+e.message;st.className='status-msg err';} tyRenderPreservingView();}
-};
 window.tyApply=async function(){
  const st=$('ty-ap'),ok=rows.filter(r=>r.allocs.length&&r.got===r.qty);
  const lines=ok.map(r=>({key:r.key,date:r.date,unit:r.unit,invoice:r.inv,partNo:r.part,customer:r.cust,shipTo:r.ship||r.party,allocs:r.allocs}));
@@ -7768,6 +7586,195 @@ if(document.readyState!=='loading' && document.getElementById('main-app')) mount
   body.gp-on #gp-top .gp-head-logo{width:124px!important;height:42px!important}
 }
 </style>
+
+
+
+<!-- =====================================================================
+     FRONTEND PATCH — "Who is online" (Owner) + "Today's activity" (everyone)
+     Paste this whole block in index.html just BEFORE the closing </body> tag
+     (after the last <script>/<style> block). No other HTML changes needed.
+     ===================================================================== -->
+<style id="gp-presence-css">
+#gp-top .gp-pres-btn{height:34px;min-height:34px;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;
+  padding:0 12px;border-radius:18px;border:1px solid #30283a;background:#17131d;color:#f5f3fa;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+#gp-top .gp-pres-btn:hover{border-color:#594777}
+#gp-top .gp-pres-btn .dot{width:8px;height:8px;border-radius:50%;background:#32d48a;box-shadow:0 0 8px rgba(50,212,138,.7)}
+#gp-top .gp-pres-btn .dot.off{background:#8f8998;box-shadow:none}
+#gp-top .gp-pres-btn.act .dot{background:#8b5cf6;box-shadow:0 0 8px rgba(139,92,246,.7)}
+
+#gp-pres-panel{position:fixed;top:78px;right:18px;width:min(420px,calc(100vw - 20px));max-height:calc(100vh - 100px);overflow:auto;
+  z-index:1600;background:#0d0c13;color:#f5f3fa;border:1px solid #2a2332;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.55);
+  padding:14px 14px 10px;transform:translateY(-12px);opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease}
+#gp-pres-panel.open{transform:none;opacity:1;pointer-events:auto}
+#gp-pres-panel h3{margin:0;font-size:14px}
+.gp-pres-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.gp-pres-sub{font-size:11px;color:#8f8998;margin-bottom:10px}
+.gp-pres-x{background:transparent;color:#8f8998;font-size:18px;line-height:1;padding:2px 6px;border-radius:6px}
+.gp-pres-x:hover{color:#fff;background:#211c29}
+.gp-pres-sec{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8f8998;font-weight:800;margin:12px 0 6px}
+.gp-pres-row{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid #211c29;font-size:12px}
+.gp-pres-row:last-child{border-bottom:0}
+.gp-pres-row .dot{width:9px;height:9px;border-radius:50%;flex:none;background:#4a4455}
+.gp-pres-row .dot.on{background:#32d48a;box-shadow:0 0 8px rgba(50,212,138,.7)}
+.gp-pres-row .who{flex:1;min-width:0}
+.gp-pres-row .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gp-pres-row .who small,.gp-pres-row .meta{color:#8f8998;font-size:10.5px}
+.gp-pres-row .meta{text-align:right;white-space:nowrap}
+.gp-pres-badge{background:rgba(139,92,246,.16);color:#c4b5fd;border:1px solid rgba(139,92,246,.3);border-radius:999px;padding:1px 8px;font-size:10px;font-weight:700}
+.gp-pres-feed .t{color:#8f8998;font-size:10.5px;min-width:44px}
+.gp-pres-feed .who small{white-space:normal}
+.gp-pres-empty{color:#8f8998;text-align:center;font-size:12px;padding:14px 0}
+.gp-pres-tabs{display:flex;gap:6px;margin:6px 0 2px}
+.gp-pres-tab{flex:1;background:#17131d;color:#8f8998;border:1px solid #30283a;border-radius:9px;padding:7px 8px;font-size:11.5px;font-weight:700}
+.gp-pres-tab.on{background:#1a132b;color:#c4b5fd;border-color:#513486}
+
+:root[data-theme="light"] #gp-top .gp-pres-btn{background:#fff;color:#344054;border-color:#d0d5dd}
+:root[data-theme="light"] #gp-pres-panel{background:#fff;color:#20232b;border-color:#d9deea;box-shadow:0 18px 44px rgba(16,24,40,.18)}
+:root[data-theme="light"] .gp-pres-row{border-bottom-color:#e4e7ec}
+:root[data-theme="light"] .gp-pres-x:hover{background:#f2f4f7;color:#20232b}
+:root[data-theme="light"] .gp-pres-tab{background:#f8fafc;color:#667085;border-color:#d0d5dd}
+:root[data-theme="light"] .gp-pres-tab.on{background:#f5f3ff;color:#5b21b6;border-color:#d8b4fe}
+:root[data-theme="light"] .gp-pres-badge{background:#f5f3ff;color:#5b21b6;border-color:#d8b4fe}
+
+@media(max-width:900px){
+  #gp-pres-panel{top:66px;right:8px}
+  #gp-top .gp-pres-btn{padding:0 9px;height:32px;min-height:32px}
+  #gp-top .gp-pres-btn .lbl{display:none}
+}
+</style>
+
+<script id="gp-presence-js">
+(function(){
+  const $=id=>document.getElementById(id);
+  const PING_MS=30000, POLL_OWNER_MS=20000, POLL_USER_MS=60000;
+  let state=null, pingT=null, pollT=null, isOpen=false, tab='online', injected=false;
+
+  const signedIn=()=>typeof TOKEN!=='undefined'&&TOKEN&&typeof SESSION!=='undefined'&&SESSION;
+  const owner=()=>signedIn()&&typeof isOwnerUI==='function'&&isOwnerUI();
+  const e=s=>typeof esc==='function'?esc(s):String(s==null?'':s);
+  const hhmm=iso=>{if(!iso)return '—';const d=new Date(iso);return isNaN(d)?'—':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});};
+  function ago(iso){
+    if(!iso)return 'never';
+    const s=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/1000));
+    if(s<90)return 'just now';
+    if(s<3600)return Math.round(s/60)+' min ago';
+    if(s<86400)return Math.round(s/3600)+' h ago';
+    return Math.round(s/86400)+' d ago';
+  }
+
+  /* ---------- inject header button + panel ---------- */
+  function inject(){
+    const actions=document.querySelector('#gp-top .gp-head-actions');
+    if(!actions||injected&&$('gp-pres-btn'))return !!actions;
+    const btn=document.createElement('button');
+    btn.id='gp-pres-btn';btn.type='button';btn.className='gp-pres-btn';
+    btn.innerHTML='<span class="dot off"></span><span class="lbl" id="gp-pres-lbl">Activity</span>';
+    btn.onclick=ev=>{ev.stopPropagation();toggle();};
+    actions.insertBefore(btn,actions.firstChild);
+
+    const panel=document.createElement('div');
+    panel.id='gp-pres-panel';
+    panel.addEventListener('click',ev=>ev.stopPropagation());
+    document.body.appendChild(panel);
+    document.addEventListener('click',()=>{if(isOpen)toggle(false);});
+    document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&isOpen)toggle(false);});
+    injected=true;
+    return true;
+  }
+
+  function toggle(force){
+    isOpen=typeof force==='boolean'?force:!isOpen;
+    const p=$('gp-pres-panel');if(!p)return;
+    p.classList.toggle('open',isOpen);
+    if(isOpen){tab=owner()?'online':'activity';render();fetchState();}
+  }
+
+  /* ---------- data ---------- */
+  async function ping(){
+    if(!signedIn()||document.visibilityState!=='visible'||!navigator.onLine)return;
+    try{await postAction({action:'pingPresence'});}catch(_){}
+  }
+  async function fetchState(){
+    if(!signedIn()||!navigator.onLine)return;
+    try{
+      const j=await fetchAppScriptJson_(APPS_SCRIPT_URL+'?mode=presence&token='+encodeURIComponent(TOKEN)+'&_='+Date.now());
+      if(j&&j.ok){state=j;render();}
+    }catch(_){}
+  }
+  function schedule(){
+    clearInterval(pingT);clearTimeout(pollT);
+    if(!signedIn())return;
+    ping();fetchState();
+    pingT=setInterval(ping,PING_MS);
+    const loop=async()=>{
+      if(!signedIn())return;
+      if(document.visibilityState==='visible')await fetchState();
+      pollT=setTimeout(loop,owner()?POLL_OWNER_MS:POLL_USER_MS);
+    };
+    pollT=setTimeout(loop,owner()?POLL_OWNER_MS:POLL_USER_MS);
+  }
+  function stop(){clearInterval(pingT);clearTimeout(pollT);state=null;isOpen=false;
+    const p=$('gp-pres-panel');if(p)p.classList.remove('open');}
+
+  /* ---------- render ---------- */
+  function render(){
+    if(!injected)return;
+    const btn=$('gp-pres-btn'),lbl=$('gp-pres-lbl'),panel=$('gp-pres-panel');
+    if(!btn||!panel)return;
+    const isO=owner();
+    const dot=btn.querySelector('.dot');
+    if(isO){
+      const n=state?state.onlineCount||0:0;
+      lbl.textContent=n+' online';
+      dot.className='dot'+(n?'':' off');
+      btn.classList.remove('act');
+    }else{
+      lbl.textContent="Today's activity";
+      dot.className='dot';btn.classList.add('act');
+    }
+    btn.title=isO?'Who is online + activity of the day':"Activity of the day";
+    if(!isOpen)return;
+
+    const users=(state&&state.users)||[], feed=(state&&state.feed)||[];
+    const todayLabel=state&&state.today?state.today:'';
+    let h=`<div class="gp-pres-head"><h3>${isO?'Team Pulse':"Today's Activity"}</h3><button class="gp-pres-x" onclick="document.getElementById('gp-pres-btn').click()" aria-label="Close">✕</button></div>
+      <div class="gp-pres-sub">${e(todayLabel)} · resets every midnight${state?` · ${state.totalEntries||0} entries today`:''}</div>`;
+    if(isO){
+      h+=`<div class="gp-pres-tabs"><button class="gp-pres-tab ${tab==='online'?'on':''}" data-t="online">Online now</button><button class="gp-pres-tab ${tab==='activity'?'on':''}" data-t="activity">Activity</button></div>`;
+    }
+    if(!state){
+      h+='<div class="gp-pres-empty">Loading…</div>';
+    }else if(isO&&tab==='online'){
+      const on=users.filter(u=>u.online), off=users.filter(u=>!u.online);
+      h+=`<div class="gp-pres-sec">Online (${on.length})</div>`;
+      h+=on.length?on.map(u=>row(u,true)).join(''):'<div class="gp-pres-empty">Nobody online right now</div>';
+      h+=`<div class="gp-pres-sec">Offline (${off.length})</div>`;
+      h+=off.map(u=>row(u,false)).join('')||'<div class="gp-pres-empty">—</div>';
+    }else{
+      h+='<div class="gp-pres-sec">By person</div>';
+      const act=users.filter(u=>u.entries>0);
+      h+=act.length?act.map(u=>`<div class="gp-pres-row"><div class="who"><b>${e(u.displayName)}</b><small>${e(u.unit)} · last: ${e(u.lastAction)}</small></div><div class="meta"><span class="gp-pres-badge">${u.entries} entr${u.entries===1?'y':'ies'}</span><br>${hhmm(u.lastActivityAt)}</div></div>`).join(''):'<div class="gp-pres-empty">No activity recorded yet today</div>';
+      h+='<div class="gp-pres-sec">Latest actions</div><div class="gp-pres-feed">';
+      h+=feed.length?feed.slice(0,30).map(f=>`<div class="gp-pres-row"><span class="t">${hhmm(f.timestamp)}</span><div class="who"><b>${e(f.action)}</b><small>${e(f.displayName)}${f.unit?' · '+e(f.unit):''}${f.details?' — '+e(f.details):''}</small></div></div>`).join(''):'<div class="gp-pres-empty">Nothing yet today</div>';
+      h+='</div>';
+    }
+    panel.innerHTML=h;
+    panel.querySelectorAll('.gp-pres-tab').forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();});
+  }
+  function row(u,on){
+    return `<div class="gp-pres-row"><span class="dot ${on?'on':''}"></span><div class="who"><b>${e(u.displayName)}</b><small>${e(u.role)} · ${e(u.unit)}</small></div><div class="meta">${on?'Active now':'Seen '+ago(u.lastSeen)}<br>${u.entries} entr${u.entries===1?'y':'ies'} today</div></div>`;
+  }
+
+  /* ---------- lifecycle: start after login, stop after logout ---------- */
+  let wasIn=false;
+  setInterval(()=>{
+    const inNow=signedIn()&&document.body.classList.contains('gp-on');
+    if(inNow&&!wasIn){ if(inject()){wasIn=true;schedule();render();} }
+    else if(!inNow&&wasIn){wasIn=false;stop();}
+  },1000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&wasIn){ping();fetchState();}});
+})();
+</script>
 
 </body>
 </html>
