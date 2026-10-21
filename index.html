@@ -6739,80 +6739,78 @@ async function onFile(f){
  }catch(e){st.textContent='Could not read file: '+e.message;st.className='status-msg err'}
 }
 function fill(){rows.forEach(r=>{if(!map[r.party]){const s=suggest(r.party);if(s)map[r.party]=s}})}
-function normMatch(v){
- return String(v==null?'':v).toUpperCase()
-  .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
-  .replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-}
-function orderPending(o){
- const orderQty=N(o.OrderQty),dispatched=N(o.DispatchedQty);
- // Use quantity arithmetic as source of truth; PendingQty can be stale.
- return Math.max(0,orderQty-dispatched);
-}
+function normPart(v){return String(v==null?'':v).toUpperCase().replace(/[^A-Z0-9]/g,'').trim()}
+function normUnit(v){const x=String(v==null?'':v).trim().toLowerCase();if(/delta/.test(x))return 'delta';const m=x.match(/(?:unit\s*)?(\d+)/);return m?'unit '+Number(m[1]):x.replace(/\s+/g,' ')}
+function normCustomer(v){return nz(v).replace(/\bUNIT\s*[A-Z0-9]+\b/g,'').replace(/\s+/g,' ').trim()}
 function run(){
- const pend={},pools={};
- (data.orders||[]).forEach(o=>{
-   const balance=orderPending(o);
-   if(!o.OrderID||balance<=0)return;
-   const k=[normMatch(o.Customer),normMatch(o.PartCode),normMatch(o.Unit)].join('|');
-   pend[o.OrderID]=balance;
-   (pools[k]=pools[k]||[]).push(o);
- });
- Object.keys(pools).forEach(k=>pools[k].sort((a,b)=>
-   String(fmtDate(a.ScheduledDate)).localeCompare(String(fmtDate(b.ScheduledDate)))||
-   new Date(a.CreatedAt||0)-new Date(b.CreatedAt||0)
- ));
+ const pend={},byCustomerPart={};
+ // PendingQty can be stale after a status edit, so derive the usable balance
+ // from the source quantities and do not exclude a row only because Status is stale.
+ (data.orders||[]).filter(o=>{
+   const rem=Math.max(0,N(o.OrderQty)-N(o.DispatchedQty));
+   return !!o.OrderID && rem>0;
+  })
+  .sort((a,b)=>String(a.ScheduledDate||'').localeCompare(String(b.ScheduledDate||''))||String(a.CreatedAt||'').localeCompare(String(b.CreatedAt||'')))
+  .forEach(o=>{
+   const rem=Math.max(0,N(o.OrderQty)-N(o.DispatchedQty));
+   pend[String(o.OrderID)]=rem;
+   const k=normCustomer(o.Customer)+'|'+normPart(o.PartCode);
+   (byCustomerPart[k]=byCustomerPart[k]||[]).push(o);
+  });
  rows.forEach(r=>{
-  r.cust=map[r.party]||'';r.allocs=[];r.got=0;r.candidates=[];
+  r.cust=map[r.party]||'';r.allocs=[];r.got=0;r.candidates=[];r.matchNote='';
   if(dup.has(r.key)||dup.has(r.legacyKey)){r.selectedOrderId='';r.st='Duplicate';return}
   if(!r.cust){r.selectedOrderId='';r.st='No mapping';return}
-  const k=[normMatch(r.cust),normMatch(r.part),normMatch(r.unit)].join('|');
-  r.candidates=(pools[k]||[]).filter(o=>(pend[o.OrderID]||0)>0);
-  if(r.selectedOrderId&&!r.candidates.some(o=>String(o.OrderID)===String(r.selectedOrderId)))r.selectedOrderId='';
-  let remaining=N(r.qty);
-  const chosen=r.selectedOrderId
-    ? r.candidates.filter(o=>String(o.OrderID)===String(r.selectedOrderId))
-    : r.candidates;
-  for(const o of chosen){
-    if(remaining<=0)break;
-    const available=Math.max(0,pend[o.OrderID]||0);
-    if(!available)continue;
-    const take=Math.min(remaining,available);
-    if(take>0){
-      r.allocs.push({orderId:o.OrderID,qty:take});
-      pend[o.OrderID]=available-take;
-      r.got+=take;remaining-=take;
+  const k=normCustomer(r.cust)+'|'+normPart(r.part);
+  const all=(byCustomerPart[k]||[]).filter(o=>(pend[String(o.OrderID)]||0)>0);
+  const same=all.filter(o=>normUnit(o.Unit)===normUnit(r.unit));
+  // Tally Voucher Type is the sales/dispatch unit and can differ from the
+  // production unit on the MIS order. Prefer same-unit orders, but if none
+  // exist, allow customer+part FIFO candidates across units instead of falsely
+  // marking a valid part as unmatched.
+  r.candidates=all.slice().sort((a,b)=>{
+    const am=normUnit(a.Unit)===normUnit(r.unit)?0:1,bm=normUnit(b.Unit)===normUnit(r.unit)?0:1;
+    return am-bm || String(a.ScheduledDate||'').localeCompare(String(b.ScheduledDate||'')) || String(a.CreatedAt||'').localeCompare(String(b.CreatedAt||''));
+  });
+  if(!r.candidates.length){r.selectedOrderId='';r.st='Unmatched';r.matchNote='No open order found for this customer and part';return}
+  // A manual selection remains a deliberate override. Otherwise allocate FIFO
+  // automatically, splitting a Tally line across orders when needed.
+  if(r.selectedOrderId && r.candidates.some(o=>String(o.OrderID)===String(r.selectedOrderId))){
+    const o=r.candidates.find(x=>String(x.OrderID)===String(r.selectedOrderId));
+    const available=pend[String(o.OrderID)]||0,take=Math.min(r.qty,available);
+    if(take>0){r.allocs=[{orderId:String(o.OrderID),qty:take}];r.got=take;pend[String(o.OrderID)]=available-take;}
+  } else {
+    r.selectedOrderId='';let left=r.qty;
+    for(const o of r.candidates){
+      if(left<=0)break;
+      const id=String(o.OrderID),available=pend[id]||0;
+      if(available<=0)continue;
+      const take=Math.min(left,available);
+      if(take>0){r.allocs.push({orderId:id,qty:take});r.got+=take;pend[id]=available-take;left-=take;}
     }
+    if(r.allocs.length===1)r.selectedOrderId=r.allocs[0].orderId;
   }
-  if(!r.candidates.length){r.st='Unmatched';return}
   r.st=r.got===r.qty?'Matched':r.got>0?'Partial':'Unmatched';
+  if(r.candidates.some(o=>normUnit(o.Unit)!==normUnit(r.unit)))r.matchNote='Production unit differs from Tally sales unit; verify order allocation';
  });
 }
 const PILL={Matched:'pill-completed',Partial:'pill-pending',Unmatched:'pill-high',Duplicate:'pill-low','No mapping':'pill-high','Select order':'pill-pending','Order capacity used':'pill-high'};
 window.tyMap=(p,v)=>{if(v)map[p]=v;else delete map[p];run();render()};
 window.tySelectOrder=(idx,v)=>{const r=rows[idx];if(!r)return;r.selectedOrderId=v||'';run();render()};
 window.tyFilt=v=>{filt=v;render()};
-function autoLabel(r){
- if(!r.allocs||!r.allocs.length)return 'No allocation';
- return r.allocs.map(a=>{
-  const o=(data.orders||[]).find(x=>String(x.OrderID)===String(a.orderId));
-  return (o?fmtDate(o.ScheduledDate):'Order')+' qty '+F(a.qty);
- }).join(' + ');
-}
 function render(){
  const c={};rows.forEach(r=>c[r.st]=(c[r.st]||0)+1);
- // Only fully allocated Tally lines can be applied. Partial and unmatched lines remain blocked
- // so a line is not recorded until its full quantity has been allocated.
+ // Only fully allocated lines can be applied. Auto-allocation may split one Tally line across multiple eligible orders.
  const ok=rows.filter(r=>r.allocs.length&&r.got===r.qty),q=ok.reduce((s,r)=>s+r.got,0),parties=[...new Set(rows.map(r=>r.party))].sort(),unm=parties.filter(p=>!map[p]).length,cs=data.customers||[];
  const list=rows.map((r,i)=>({r,i})).filter(x=>!filt||x.r.st===filt).slice(0,400);
  $('ty-out').innerHTML=`<div class="card"><div class="gp-kpis">${['Matched','Select order','Partial','Unmatched','No mapping','Duplicate'].map(k=>`<div class="gp-k" onclick="tyFilt('${filt===k?'':k}')"><small>${k}</small><b>${c[k]||0}</b></div>`).join('')}
  <div class="gp-k"><small>Qty to dispatch</small><b>${F(q)}</b></div></div>
  <details ${unm?'open':''} style="margin-bottom:12px"><summary><b>Customer mapping</b> ${unm?`<span class="pill pill-high">${unm} unmapped</span>`:''}</summary>
  <div class="table-scroll"><table><tr><th>Tally name</th><th>MIS customer</th></tr>${parties.map(p=>`<tr><td>${esc(p)}</td><td><select onchange="tyMap('${esc(p).replace(/'/g,"\\'")}',this.value)"><option value="">— select —</option>${cs.map(x=>`<option ${map[p]===x?'selected':''}>${esc(x)}</option>`).join('')}</select></td></tr>`).join('')}</table></div></details>
- <div class="sub" style="margin:8px 0">Orders are allocated automatically by customer, part code and unit, oldest scheduled date first. Quantities can be split across multiple open orders when needed. Use the dropdown only to override the automatic allocation.</div>
- <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>MIS allocation (Customer · Part · Unit · Scheduled · Order Qty · Pending)</th><th>Matched Qty</th><th>Status</th></tr>
- ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="" ${!r.selectedOrderId?'selected':''}>Auto FIFO · ${esc(autoLabel(r))}</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>${esc(o.Customer)} · Part ${esc(o.PartCode)} · ${esc(o.Unit)} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Order Qty ${F(N(o.OrderQty))} · Pending ${F(Math.max(0,N(o.OrderQty)-N(o.DispatchedQty)))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
- <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Only fully allocated lines are included in Apply. The importer allocates oldest scheduled orders first and can split one Tally quantity across multiple orders. Choose a specific order only to override the automatic allocation.</div>
+ <div class="sub" style="margin:8px 0">Orders are auto-allocated by normalized customer + part code, preferring the same unit and then the oldest scheduled order. A Tally line can split across orders. Verify any cross-unit allocation before Apply; internal Order IDs are hidden.</div>
+ <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Customer · Part · Unit · Scheduled · Qty · Pending)</th><th>Matched Qty</th><th>Status</th></tr>
+ ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>${esc(String(o.Customer||r.cust))} · Part ${esc(String(o.PartCode||r.part))} · ${esc(String(o.Unit||''))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Order Qty ${F(N(o.OrderQty))} · Pending ${F(Math.max(0,N(o.OrderQty)-N(o.DispatchedQty)))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
+ <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Matched lines are allocated automatically. Partial lines have some quantity allocated but need review; only fully allocated lines are included in Apply. Check cross-unit candidates before applying.</div>
  <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
 }
 window.tyApply=async function(){
