@@ -6739,28 +6739,52 @@ async function onFile(f){
  }catch(e){st.textContent='Could not read file: '+e.message;st.className='status-msg err'}
 }
 function fill(){rows.forEach(r=>{if(!map[r.party]){const s=suggest(r.party);if(s)map[r.party]=s}})}
+function normMatch(v){
+ return String(v==null?'':v).toUpperCase()
+  .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function orderPending(o){
+ const orderQty=N(o.OrderQty),dispatched=N(o.DispatchedQty);
+ // Use quantity arithmetic as source of truth; PendingQty can be stale.
+ return Math.max(0,orderQty-dispatched);
+}
 function run(){
  const pend={},pools={};
- (data.orders||[]).filter(o=>String(o.Status)==='Pending'&&N(o.PendingQty)>0)
-  .sort((a,b)=>String(fmtDate(a.ScheduledDate)).localeCompare(fmtDate(b.ScheduledDate))||new Date(a.CreatedAt)-new Date(b.CreatedAt))
-  .forEach(o=>{
-   pend[o.OrderID]=N(o.PendingQty);
-   const k=[o.Customer,o.PartCode,o.Unit].map(x=>String(x).trim().toLowerCase()).join('|');
+ (data.orders||[]).forEach(o=>{
+   const balance=orderPending(o);
+   if(!o.OrderID||balance<=0)return;
+   const k=[normMatch(o.Customer),normMatch(o.PartCode),normMatch(o.Unit)].join('|');
+   pend[o.OrderID]=balance;
    (pools[k]=pools[k]||[]).push(o);
-  });
+ });
+ Object.keys(pools).forEach(k=>pools[k].sort((a,b)=>
+   String(fmtDate(a.ScheduledDate)).localeCompare(String(fmtDate(b.ScheduledDate)))||
+   new Date(a.CreatedAt||0)-new Date(b.CreatedAt||0)
+ ));
  rows.forEach(r=>{
   r.cust=map[r.party]||'';r.allocs=[];r.got=0;r.candidates=[];
-  if(dup.has(r.key)||dup.has(r.legacyKey)){r.st='Duplicate';return}
+  if(dup.has(r.key)||dup.has(r.legacyKey)){r.selectedOrderId='';r.st='Duplicate';return}
   if(!r.cust){r.selectedOrderId='';r.st='No mapping';return}
-  const k=[r.cust,r.part,r.unit].map(x=>String(x).trim().toLowerCase()).join('|');
-  r.candidates=(pools[k]||[]).filter(o=>N(o.PendingQty)>0);
-  if(!r.candidates.some(o=>String(o.OrderID)===String(r.selectedOrderId))) r.selectedOrderId='';
-  if(!r.selectedOrderId){r.st=r.candidates.length?'Select order':'Unmatched';return}
-  const selected=r.candidates.find(o=>String(o.OrderID)===String(r.selectedOrderId));
-  const available=Math.max(0,pend[selected.OrderID]||0);
-  if(available<=0){r.st='Order capacity used';return}
-  const take=Math.min(r.qty,available);
-  if(take>0){r.allocs=[{orderId:selected.OrderID,qty:take}];r.got=take;pend[selected.OrderID]=available-take;}
+  const k=[normMatch(r.cust),normMatch(r.part),normMatch(r.unit)].join('|');
+  r.candidates=(pools[k]||[]).filter(o=>(pend[o.OrderID]||0)>0);
+  if(r.selectedOrderId&&!r.candidates.some(o=>String(o.OrderID)===String(r.selectedOrderId)))r.selectedOrderId='';
+  let remaining=N(r.qty);
+  const chosen=r.selectedOrderId
+    ? r.candidates.filter(o=>String(o.OrderID)===String(r.selectedOrderId))
+    : r.candidates;
+  for(const o of chosen){
+    if(remaining<=0)break;
+    const available=Math.max(0,pend[o.OrderID]||0);
+    if(!available)continue;
+    const take=Math.min(remaining,available);
+    if(take>0){
+      r.allocs.push({orderId:o.OrderID,qty:take});
+      pend[o.OrderID]=available-take;
+      r.got+=take;remaining-=take;
+    }
+  }
+  if(!r.candidates.length){r.st='Unmatched';return}
   r.st=r.got===r.qty?'Matched':r.got>0?'Partial':'Unmatched';
  });
 }
@@ -6768,20 +6792,27 @@ const PILL={Matched:'pill-completed',Partial:'pill-pending',Unmatched:'pill-high
 window.tyMap=(p,v)=>{if(v)map[p]=v;else delete map[p];run();render()};
 window.tySelectOrder=(idx,v)=>{const r=rows[idx];if(!r)return;r.selectedOrderId=v||'';run();render()};
 window.tyFilt=v=>{filt=v;render()};
+function autoLabel(r){
+ if(!r.allocs||!r.allocs.length)return 'No allocation';
+ return r.allocs.map(a=>{
+  const o=(data.orders||[]).find(x=>String(x.OrderID)===String(a.orderId));
+  return (o?fmtDate(o.ScheduledDate):'Order')+' qty '+F(a.qty);
+ }).join(' + ');
+}
 function render(){
  const c={};rows.forEach(r=>c[r.st]=(c[r.st]||0)+1);
- // Only complete, manually selected matches can be applied. Partial lines are deliberately blocked
- // so the Tally line key is not consumed while some quantity remains unallocated.
+ // Only fully allocated Tally lines can be applied. Partial and unmatched lines remain blocked
+ // so a line is not recorded until its full quantity has been allocated.
  const ok=rows.filter(r=>r.allocs.length&&r.got===r.qty),q=ok.reduce((s,r)=>s+r.got,0),parties=[...new Set(rows.map(r=>r.party))].sort(),unm=parties.filter(p=>!map[p]).length,cs=data.customers||[];
  const list=rows.map((r,i)=>({r,i})).filter(x=>!filt||x.r.st===filt).slice(0,400);
  $('ty-out').innerHTML=`<div class="card"><div class="gp-kpis">${['Matched','Select order','Partial','Unmatched','No mapping','Duplicate'].map(k=>`<div class="gp-k" onclick="tyFilt('${filt===k?'':k}')"><small>${k}</small><b>${c[k]||0}</b></div>`).join('')}
  <div class="gp-k"><small>Qty to dispatch</small><b>${F(q)}</b></div></div>
  <details ${unm?'open':''} style="margin-bottom:12px"><summary><b>Customer mapping</b> ${unm?`<span class="pill pill-high">${unm} unmapped</span>`:''}</summary>
  <div class="table-scroll"><table><tr><th>Tally name</th><th>MIS customer</th></tr>${parties.map(p=>`<tr><td>${esc(p)}</td><td><select onchange="tyMap('${esc(p).replace(/'/g,"\\'")}',this.value)"><option value="">— select —</option>${cs.map(x=>`<option ${map[p]===x?'selected':''}>${esc(x)}</option>`).join('')}</select></td></tr>`).join('')}</table></div></details>
- <div class="sub" style="margin:8px 0">Select the correct MIS order for each Tally line. The dropdown shows the order ID, scheduled date and current pending quantity. No order is selected automatically.</div>
- <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Choose MIS order (Scheduled date · Pending)</th><th>Matched Qty</th><th>Status</th></tr>
- ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="">— Select order —</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>Order ${esc(String(o.OrderID))} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Pending ${F(N(o.PendingQty))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
- <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Only lines where the selected order can cover the full Tally quantity are included in Apply. If a line shows <b>Partial</b>, choose an order with enough pending quantity; partial lines are not applied.</div>
+ <div class="sub" style="margin:8px 0">Orders are allocated automatically by customer, part code and unit, oldest scheduled date first. Quantities can be split across multiple open orders when needed. Use the dropdown only to override the automatic allocation.</div>
+ <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>MIS allocation (Customer · Part · Unit · Scheduled · Order Qty · Pending)</th><th>Matched Qty</th><th>Status</th></tr>
+ ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td><select style="min-width:300px;max-width:100%" ${(!r.cust||dup.has(r.key)||!r.candidates.length)?'disabled':''} onchange="tySelectOrder(${i},this.value)"><option value="" ${!r.selectedOrderId?'selected':''}>Auto FIFO · ${esc(autoLabel(r))}</option>${(r.candidates||[]).map(o=>`<option value="${esc(String(o.OrderID))}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>${esc(o.Customer)} · Part ${esc(o.PartCode)} · ${esc(o.Unit)} · Scheduled ${esc(fmtDate(o.ScheduledDate))} · Order Qty ${F(N(o.OrderQty))} · Pending ${F(Math.max(0,N(o.OrderQty)-N(o.DispatchedQty)))}</option>`).join('')}</select></td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
+ <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Only fully allocated lines are included in Apply. The importer allocates oldest scheduled orders first and can split one Tally quantity across multiple orders. Choose a specific order only to override the automatic allocation.</div>
  <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
 }
 window.tyApply=async function(){
