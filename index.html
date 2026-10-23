@@ -139,7 +139,8 @@ async function doLogin() {
     SESSION = res;
     sessionStorage.setItem('svd_token', TOKEN);
     sessionStorage.setItem('svd_session', JSON.stringify(SESSION));
-    $('login-screen').style.display = 'none';$('main-app').style.display = 'block';
+    $('login-screen').style.display = 'none';
+    $('main-app').style.display = 'block';
     await loadData();
   } catch(e) {
     st.textContent = e.message;
@@ -175,43 +176,44 @@ async function onFile(f) {
   try {
     const buf = await f.arrayBuffer();
     const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-    const j = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
-
     const seen = {}, legacySeen = {}, out = [];
     let bad = 0, scrap = 0;
 
-    j.forEach(r => {
-      const inv = String(r['Invoice No'] || r['Vch No'] || '').trim();
-      const part = String(r['Part No.'] || r['Item Name'] || '').trim();
-      const qty = N(r['Quantity'] || r['Qty']);
-      const dt = r['Date'];
+    wb.SheetNames.forEach(sheetName => {
+      const j = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+      j.forEach(r => {
+        const inv = String(r['Invoice No'] || r['Vch No.'] || r['Vch No'] || '').trim();
+        const part = String(r['Part No.'] || r['Item Name'] || '').trim();
+        const qty = N(r['Quantity'] || r['Qty']);
+        const dt = r['Date'];
 
-      if (!inv || !part || qty <= 0 || !(dt instanceof Date)) {
-        bad++;
-        return;
-      }
-      if (/SCRAP/i.test(part + ' ' + r['Item Name'])) {
-        scrap++;
-        return;
-      }
+        if (!inv || !part || qty <= 0 || !(dt instanceof Date)) {
+          bad++;
+          return;
+        }
+        if (/SCRAP/i.test(part + ' ' + (r['Item Name'] || ''))) {
+          scrap++;
+          return;
+        }
 
-      const unit = parseTallyUnit(r['Voucher Type'], r['Godown'] || r['Cost Centre']);
-      const base = [inv, part, String(r['Order No.'] || '').trim(), ymd(dt), unit].join('|');
-      seen[base] = (seen[base] || 0) + 1;
+        const unit = parseTallyUnit(r['Voucher Type'] || r['Vch Type'], r['Godown'] || r['Cost Centre']);
+        const base = [inv, part, String(r['Order No.'] || r['Order No'] || '').trim(), ymd(dt), unit].join('|');
+        seen[base] = (seen[base] || 0) + 1;
 
-      const legacyBase = [inv, part, qty, String(r['Order No.'] || '').trim(), ymd(dt)].join('|');
-      legacySeen[legacyBase] = (legacySeen[legacyBase] || 0) + 1;
+        const legacyBase = [inv, part, qty, String(r['Order No.'] || r['Order No'] || '').trim(), ymd(dt)].join('|');
+        legacySeen[legacyBase] = (legacySeen[legacyBase] || 0) + 1;
 
-      out.push({
-        key: base + '#' + seen[base],
-        legacyKey: legacyBase + '#' + legacySeen[legacyBase],
-        inv,
-        part,
-        qty,
-        unit,
-        date: ymd(dt),
-        party: String(r['Particulars'] || r['Party Name'] || '').trim(),
-        ship: String(r['Ship To Party'] || r['Consignee'] || '').trim()
+        out.push({
+          key: base + '#' + seen[base],
+          legacyKey: legacyBase + '#' + legacySeen[legacyBase],
+          inv,
+          part,
+          qty,
+          unit,
+          date: ymd(dt),
+          party: String(r['Particulars'] || r['Party Name'] || '').trim(),
+          ship: String(r['Ship To Party'] || r['Consignee'] || '').trim()
+        });
       });
     });
 
@@ -225,7 +227,7 @@ async function onFile(f) {
     fillMapSuggestions();
     run();
     render();
-    st.textContent = `Processed ${out.length} line items (${scrap} scrap and ${bad} headers/totals skipped).`;
+    st.textContent = `Processed ${out.length} line items across ${wb.SheetNames.length} sheet(s) (${scrap} scrap and ${bad} headers/totals skipped).`;
     st.className = 'status-msg ok';
   } catch(e) {
     st.textContent = 'Error: ' + e.message;
@@ -237,7 +239,10 @@ function fillMapSuggestions() {
   rows.forEach(r => {
     if (!map[r.party]) {
       const pClean = cleanKey(r.party);
-      const m = (data.customers || []).find(c => cleanKey(c) === pClean || cleanKey(c).includes(pClean) || pClean.includes(cleanKey(c)));
+      const m = (data.customers || []).find(c => {
+        const cClean = cleanKey(c);
+        return cClean === pClean || cClean.includes(pClean) || pClean.includes(cClean);
+      });
       if (m) map[r.party] = m;
     }
   });
@@ -393,7 +398,7 @@ function render() {
                 <td>${esc(r.unit)}</td>
                 <td>${F(r.qty)}</td>
                 <td>
-                  <select style="min-width:280px;" ${(!r.cust \vert{}\vert{} r.st==='Duplicate' \vert{}\vert{} !r.candidates.length) ? 'disabled' : ''} onchange="tySelectOrder(${i}, this.value)">
+                  <select style="min-width:280px;" ${(!r.cust || r.st==='Duplicate' || !r.candidates.length) ? 'disabled' : ''} onchange="tySelectOrder(${i}, this.value)">
                     <option value="">— Select Order —</option>
                     ${(r.candidates || []).map(o => `
                       <option value="${esc(o.OrderID)}" ${String(r.selectedOrderId)===String(o.OrderID)?'selected':''}>
@@ -403,7 +408,7 @@ function render() {
                   </select>
                 </td>
                 <td>${F(r.got)}</td>
-                <td><span class="pill ${PILL[r.st] \vert{}\vert{} 'pill-low'}">${esc(r.st)}</span></td>
+                <td><span class="pill ${PILL[r.st] || 'pill-low'}">${esc(r.st)}</span></td>
               </tr>
             `).join('')}
           </tbody>
@@ -476,7 +481,8 @@ window.tyApply = async function() {
 };
 
 if (TOKEN && SESSION) {
-  $('login-screen').style.display = 'none';$('main-app').style.display = 'block';
+  $('login-screen').style.display = 'none';
+  $('main-app').style.display = 'block';
   loadData();
 }
 </script>
