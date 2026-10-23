@@ -3593,7 +3593,7 @@ function toggleTheme(){
   });
 })();
 
-const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwShcRNmpa_tV3tGHin81fEnsAqR4uxwYyXcyBklGbCgYxAp4mVgV9GSWmGc-ZRRC3fAA/exec';
+const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyq77xCl55WruPeXGqB5k-hBwI-j_qsDP9zhRSlZ_vMfHNaI_JMyjr2Y9FwmEDVV086/exec';
 const FAST_REFRESH_DEBOUNCE = 120;
 const V2_BUILD = '2026.09.03-V3-FAST-BATCH';
 let APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
@@ -6792,20 +6792,50 @@ function render(){
  <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
 }
 window.tyApply=async function(){
- const st=$('ty-ap'),ok=rows.filter(r=>r.allocs.length&&r.got===r.qty);
+ const st=$('ty-ap');
+ if(!st){console.error('Tally import status element is missing.');return;}
+ if(window.__tallyApplyBusy){st.textContent='Tally import is already running. Please wait.';st.className='status-msg err';return;}
+ const ok=rows.filter(r=>r.allocs.length&&Number(r.got)===Number(r.qty));
+ if(!ok.length){st.textContent='No fully matched Tally lines are ready to apply. Check customer mapping, unit, part code and pending quantity.';st.className='status-msg err';return;}
  const lines=ok.map(r=>({key:r.key,date:r.date,unit:r.unit,invoice:r.inv,partNo:r.part,customer:r.cust,shipTo:r.ship||r.party,allocs:r.allocs}));
  const pairs=[...new Set(rows.filter(r=>r.cust).map(r=>r.party))].map(p=>({tally:p,mis:map[p]}));
- if(!confirm(`Record ${lines.length} Tally lines as dispatched? Orders will be updated and FG stock deducted.`))return;
- let ap=0,sk=0,q=0;const fl=[];
- for(let i=0;i<lines.length;i+=150){
-  st.textContent=`Applying ${Math.min(i+150,lines.length)} / ${lines.length}…`;st.className='status-msg';
-  const r=await postAction({action:'tallyDispatch',lines:lines.slice(i,i+150),map:i?[]:pairs});
-  if(r.error){fl.push(r.error);break}
-  ap+=r.applied;sk+=r.skipped;q+=r.qty;(r.failed||[]).forEach(x=>fl.push(x));
+ if(!confirm(`Record ${lines.length} Tally lines as dispatched? This will update orders and dispatch history.`))return;
+ window.__tallyApplyBusy=true;
+ let ap=0,sk=0,q=0;const fl=[];let attempted=0;
+ try{
+  for(let i=0;i<lines.length;i+=150){
+   const chunk=lines.slice(i,i+150);
+   st.textContent=`Applying ${Math.min(i+chunk.length,lines.length)} / ${lines.length} Tally lines…`;st.className='status-msg';
+   const r=await postAction({action:'tallyDispatch',lines:chunk,map:i===0?pairs:[]});
+   if(!r||r.error||r.ok!==true){
+    const detail=(r&&(r.validationErrors||[]).join(' • '))||((r&&r.error)||'The server did not confirm that this batch was saved.');
+    fl.push(detail);break;
+   }
+   attempted+=chunk.length;
+   ap+=Number(r.applied)||0;sk+=Number(r.skipped)||0;q+=Number(r.qty)||0;
+   (r.failed||[]).forEach(x=>fl.push(String(x)));
+  }
+  if(ap>0){
+   st.textContent=`Saved ${ap} dispatch allocation(s) (${F(q)} qty); ${sk} duplicate line(s) skipped.`+(fl.length?' Issues: '+fl.join(' • '):'');
+   st.className='status-msg '+(fl.length?'err':'ok');
+  }else{
+   st.textContent='Tally import was not confirmed as successful. '+(fl.join(' • ')||'No dispatches were saved. Check the selected orders and try again.');
+   st.className='status-msg err';
+  }
+  // Refresh is separate from the write. If refresh fails, do not imply that the
+  // dispatch write failed or encourage an unsafe blind re-apply.
+  try{await loadData(false,true);await loadState();run();render();}
+  catch(refreshErr){
+   st.textContent+=(ap>0?' Data was submitted; however, the screen refresh failed. Do not re-apply the same file until you check Dispatch History. ':' Refresh failed: ')+(refreshErr&&refreshErr.message?refreshErr.message:String(refreshErr));
+   st.className='status-msg err';
+  }
+ }catch(err){
+  st.textContent='Tally Apply failed: '+(err&&err.message?err.message:String(err))+'. Check Dispatch History before retrying in case the server completed the request.';
+  st.className='status-msg err';
+  console.error('Tally Apply error',err);
+ }finally{
+  window.__tallyApplyBusy=false;
  }
- st.innerHTML=`✓ ${ap} dispatches recorded (${F(q)} qty), ${sk} duplicate lines skipped.`+(fl.length?`<br>⚠ ${fl.length} problem(s): ${esc(fl.join(' • '))}`:'');
- st.className='status-msg '+(fl.length?'err':'ok');
- await loadData(false,true);await loadState();run();render();
 };
 
 /* hook into shell */
