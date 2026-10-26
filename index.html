@@ -6805,6 +6805,8 @@ function render(){
  // Only complete automatic matches are applied; partial lines remain blocked.
  const ok=rows.filter(r=>r.allocs.length&&r.got===r.qty),q=ok.reduce((s,r)=>s+r.got,0),parties=[...new Set(rows.map(r=>r.party))].sort(),unm=parties.filter(p=>!map[p]).length,cs=data.customers||[];
  const list=rows.map((r,i)=>({r,i})).filter(x=>!filt||x.r.st===filt).slice(0,400);
+ const ownerOnly=typeof isOwnerUI==='function'&&isOwnerUI();
+ const autoCreate=ownerOnly?rows.filter(r=>r.st==='Unmatched'&&!r.allocs.length&&r.cust&&!dup.has(r.key)&&!dup.has(r.legacyKey)):[];
  $('ty-out').innerHTML=`<div class="card"><div class="gp-kpis">${['Matched','Partial','Unmatched','No mapping','Duplicate'].map(k=>`<div class="gp-k" onclick="tyFilt('${filt===k?'':k}')"><small>${k}</small><b>${c[k]||0}</b></div>`).join('')}
  <div class="gp-k"><small>Qty to dispatch</small><b>${F(q)}</b></div></div>
  <details ${unm?'open':''} style="margin-bottom:12px"><summary><b>Customer mapping</b> ${unm?`<span class="pill pill-high">${unm} unmapped</span>`:''}</summary>
@@ -6813,9 +6815,35 @@ function render(){
  <div class="table-scroll" style="max-height:460px"><table><tr><th>Tally Date</th><th>Invoice</th><th>Customer</th><th>Part</th><th>Unit</th><th>Tally Qty</th><th>Automatic order match</th><th>Matched Qty</th><th>Status</th></tr>
  ${list.map(({r,i})=>`<tr><td>${r.date}</td><td>${esc(r.inv)}</td><td>${esc(r.cust||r.party)}</td><td>${esc(r.part)}</td><td>${esc(r.unit)}</td><td>${F(r.qty)}</td><td>${r.allocs.length?r.allocs.map(a=>{const o=(data.orders||[]).find(x=>String(x.OrderID)===String(a.orderId));return `<div>${esc(o?fmtDate(o.ScheduledDate):'Order')} · ${F(a.qty)} qty</div>`}).join(''):'—'}</td><td>${F(r.got)}</td><td><span class="pill ${PILL[r.st]||'pill-high'}">${esc(r.st)}</span></td></tr>`).join('')}</table></div>
  <div class="sub" style="margin:8px 0">Showing ${list.length} of ${rows.length}. Only fully matched lines are included in Apply. Partial lines mean the combined pending quantity across matching orders is insufficient; those lines are not applied.</div>
- <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button><div class="status-msg" id="ty-ap"></div></div>`;
+ <button class="btn-primary" ${ok.length?'':'disabled'} onclick="tyApply()">Apply ${ok.length} lines (${F(q)} qty)</button>
+ ${ownerOnly?`<div style="margin-top:14px;padding:12px;border:1px solid rgba(234,184,77,.35);border-radius:10px;background:rgba(234,184,77,.06)"><b style="color:var(--warn)">Owner-only exception</b><div class="sub" style="margin:5px 0 10px">For Tally lines with a mapped customer but no open PPC order, create a new order and record the Tally quantity as dispatched. Review customer, part code, unit, invoice and date before proceeding. Unmapped customers must be mapped first. This action is audited.</div><button class="btn-ghost" ${autoCreate.length?'':'disabled'} onclick="tyCreateUnmatched()">Create &amp; Dispatch ${autoCreate.length} unmatched lines</button></div>`:''}
+ <div class="status-msg" id="ty-ap"></div></div>`;
  $('ty-out').querySelectorAll('select[data-tally-party]').forEach(sel=>sel.addEventListener('change',function(){tyMap(this.dataset.tallyParty,this.value)}));
 }
+window.tyCreateUnmatched=async function(){
+ const st=$('ty-ap');
+ if(!(typeof isOwnerUI==='function'&&isOwnerUI())){if(st){st.textContent='Only the Owner can create and dispatch unmatched Tally lines.';st.className='status-msg err';}return;}
+ if(window.__tallyCreateBusy){if(st){st.textContent='Create & Dispatch is already running.';st.className='status-msg err';}return;}
+ const todo=rows.filter(r=>r.st==='Unmatched'&&!r.allocs.length&&r.cust&&!dup.has(r.key)&&!dup.has(r.legacyKey));
+ if(!todo.length){if(st){st.textContent='No eligible unmatched lines. Map any unmapped customers first.';st.className='status-msg err';}return;}
+ const preview=todo.slice(0,12).map(r=>`${r.inv} | ${r.cust} | ${r.part} | ${r.unit} | Qty ${F(r.qty)} | ${r.date}`).join('\n');
+ if(!confirm(`OWNER ONLY — create new PPC orders and immediately dispatch ${todo.length} unmatched Tally lines (${F(todo.reduce((a,r)=>a+r.qty,0))} total qty)?\n\nPreview (first 12):\n${preview}\n\nThis bypasses existing PPC planning for these lines. Verify the Tally register and stock impact before continuing.`))return;
+ window.__tallyCreateBusy=true;let done=0,qty=0;const errors=[];
+ try{
+  for(let i=0;i<todo.length;i++){
+   const r=todo[i];
+   st.textContent=`Owner-only create & dispatch: ${i+1} / ${todo.length}…`;st.className='status-msg';
+   const out=await postAction({action:'tallyCreatePlanDispatch',line:{key:r.key,customer:r.cust,partNo:r.part,unit:r.unit,qty:r.qty,date:r.date,invoice:r.inv,shipTo:r.ship||r.cust}});
+   if(out&&out.ok){done++;qty+=Number(out.dispatchedQty)||0;}
+   else errors.push(`${r.inv} / ${r.part}: ${(out&&out.error)||'Not confirmed saved'}`);
+  }
+  st.textContent=`Created and dispatched ${done} line(s), quantity ${F(qty)}.`+(errors.length?` Failed ${errors.length}: ${errors.slice(0,5).join(' • ')}`:'');
+  st.className='status-msg '+(errors.length?'err':'ok');
+  await loadData(false,true);await loadState();run();render();
+ }catch(e){st.textContent='Create & Dispatch stopped: '+(e&&e.message||String(e))+'. Check Dispatch History before retrying.';st.className='status-msg err';}
+ finally{window.__tallyCreateBusy=false;}
+};
+
 window.tyApply=async function(){
  const st=$('ty-ap');
  if(!st){console.error('Tally import status element is missing.');return;}
